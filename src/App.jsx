@@ -16,22 +16,21 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
 textarea{resize:vertical;min-height:80px}button{font-family:inherit;cursor:pointer}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
 @keyframes rpulse{0%,100%{opacity:1}50%{opacity:.4}}
-.report{--sf:#FFFFFF;--sf2:#F4F6F9;--bd:#DCE2EB;--bd2:#1F2A44;--tx:#1A2332;--tx2:#3E4A61;--tx3:#6B7688;--cy:#0F3D66;--cy2:#0A2C4A;--cyg:#E7EDF5;--gn:#1B7A4A;--rd:#A32C2C;--pu:#5B4B8A;--am:#8A6D1F;--r:6px;--rs:4px;background:#fff;color:var(--tx);border-radius:var(--r)}
-.report table{border-collapse:collapse;width:100%}
-.report th{font-weight:600;text-transform:uppercase;letter-spacing:.5px}
-.report .rpt-head{text-align:center;padding:28px 28px 20px;border-bottom:2px solid var(--bd2)}
-.report .rpt-co{font-family:Georgia,'Times New Roman',serif;font-size:19px;font-weight:700;letter-spacing:.2px}
-.report .rpt-rut{font-size:11px;color:var(--tx3);margin-top:3px}
-.report .rpt-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--cy);margin-top:12px}
-.report .rpt-sub{font-size:11px;color:var(--tx3);margin-top:4px}
-.report .rpt-body{padding:24px 28px 28px}
-.report .rpt-actions{display:flex;justify-content:flex-end;padding:12px 28px 0}
+.rpt-print-head{display:none}
+/* El look formal (papel blanco, encabezado tipo carta) solo se ve al
+   exportar a PDF -- en pantalla los reportes se quedan con el tema
+   oscuro normal de RADAR, sin tocar nada. */
 @media print{
   body *{visibility:hidden}
   .report,.report *{visibility:visible}
   .report{position:absolute;left:0;top:0;width:100%;padding:0;box-shadow:none}
   .no-print{display:none!important}
-  body,.report,.report *{background:#fff!important;color:#000!important;border-color:#999!important}
+  .report,.report *{background:#fff!important;color:#000!important;border-color:#999!important;box-shadow:none!important}
+  .rpt-print-head{display:block!important;text-align:center;padding:0 0 20px;border-bottom:2px solid #333;margin-bottom:20px}
+  .rpt-print-head .rpt-co{font-family:Georgia,'Times New Roman',serif;font-size:19px;font-weight:700}
+  .rpt-print-head .rpt-rut{font-size:11px;margin-top:3px}
+  .rpt-print-head .rpt-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:2px;margin-top:12px}
+  .rpt-print-head .rpt-sub{font-size:11px;margin-top:4px}
   table{page-break-inside:avoid}
 }`;
 
@@ -511,18 +510,17 @@ function F22V({ev,upd,del,emp,back}){
 const fmt=n=>n.toLocaleString("es-CL",{minimumFractionDigits:0,maximumFractionDigits:0});
 const fD=d=>{try{return new Date(d+"T12:00:00").toLocaleDateString("es-CL")}catch{return d}};
 
-// Encabezado formal compartido por todos los reportes contables (Balance,
-// EERR, Libros, etc.) -- mismo look en pantalla y al exportar a PDF, ya que
-// ".report" fija la paleta clara/corporativa en ambos casos.
+// Encabezado formal tipo carta -- solo aparece al exportar a PDF
+// (".rpt-print-head" esta oculto en pantalla); en pantalla los reportes
+// se quedan con su header normal de siempre, sin tocar nada.
 function ReportHeader({eObj,title,subtitle}){
-  return(<div className="rpt-head">
+  return(<div className="rpt-print-head">
     <div className="rpt-co">{eObj?.name||"Empresa"}</div>
     {eObj?.rut&&<div className="rpt-rut">RUT {eObj.rut}{eObj?.giro?" — "+eObj.giro:""}</div>}
     <div className="rpt-title">{title}</div>
     {subtitle&&<div className="rpt-sub">{subtitle}</div>}
   </div>);
 }
-const ReportPrintBtn=()=><div className="no-print rpt-actions"><button onClick={()=>window.print()} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx2)",fontSize:12,fontWeight:600,cursor:"pointer"}}>Exportar PDF</button></div>;
 const tpL={asset:"Activo",liability:"Pasivo",equity:"Patrimonio",income:"Ingreso",expense:"Gasto"};
 const tpC={asset:"#06B6D4",liability:"#EF4444",equity:"#8B5CF6",income:"#10B981",expense:"#F59E0B"};
 
@@ -642,11 +640,13 @@ function LDiario({empEntries,accts,eObj}){
   if(!sorted.length)return<Ey i="📖" t="Sin asientos" d="Registra asientos para ver el Libro Diario."/>;
   const tD=sorted.reduce((s,e)=>s+e.lines.reduce((ss,l)=>ss+(l.db||0),0),0);
   const tC=sorted.reduce((s,e)=>s+e.lines.reduce((ss,l)=>ss+(l.cr||0),0),0);
-  return(<div className="report">
+  return(<div className="report" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",overflow:"hidden"}}>
     <ReportHeader eObj={eObj} title="Libro Diario" subtitle={"Al "+new Date().toLocaleDateString("es-CL")}/>
-    <ReportPrintBtn/>
-    <div className="rpt-body">
-    <div style={{overflowX:"auto",border:"1px solid var(--bd)",borderRadius:"var(--rs)"}}><table style={{width:"100%",fontSize:12}}><thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:10,color:"var(--tx3)",background:"var(--sf2)"}}><th style={{textAlign:"left",padding:"8px 12px",fontWeight:500}}>Fecha</th><th style={{textAlign:"left",padding:"8px 4px",fontWeight:500}}>N</th><th style={{textAlign:"left",padding:"8px 4px",fontWeight:500}}>Cod</th><th style={{textAlign:"left",padding:"8px 4px",fontWeight:500}}>Cuenta / Glosa</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Debe</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Haber</th></tr></thead>
+    <div className="no-print" style={{padding:"16px 20px",borderBottom:"1px solid var(--bd)",background:"var(--sf2)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+      <span style={{fontSize:13,fontWeight:600}}>Libro Diario</span>
+      <button onClick={()=>window.print()} style={{padding:"6px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf)",color:"var(--tx2)",fontSize:11,fontWeight:600,cursor:"pointer"}}>Exportar PDF</button>
+    </div>
+    <div style={{overflowX:"auto"}}><table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}><thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:10,color:"var(--tx3)",background:"var(--sf2)"}}><th style={{textAlign:"left",padding:"8px 12px",fontWeight:500}}>Fecha</th><th style={{textAlign:"left",padding:"8px 4px",fontWeight:500}}>N</th><th style={{textAlign:"left",padding:"8px 4px",fontWeight:500}}>Cod</th><th style={{textAlign:"left",padding:"8px 4px",fontWeight:500}}>Cuenta / Glosa</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Debe</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Haber</th></tr></thead>
       <tbody>{sorted.map(e=>e.lines.map((l,i)=><tr key={e.id+"-"+i} style={{borderBottom:"1px solid var(--bd)"}}>
         <td style={{padding:"6px 12px",fontSize:11}}>{i===0?fD(e.date):""}</td>
         <td style={{padding:"6px 4px",fontFamily:"monospace",fontSize:10}}>{i===0?e.num:""}</td>
@@ -657,7 +657,6 @@ function LDiario({empEntries,accts,eObj}){
       </tr>))}
         <tr style={{borderTop:"2px solid var(--bd2)",background:"var(--sf2)",fontWeight:700}}><td colSpan={4} style={{padding:"10px 12px",textAlign:"right",fontSize:11,textTransform:"uppercase",letterSpacing:1}}>Totales</td><td style={{padding:"10px 12px",textAlign:"right",fontFamily:"monospace"}}>${fmt(tD)}</td><td style={{padding:"10px 12px",textAlign:"right",fontFamily:"monospace"}}>${fmt(tC)}</td></tr>
       </tbody></table></div>
-    </div>
   </div>);
 }
 
@@ -677,17 +676,16 @@ function Balance({empEntries,accts,leafAccts,eObj}){
     <div style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:13,fontWeight:700,padding:"10px 0",borderTop:"2px solid var(--bd2)",marginTop:4}}><span>TOTAL {title.toUpperCase()}</span><span style={{textAlign:"right",fontFamily:"monospace"}}>${fmt(total)}</span></div>
   </div>;
 
-  return(<div className="report" style={{maxWidth:760}}>
+  return(<div className="report" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:28,maxWidth:700}}>
     <ReportHeader eObj={eObj} title="Balance General" subtitle={"Al "+new Date().toLocaleDateString("es-CL")}/>
-    <ReportPrintBtn/>
-    <div className="rpt-body">
+    <div className="no-print" style={{display:"flex",justifyContent:"flex-end",marginBottom:8}}><button onClick={()=>window.print()} style={{padding:"6px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx2)",fontSize:11,fontWeight:600,cursor:"pointer"}}>Exportar PDF</button></div>
+    <div className="no-print" style={{textAlign:"center",marginBottom:24}}><div style={{fontSize:18,fontWeight:700}}>{eObj?.name}</div><div style={{fontSize:13,color:"var(--tx3)"}}>Balance General</div><div style={{fontSize:11,color:"var(--tx3)"}}>Al {new Date().toLocaleDateString("es-CL")}</div></div>
     <div style={{display:"flex",flexDirection:"column",gap:24}}>
       <BSec title="Activos" groups={assets} total={tA} color="var(--cy)"/>
       <BSec title="Pasivos" groups={liabs} total={tL} color="var(--rd)"/>
       <BSec title="Patrimonio" groups={eq} total={tE} color="var(--pu)"/>
       <div style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:14,fontWeight:700,padding:"12px 0",borderTop:"3px double var(--bd2)",color:Math.abs(tA-tPE)<1?"var(--gn)":"var(--rd)"}}><span>TOTAL PASIVOS + PATRIMONIO</span><span style={{textAlign:"right",fontFamily:"monospace"}}>${fmt(tPE)}</span></div>
-      {Math.abs(tA-tPE)>=1&&<div style={{background:"rgba(163,44,44,.08)",border:"1px solid rgba(163,44,44,.25)",borderRadius:"var(--rs)",padding:12,fontSize:11,color:"var(--rd)"}}>Descuadre: Activos (${fmt(tA)}) vs Pasivos+Patrimonio (${fmt(tPE)}). Diferencia: ${fmt(tA-tPE)}</div>}
-    </div>
+      {Math.abs(tA-tPE)>=1&&<div style={{background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.2)",borderRadius:"var(--rs)",padding:12,fontSize:11,color:"var(--rd)"}}>Descuadre: Activos (${fmt(tA)}) vs Pasivos+Patrimonio (${fmt(tPE)}). Diferencia: ${fmt(tA-tPE)}</div>}
     </div>
   </div>);
 }
@@ -700,10 +698,10 @@ function EERR({empEntries,accts,leafAccts,eObj}){
   const mkSec=tp=>{const l2=accts.filter(a=>a.tp===tp&&a.lv===2);return l2.map(g=>{const ch=leafAccts.filter(a=>a.tp===tp&&a.cd.startsWith(g.cd+"."));const items=ch.map(c=>({cd:c.cd,nm:c.nm,bal:getB(c.cd,tp)})).filter(c=>c.bal!==0);return{grp:g.nm,items,sub:items.reduce((s,c)=>s+c.bal,0)}}).filter(g=>g.items.length>0)};
   const inc=mkSec("income");const exp=mkSec("expense");
   const tI=inc.reduce((s,g)=>s+g.sub,0);const tE=exp.reduce((s,g)=>s+g.sub,0);const net=tI-tE;
-  return(<div className="report" style={{maxWidth:760}}>
+  return(<div className="report" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:28,maxWidth:700}}>
     <ReportHeader eObj={eObj} title="Estado de Resultados" subtitle={"Al "+new Date().toLocaleDateString("es-CL")}/>
-    <ReportPrintBtn/>
-    <div className="rpt-body">
+    <div className="no-print" style={{display:"flex",justifyContent:"flex-end",marginBottom:8}}><button onClick={()=>window.print()} style={{padding:"6px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx2)",fontSize:11,fontWeight:600,cursor:"pointer"}}>Exportar PDF</button></div>
+    <div className="no-print" style={{textAlign:"center",marginBottom:24}}><div style={{fontSize:18,fontWeight:700}}>{eObj?.name}</div><div style={{fontSize:13,color:"var(--tx3)"}}>Estado de Resultados</div><div style={{fontSize:11,color:"var(--tx3)"}}>Al {new Date().toLocaleDateString("es-CL")}</div></div>
     <div><div style={{fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:12,color:"var(--gn)"}}>Ingresos</div>
       {inc.map((g,i)=><div key={i} style={{marginBottom:8}}><div style={{fontSize:11,fontWeight:600,color:"var(--tx2)",paddingLeft:8,marginBottom:4}}>{g.grp}</div>
         {g.items.map((it,j)=><div key={j} style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:12,padding:"3px 0 3px 24px"}}><span style={{color:"var(--tx2)"}}>{it.nm}</span><span style={{textAlign:"right",fontFamily:"monospace"}}>${fmt(it.bal)}</span></div>)}</div>)}
@@ -715,7 +713,6 @@ function EERR({empEntries,accts,leafAccts,eObj}){
       <div style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:13,fontWeight:700,padding:"10px 0",borderTop:"2px solid var(--bd2)"}}><span>TOTAL COSTOS Y GASTOS</span><span style={{textAlign:"right",fontFamily:"monospace"}}>(${fmt(tE)})</span></div>
     </div>
     <div style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:15,fontWeight:700,padding:"14px 0",borderTop:"3px double var(--bd2)",marginTop:16,color:net>=0?"var(--gn)":"var(--rd)"}}><span>{net>=0?"UTILIDAD":"PERDIDA"} DEL EJERCICIO</span><span style={{textAlign:"right",fontFamily:"monospace"}}>${fmt(net)}</span></div>
-    </div>
   </div>);
 }
 
@@ -732,14 +729,15 @@ function LMayor({empEntries,accts,leafAccts,eObj}){
       <label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:8,fontWeight:500}}>Seleccionar cuenta</label>
       <select value={sel} onChange={e=>setSel(e.target.value)} style={{maxWidth:400}}><option value="">-- Seleccionar --</option>{used.map(a=><option key={a.cd} value={a.cd}>{a.cd} - {a.nm}</option>)}</select>
     </div>
-    {sel&&<div className="report">
+    {sel&&<div className="report" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",overflow:"hidden"}}>
       <ReportHeader eObj={eObj} title="Libro Mayor" subtitle={sel+" — "+am[sel]+" · Naturaleza "+(isDeb?"Deudora":"Acreedora")}/>
-      <ReportPrintBtn/>
-      <div className="rpt-body">
-      {movesWithBal.length===0?<div style={{padding:24,textAlign:"center",color:"var(--tx3)",fontSize:13}}>Sin movimientos.</div>
-      :<div style={{overflowX:"auto",border:"1px solid var(--bd)",borderRadius:"var(--rs)"}}><table style={{width:"100%",fontSize:12}}><thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:10,color:"var(--tx3)",background:"var(--sf2)"}}><th style={{textAlign:"left",padding:"8px 12px",fontWeight:500}}>Fecha</th><th style={{textAlign:"left",padding:"8px 4px",fontWeight:500}}>N</th><th style={{textAlign:"left",padding:"8px 4px",fontWeight:500}}>Glosa</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Debe</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Haber</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Saldo</th></tr></thead>
-        <tbody>{movesWithBal.map((m,i)=><tr key={i} style={{borderBottom:"1px solid var(--bd)"}}><td style={{padding:"6px 12px",fontSize:11}}>{fD(m.date)}</td><td style={{padding:"6px 4px",fontFamily:"monospace",fontSize:10}}>{m.num}</td><td style={{padding:"6px 4px"}}>{m.desc}</td><td style={{padding:"6px 12px",textAlign:"right",fontFamily:"monospace"}}>{m.db>0?"$"+fmt(m.db):""}</td><td style={{padding:"6px 12px",textAlign:"right",fontFamily:"monospace"}}>{m.cr>0?"$"+fmt(m.cr):""}</td><td style={{padding:"6px 12px",textAlign:"right",fontFamily:"monospace",fontWeight:600,color:m.bal<0?"var(--rd)":"var(--tx)"}}>${fmt(m.bal)}</td></tr>)}</tbody></table></div>}
+      <div className="no-print" style={{padding:"12px 20px",borderBottom:"1px solid var(--bd)",background:"var(--sf2)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div><div style={{fontSize:13,fontWeight:600}}>{sel} — {am[sel]}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Naturaleza: {isDeb?"Deudora":"Acreedora"}</div></div>
+        <button onClick={()=>window.print()} style={{padding:"6px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf)",color:"var(--tx2)",fontSize:11,fontWeight:600,cursor:"pointer"}}>Exportar PDF</button>
       </div>
+      {movesWithBal.length===0?<div style={{padding:24,textAlign:"center",color:"var(--tx3)",fontSize:13}}>Sin movimientos.</div>
+      :<div style={{overflowX:"auto"}}><table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}><thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:10,color:"var(--tx3)",background:"var(--sf2)"}}><th style={{textAlign:"left",padding:"8px 12px",fontWeight:500}}>Fecha</th><th style={{textAlign:"left",padding:"8px 4px",fontWeight:500}}>N</th><th style={{textAlign:"left",padding:"8px 4px",fontWeight:500}}>Glosa</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Debe</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Haber</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Saldo</th></tr></thead>
+        <tbody>{movesWithBal.map((m,i)=><tr key={i} style={{borderBottom:"1px solid var(--bd)"}}><td style={{padding:"6px 12px",fontSize:11}}>{fD(m.date)}</td><td style={{padding:"6px 4px",fontFamily:"monospace",fontSize:10}}>{m.num}</td><td style={{padding:"6px 4px"}}>{m.desc}</td><td style={{padding:"6px 12px",textAlign:"right",fontFamily:"monospace"}}>{m.db>0?"$"+fmt(m.db):""}</td><td style={{padding:"6px 12px",textAlign:"right",fontFamily:"monospace"}}>{m.cr>0?"$"+fmt(m.cr):""}</td><td style={{padding:"6px 12px",textAlign:"right",fontFamily:"monospace",fontWeight:600,color:m.bal<0?"var(--rd)":"var(--tx)"}}>${fmt(m.bal)}</td></tr>)}</tbody></table></div>}
     </div>}
   </div>);
 }
@@ -994,7 +992,13 @@ function LibroCV({empEntries,tipo,eObj}){
   const limpiarTodo=()=>{setFiltroAno("todos");setFiltroMes("todos");setFFolio("");setFRut("");setFRazon("");setFTipoDoc("todos");setFNetoMin("");setFNetoMax("");setFIvaMin("");setFIvaMax("");setFTotalMin("");setFTotalMax("")};
 
   return(<div>
-    <div className="no-print" style={{fontSize:12,color:"var(--tx3)",marginBottom:16}}>Agrupado por periodo tributario (mes ante el SII), que puede ser distinto al mes de la fecha de emision de cada documento.</div>
+    <div className="no-print" style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,flexWrap:"wrap"}}>
+      <div>
+        <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>{tipo==="compra"?"Libro de Compras":"Libro de Ventas"}</div>
+        <div style={{fontSize:12,color:"var(--tx3)",marginBottom:16}}>Agrupado por periodo tributario (mes ante el SII), que puede ser distinto al mes de la fecha de emision de cada documento.</div>
+      </div>
+      <button onClick={()=>window.print()} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx2)",fontSize:12,fontWeight:600,cursor:"pointer"}}>Exportar PDF</button>
+    </div>
 
     <div className="no-print" style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap",marginBottom:12}}>
       <select value={filtroAno} onChange={e=>setFiltroAno(e.target.value)} style={selStyle}>
@@ -1027,8 +1031,6 @@ function LibroCV({empEntries,tipo,eObj}){
 
     <div className="report">
     <ReportHeader eObj={eObj} title={tipo==="compra"?"Libro de Compras":"Libro de Ventas"} subtitle={periodoSel?fmtPeriodo(periodoSel):"Todos los periodos"}/>
-    <ReportPrintBtn/>
-    <div className="rpt-body">
 
     {grupos.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:20}}>
       <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700}}>{granTotal.docs}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Documentos</div></div>
@@ -1106,7 +1108,6 @@ function LibroCV({empEntries,tipo,eObj}){
         </tr></tfoot>
       </table></div>}
     </div>)})}
-    </div>
     </div>
   </div>);
 }
@@ -1240,11 +1241,13 @@ function B8Col({empEntries,accts,leafAccts,eObj}){
     }).filter(Boolean);
   },[empEntries,leafAccts]);
   const tot=(f)=>rows.reduce((s,r)=>s+(r[f]||0),0);
-  return(<div className="report">
+  return(<div className="report" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",overflow:"hidden"}}>
     <ReportHeader eObj={eObj} title="Balance de 8 Columnas" subtitle={"Al "+new Date().toLocaleDateString("es-CL")}/>
-    <ReportPrintBtn/>
-    <div className="rpt-body">
-    <div style={{overflowX:"auto",border:"1px solid var(--bd)",borderRadius:"var(--rs)"}}><table style={{width:"100%",fontSize:11,minWidth:800}}>
+    <div className="no-print" style={{padding:"16px 20px",borderBottom:"1px solid var(--bd)",background:"var(--sf2)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+      <div><div style={{fontSize:14,fontWeight:600}}>{eObj?.name} — Balance de 8 Columnas</div><div style={{fontSize:11,color:"var(--tx3)"}}>Al {new Date().toLocaleDateString("es-CL")}</div></div>
+      <button onClick={()=>window.print()} style={{padding:"6px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf)",color:"var(--tx2)",fontSize:11,fontWeight:600,cursor:"pointer"}}>Exportar PDF</button>
+    </div>
+    <div style={{overflowX:"auto"}}><table style={{width:"100%",fontSize:11,borderCollapse:"collapse",minWidth:800}}>
       <thead><tr style={{background:"var(--sf2)",borderBottom:"1px solid var(--bd)"}}>
         <th rowSpan={2} style={{textAlign:"left",padding:"8px 12px",fontWeight:600,fontSize:10,color:"var(--tx3)",borderRight:"1px solid var(--bd)"}}>Cuenta</th>
         <th colSpan={2} style={{textAlign:"center",padding:"4px 8px",fontWeight:600,fontSize:10,color:"var(--cy)",borderRight:"1px solid var(--bd)",borderBottom:"1px solid var(--bd)"}}>SUMAS</th>
@@ -1282,7 +1285,6 @@ function B8Col({empEntries,accts,leafAccts,eObj}){
         </tr>
       </tbody>
     </table></div>
-    </div>
   </div>);
 }
 
