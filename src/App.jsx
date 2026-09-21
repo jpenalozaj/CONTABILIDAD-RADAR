@@ -701,11 +701,13 @@ function LMayor({empEntries,accts,leafAccts}){
 // ═══ CSV SII (Compras/Ventas) ═══
 function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog}){
   const [result,setResult]=useState(null);
+  const [periodo,setPeriodo]=useState("");
+  const [autoBusy,setAutoBusy]=useState(null);
   const nxtNum=useMemo(()=>{const ns=empEntries.map(e=>parseInt(e.num)||0);return Math.max(0,...ns)+1},[empEntries]);
-  const processCSV=(file,tipo)=>{const rd=new FileReader();rd.onload=ev=>{try{
-    const rows=ev.target.result.split("\n").filter(r=>r.trim());
+  const processCSVText=(text,tipo)=>{try{
+    const rows=text.split("\n").filter(r=>r.trim());
     if(rows.length<2){setResult({ok:false,msg:"Archivo vacio o sin datos"});return}
-    const hdr=rows[0].toLowerCase();const isCompra=tipo==="compra";
+    const isCompra=tipo==="compra";
     const dataRows=rows.slice(1);const imported=[];let n=nxtNum;
     const ivaAc=isCompra?"1.1.03.001":"2.1.02.001";const ctpAc=isCompra?"1.1.05.001":"4.1.01.001";const tpAc=isCompra?"2.1.01.001":"1.1.02.001";
     dataRows.forEach(row=>{
@@ -726,12 +728,34 @@ function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog}){
     });
     if(imported.length>0){setEntries(p=>[...p,...imported]);aLog("CSV "+tipo+" importado",imported.length+" asientos - "+eObj.name);setResult({ok:true,msg:imported.length+" asientos importados de "+dataRows.length+" registros"})}
     else setResult({ok:false,msg:"No se pudieron importar asientos. Verifica el formato del CSV."})
-  }catch(err){setResult({ok:false,msg:"Error: "+err.message})}};rd.readAsText(file)};
+  }catch(err){setResult({ok:false,msg:"Error: "+err.message})}};
+  const processCSV=(file,tipo)=>{const rd=new FileReader();rd.onload=ev=>processCSVText(ev.target.result,tipo);rd.readAsText(file)};
+  const importarAuto=async(tipo)=>{
+    if(!/^\d{6}$/.test(periodo)){setResult({ok:false,msg:"Ingresa el periodo en formato AAAAMM, ej: 202605"});return}
+    setAutoBusy(tipo);setResult(null);
+    try{
+      const resp=await fetch(`http://localhost:4001/export?periodo=${periodo}&tipo=${tipo}`);
+      const text=await resp.text();
+      if(!resp.ok)throw new Error(text||("HTTP "+resp.status));
+      processCSVText(text,tipo);
+    }catch(err){
+      setResult({ok:false,msg:"No se pudo conectar al puente local del SII. Corre 'node tools/sii-local-server.mjs' en tu computador (ver tools/README.md) y vuelve a intentar. ("+err.message+")"});
+    }finally{setAutoBusy(null)}
+  };
 
   return(<div>
     <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:24,marginBottom:16}}>
-      <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Carga de Libros SII</div>
-      <div style={{fontSize:12,color:"var(--tx3)",marginBottom:20}}>Sube el CSV descargado del SII. Las compras se contabilizan como: Gastos por Clasificar (debe) + IVA CF (debe) / Proveedores (haber). Las ventas como: Clientes (debe) / Ventas (haber) + IVA DF (haber).</div>
+      <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Importar automatico desde el SII</div>
+      <div style={{fontSize:12,color:"var(--tx3)",marginBottom:16}}>Requiere el puente local corriendo en tu computador: <code>node tools/sii-local-server.mjs</code> (despues de <code>sii auth login</code>). Ver <code>tools/README.md</code> para instalarlo.</div>
+      <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap"}}>
+        <input value={periodo} onChange={e=>setPeriodo(e.target.value.replace(/\D/g,"").slice(0,6))} placeholder="Periodo AAAAMM, ej: 202605" style={{padding:"8px 12px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx)",fontSize:13,width:200}}/>
+        <button onClick={()=>importarAuto("compra")} disabled={!!autoBusy} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--cy)",color:"#fff",fontSize:12,fontWeight:600,cursor:autoBusy?"default":"pointer",opacity:autoBusy?.6:1}}>{autoBusy==="compra"?"Importando...":"Importar Compras"}</button>
+        <button onClick={()=>importarAuto("venta")} disabled={!!autoBusy} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--pu)",color:"#fff",fontSize:12,fontWeight:600,cursor:autoBusy?"default":"pointer",opacity:autoBusy?.6:1}}>{autoBusy==="venta"?"Importando...":"Importar Ventas"}</button>
+      </div>
+    </div>
+    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:24,marginBottom:16}}>
+      <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Carga manual de Libros SII</div>
+      <div style={{fontSize:12,color:"var(--tx3)",marginBottom:20}}>O sube el CSV descargado del SII a mano. Las compras se contabilizan como: Gastos por Clasificar (debe) + IVA CF (debe) / Proveedores (haber). Las ventas como: Clientes (debe) / Ventas (haber) + IVA DF (haber).</div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
         <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:20,textAlign:"center"}}>
           <div style={{fontSize:28,marginBottom:8}}>📥</div>
