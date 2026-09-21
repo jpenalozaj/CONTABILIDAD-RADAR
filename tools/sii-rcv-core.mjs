@@ -57,7 +57,9 @@ export async function fetchRcvCsv(periodo, tipo) {
   // "exento" va aparte de "neto": un documento no afecto/exento (ej. tipo 34)
   // no tiene IVA pero si un monto que hay que contabilizar igual — antes se
   // perdia silenciosamente porque el importador de RADAR solo miraba neto/iva.
-  const rows = [["fecha", "rut", "razon_social", "folio", "neto", "exento", "iva", "total"]];
+  // "codigoTipoDoc" (33 Factura, 34 Exenta, 61 Nota de Credito, etc.) deja
+  // filtrar por tipo de documento dentro de RADAR.
+  const rows = [["fecha", "rut", "razon_social", "folio", "neto", "exento", "iva", "total", "tipo_doc"]];
   for (const d of docs) {
     rows.push([
       normFecha(d.fechaEmision),
@@ -68,6 +70,7 @@ export async function fetchRcvCsv(periodo, tipo) {
       d.montoExento ?? 0,
       d.montoIva ?? 0,
       d.montoTotal ?? 0,
+      d.codigoTipoDoc ?? "",
     ]);
   }
 

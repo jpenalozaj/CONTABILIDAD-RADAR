@@ -15,7 +15,15 @@ input::placeholder,textarea::placeholder{color:var(--tx3)}
 select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:16px;padding-right:36px}
 textarea{resize:vertical;min-height:80px}button{font-family:inherit;cursor:pointer}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
-@keyframes rpulse{0%,100%{opacity:1}50%{opacity:.4}}`;
+@keyframes rpulse{0%,100%{opacity:1}50%{opacity:.4}}
+@media print{
+  body *{visibility:hidden}
+  .libro-print,.libro-print *{visibility:visible}
+  .libro-print{position:absolute;left:0;top:0;width:100%;padding:0}
+  .no-print{display:none!important}
+  body,.libro-print,.libro-print *{background:#fff!important;color:#000!important;border-color:#999!important}
+  table{page-break-inside:avoid}
+}`;
 
 function ld(k,fb){try{const r=localStorage.getItem(k);return r?JSON.parse(r):fb}catch{return fb}}
 function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){console.error(e)}}
@@ -723,9 +731,10 @@ function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog}){
       // "exento" (documentos no afectos/exentos, ej. tipo 34) no tiene IVA
       // pero si un monto a contabilizar -- si solo se mira neto/iva, esos
       // documentos quedan con menos de 2 lineas y se descartan en silencio.
-      let neto=0,exento=0,iva=0,total=0,fecha="",rut="",razon="",folio="";
+      let neto=0,exento=0,iva=0,total=0,fecha="",rut="",razon="",folio="",tipoDocCod="";
       const toNum=s=>parseInt((s||"").replace(/\./g,"").replace(/,/g,""))||0;
       if(c.length>=13){fecha=c[5]||"";rut=c[1]||"";razon=c[2]||"";folio=c[3]||"";neto=toNum(c[7]);iva=toNum(c[9]);total=toNum(c[12])}
+      else if(c.length>=9){fecha=c[0]||"";rut=c[1]||"";razon=c[2]||"";folio=c[3]||"";neto=toNum(c[4]);exento=toNum(c[5]);iva=toNum(c[6]);total=toNum(c[7]);tipoDocCod=c[8]||""}
       else if(c.length>=8){fecha=c[0]||"";rut=c[1]||"";razon=c[2]||"";folio=c[3]||"";neto=toNum(c[4]);exento=toNum(c[5]);iva=toNum(c[6]);total=toNum(c[7])}
       else{fecha=c[0]||"";rut=c[1]||"";razon=c[2]||"";folio=c[3]||"";neto=toNum(c[4]);iva=toNum(c[5]);total=toNum(c[6])}
       if(!total)total=neto+exento+iva;
@@ -739,7 +748,7 @@ function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog}){
       const lines=[];
       if(isCompra){if(netoExento>0)lines.push({ac:ctpAc,db:netoExento,cr:0});if(iva>0)lines.push({ac:ivaAc,db:Math.abs(iva),cr:0});lines.push({ac:tpAc,db:0,cr:Math.abs(total)})}
       else{lines.push({ac:tpAc,db:Math.abs(total),cr:0});if(netoExento>0)lines.push({ac:ctpAc,db:0,cr:netoExento});if(iva>0)lines.push({ac:ivaAc,db:0,cr:Math.abs(iva)})}
-      if(lines.length>=2)imported.push({id:uid(),empresaId:eObj.id,num:String(n++).padStart(4,"0"),date:dt,desc:glosa,lines,rut:rut,folio:folio,razonSocial:razon,tipoDoc:isCompra?"compra":"venta",periodo:periodoTrib||dt.slice(0,7).replace("-",""),neto:Math.abs(neto),exento:Math.abs(exento),iva:Math.abs(iva),total:Math.abs(total)});
+      if(lines.length>=2)imported.push({id:uid(),empresaId:eObj.id,num:String(n++).padStart(4,"0"),date:dt,desc:glosa,lines,rut:rut,folio:folio,razonSocial:razon,tipoDoc:isCompra?"compra":"venta",tipoDocCod:tipoDocCod,periodo:periodoTrib||dt.slice(0,7).replace("-",""),neto:Math.abs(neto),exento:Math.abs(exento),iva:Math.abs(iva),total:Math.abs(total)});
     });
     if(imported.length>0){
       // Reimportar el mismo periodo (ej. para corregir un bug de un import
@@ -839,25 +848,54 @@ function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog}){
 // Libro de Compras/Ventas debe reflejar el mes tributario, no la fecha del
 // papel.
 const MESES=[["01","Enero"],["02","Febrero"],["03","Marzo"],["04","Abril"],["05","Mayo"],["06","Junio"],["07","Julio"],["08","Agosto"],["09","Septiembre"],["10","Octubre"],["11","Noviembre"],["12","Diciembre"]];
+const TIPO_DOC_LABELS={"33":"Factura Electronica","34":"Factura No Afecta o Exenta Electronica","39":"Boleta Electronica","41":"Boleta Exenta Electronica","46":"Factura de Compra Electronica","56":"Nota de Debito Electronica","61":"Nota de Credito Electronica","110":"Factura de Exportacion","111":"Nota de Debito de Exportacion","112":"Nota de Credito de Exportacion"};
 
 function LibroCV({empEntries,tipo}){
   const [filtroAno,setFiltroAno]=useState("todos");
   const [filtroMes,setFiltroMes]=useState("todos");
+  const [fFolio,setFFolio]=useState("");
+  const [fRut,setFRut]=useState("");
+  const [fRazon,setFRazon]=useState("");
+  const [fTipoDoc,setFTipoDoc]=useState("todos");
+  const [fNetoMin,setFNetoMin]=useState("");
+  const [fNetoMax,setFNetoMax]=useState("");
+  const [fIvaMin,setFIvaMin]=useState("");
+  const [fIvaMax,setFIvaMax]=useState("");
+  const [fTotalMin,setFTotalMin]=useState("");
+  const [fTotalMax,setFTotalMax]=useState("");
   const [cerrados,setCerrados]=useState(()=>new Set());
   const [rcvOficial,setRcvOficial]=useState(null);
   const [rcvBusy,setRcvBusy]=useState(false);
   const [rcvErr,setRcvErr]=useState(null);
   const fmtPeriodo=p=>{if(!/^\d{6}$/.test(p))return p||"Sin periodo";const mm=MESES.find(m=>m[0]===p.slice(4,6));return(mm?mm[1]:p.slice(4,6))+" "+p.slice(0,4)};
+  const fmtTipoDoc=cod=>cod?(TIPO_DOC_LABELS[cod]||"Tipo "+cod)+" ("+cod+")":"—";
   const toggle=p=>setCerrados(prev=>{const n=new Set(prev);n.has(p)?n.delete(p):n.add(p);return n});
 
+  const docsBase=useMemo(()=>empEntries.filter(e=>e.tipoDoc===tipo),[empEntries,tipo]);
+  const tiposPresentes=useMemo(()=>[...new Set(docsBase.map(d=>d.tipoDocCod).filter(Boolean))].sort(),[docsBase]);
+
+  const hayFiltroTexto=fFolio||fRut||fRazon||fTipoDoc!=="todos"||fNetoMin||fNetoMax||fIvaMin||fIvaMax||fTotalMin||fTotalMax;
+  const docsFiltrados=useMemo(()=>docsBase.filter(d=>{
+    if(fFolio&&!String(d.folio||"").toLowerCase().includes(fFolio.toLowerCase()))return false;
+    if(fRut&&!String(d.rut||"").toLowerCase().includes(fRut.toLowerCase()))return false;
+    if(fRazon&&!String(d.razonSocial||"").toLowerCase().includes(fRazon.toLowerCase()))return false;
+    if(fTipoDoc!=="todos"&&(d.tipoDocCod||"")!==fTipoDoc)return false;
+    if(fNetoMin&&(d.neto||0)<parseFloat(fNetoMin))return false;
+    if(fNetoMax&&(d.neto||0)>parseFloat(fNetoMax))return false;
+    if(fIvaMin&&(d.iva||0)<parseFloat(fIvaMin))return false;
+    if(fIvaMax&&(d.iva||0)>parseFloat(fIvaMax))return false;
+    if(fTotalMin&&(d.total||0)<parseFloat(fTotalMin))return false;
+    if(fTotalMax&&(d.total||0)>parseFloat(fTotalMax))return false;
+    return true;
+  }),[docsBase,fFolio,fRut,fRazon,fTipoDoc,fNetoMin,fNetoMax,fIvaMin,fIvaMax,fTotalMin,fTotalMax]);
+
   const todosGrupos=useMemo(()=>{
-    const docs=empEntries.filter(e=>e.tipoDoc===tipo);
     const m=new Map();
     // Documentos importados antes de que se guardara "periodo" no lo tienen
     // -- se usa el mes de la fecha de emision como respaldo para que no
     // desaparezcan al filtrar por año/mes (no es igual de exacto que el
     // periodo tributario real, pero es mejor que perderlos del filtro).
-    docs.forEach(d=>{const p=d.periodo||(/^\d{4}-\d{2}/.test(d.date||"")?d.date.slice(0,7).replace("-",""):"Sin periodo");if(!m.has(p))m.set(p,[]);m.get(p).push(d)});
+    docsFiltrados.forEach(d=>{const p=d.periodo||(/^\d{4}-\d{2}/.test(d.date||"")?d.date.slice(0,7).replace("-",""):"Sin periodo");if(!m.has(p))m.set(p,[]);m.get(p).push(d)});
     return[...m.entries()].sort((a,b)=>b[0].localeCompare(a[0])).map(([periodo,rows])=>({
       periodo,
       rows:rows.slice().sort((a,b)=>a.date.localeCompare(b.date)||(parseInt(a.folio)||0)-(parseInt(b.folio)||0)),
@@ -866,9 +904,9 @@ function LibroCV({empEntries,tipo}){
       iva:rows.reduce((s,r)=>s+(r.iva||0),0),
       total:rows.reduce((s,r)=>s+(r.total||0),0),
     }));
-  },[empEntries,tipo]);
+  },[docsFiltrados]);
 
-  const anos=useMemo(()=>[...new Set(todosGrupos.filter(g=>/^\d{6}$/.test(g.periodo)).map(g=>g.periodo.slice(0,4)))].sort((a,b)=>b.localeCompare(a)),[todosGrupos]);
+  const anos=useMemo(()=>[...new Set(docsBase.map(d=>d.periodo||(/^\d{4}-\d{2}/.test(d.date||"")?d.date.slice(0,7).replace("-",""):"")).filter(p=>/^\d{6}$/.test(p)).map(p=>p.slice(0,4)))].sort((a,b)=>b.localeCompare(a)),[docsBase]);
 
   const grupos=useMemo(()=>todosGrupos.filter(g=>{
     if(filtroAno==="todos"&&filtroMes==="todos")return true;
@@ -916,11 +954,19 @@ function LibroCV({empEntries,tipo}){
   const selStyle={padding:"8px 12px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx)",fontSize:13};
   const ivaLabel=tipo==="compra"?"IVA Recuperable":"IVA Debito Fiscal";
 
-  return(<div>
-    <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>{tipo==="compra"?"Libro de Compras":"Libro de Ventas"}</div>
-    <div style={{fontSize:12,color:"var(--tx3)",marginBottom:16}}>Agrupado por periodo tributario (mes ante el SII), que puede ser distinto al mes de la fecha de emision de cada documento.</div>
+  const limpiarInput={padding:"8px 12px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx)",fontSize:13,width:130};
+  const limpiarTodo=()=>{setFiltroAno("todos");setFiltroMes("todos");setFFolio("");setFRut("");setFRazon("");setFTipoDoc("todos");setFNetoMin("");setFNetoMax("");setFIvaMin("");setFIvaMax("");setFTotalMin("");setFTotalMax("")};
 
-    <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap",marginBottom:16}}>
+  return(<div>
+    <div className="no-print" style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,flexWrap:"wrap"}}>
+      <div>
+        <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>{tipo==="compra"?"Libro de Compras":"Libro de Ventas"}</div>
+        <div style={{fontSize:12,color:"var(--tx3)",marginBottom:16}}>Agrupado por periodo tributario (mes ante el SII), que puede ser distinto al mes de la fecha de emision de cada documento.</div>
+      </div>
+      <button onClick={()=>window.print()} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx2)",fontSize:12,fontWeight:600,cursor:"pointer"}}>Exportar PDF</button>
+    </div>
+
+    <div className="no-print" style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap",marginBottom:12}}>
       <select value={filtroAno} onChange={e=>setFiltroAno(e.target.value)} style={selStyle}>
         <option value="todos">Todos los años</option>
         {anos.map(a=><option key={a} value={a}>{a}</option>)}
@@ -929,9 +975,27 @@ function LibroCV({empEntries,tipo}){
         <option value="todos">Todos los meses</option>
         {MESES.map(([v,l])=><option key={v} value={v}>{l}</option>)}
       </select>
-      {(filtroAno!=="todos"||filtroMes!=="todos")&&<button onClick={()=>{setFiltroAno("todos");setFiltroMes("todos")}} style={{padding:"8px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"transparent",color:"var(--tx3)",fontSize:12,cursor:"pointer"}}>Limpiar filtro</button>}
       {periodoSel&&<button onClick={compararRCV} disabled={rcvBusy} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--pu)",color:"#fff",fontSize:12,fontWeight:600,cursor:rcvBusy?"default":"pointer",opacity:rcvBusy?.6:1}}>{rcvBusy?"Consultando SII...":"Comparar con RCV oficial"}</button>}
     </div>
+
+    <div className="no-print" style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap",marginBottom:16,background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:12}}>
+      <input value={fFolio} onChange={e=>setFFolio(e.target.value)} placeholder="Folio" style={limpiarInput}/>
+      <input value={fRut} onChange={e=>setFRut(e.target.value)} placeholder="RUT" style={limpiarInput}/>
+      <input value={fRazon} onChange={e=>setFRazon(e.target.value)} placeholder="Razon social" style={{...limpiarInput,width:180}}/>
+      <select value={fTipoDoc} onChange={e=>setFTipoDoc(e.target.value)} style={{...selStyle,width:220}}>
+        <option value="todos">Todos los tipos de documento</option>
+        {tiposPresentes.map(c=><option key={c} value={c}>{fmtTipoDoc(c)}</option>)}
+      </select>
+      <input value={fNetoMin} onChange={e=>setFNetoMin(e.target.value)} placeholder="Neto min" type="number" style={limpiarInput}/>
+      <input value={fNetoMax} onChange={e=>setFNetoMax(e.target.value)} placeholder="Neto max" type="number" style={limpiarInput}/>
+      <input value={fIvaMin} onChange={e=>setFIvaMin(e.target.value)} placeholder="IVA min" type="number" style={limpiarInput}/>
+      <input value={fIvaMax} onChange={e=>setFIvaMax(e.target.value)} placeholder="IVA max" type="number" style={limpiarInput}/>
+      <input value={fTotalMin} onChange={e=>setFTotalMin(e.target.value)} placeholder="Total min" type="number" style={limpiarInput}/>
+      <input value={fTotalMax} onChange={e=>setFTotalMax(e.target.value)} placeholder="Total max" type="number" style={limpiarInput}/>
+      {(filtroAno!=="todos"||filtroMes!=="todos"||hayFiltroTexto)&&<button onClick={limpiarTodo} style={{padding:"8px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"transparent",color:"var(--tx3)",fontSize:12,cursor:"pointer"}}>Limpiar filtros</button>}
+    </div>
+
+    <div className="libro-print">
 
     {grupos.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:20}}>
       <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700}}>{granTotal.docs}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Documentos</div></div>
@@ -970,7 +1034,7 @@ function LibroCV({empEntries,tipo}){
       </div>
     </div>}
 
-    {grupos.length===0?<Ey i="📚" t="Sin documentos" d={todosGrupos.length===0?("Importa "+(tipo==="compra"?"compras":"ventas")+" del SII en la pestaña 'Compras/Ventas SII'."):"No hay documentos para el periodo elegido."}/>:
+    {grupos.length===0?<Ey i="📚" t="Sin documentos" d={docsBase.length===0?("Importa "+(tipo==="compra"?"compras":"ventas")+" del SII en la pestaña 'Compras/Ventas SII'."):"No hay documentos que calcen con los filtros elegidos."}/>:
     grupos.map(g=>{const abierto=!cerrados.has(g.periodo);return(
     <div key={g.periodo} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:20,marginBottom:16}}>
       <div onClick={()=>toggle(g.periodo)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
@@ -981,6 +1045,7 @@ function LibroCV({empEntries,tipo}){
         <thead><tr style={{borderBottom:"1px solid var(--bd)"}}>
           <th style={{textAlign:"left",padding:"6px 8px"}}>Fecha emision</th>
           <th style={{textAlign:"left",padding:"6px 8px"}}>Folio</th>
+          <th style={{textAlign:"left",padding:"6px 8px"}}>Tipo Doc</th>
           <th style={{textAlign:"left",padding:"6px 8px"}}>RUT</th>
           <th style={{textAlign:"left",padding:"6px 8px"}}>Razon social</th>
           <th style={{textAlign:"right",padding:"6px 8px"}}>Exento</th>
@@ -991,6 +1056,7 @@ function LibroCV({empEntries,tipo}){
         <tbody>{g.rows.map(r=><tr key={r.id} style={{borderBottom:"1px solid var(--bd)"}}>
           <td style={{padding:"6px 8px"}}>{fD(r.date)}</td>
           <td style={{padding:"6px 8px",fontFamily:"monospace"}}>{r.folio}</td>
+          <td style={{padding:"6px 8px",fontSize:11}}>{r.tipoDocCod?fmtTipoDoc(r.tipoDocCod):"—"}</td>
           <td style={{padding:"6px 8px",fontFamily:"monospace"}}>{r.rut}</td>
           <td style={{padding:"6px 8px"}}>{r.razonSocial}</td>
           <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(r.exento||0)}</td>
@@ -999,7 +1065,7 @@ function LibroCV({empEntries,tipo}){
           <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace",fontWeight:600}}>${fmt(r.total||0)}</td>
         </tr>)}</tbody>
         <tfoot><tr style={{borderTop:"2px solid var(--bd)",fontWeight:700}}>
-          <td colSpan={4} style={{padding:"6px 8px"}}>Total {fmtPeriodo(g.periodo)}</td>
+          <td colSpan={5} style={{padding:"6px 8px"}}>Total {fmtPeriodo(g.periodo)}</td>
           <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(g.exento)}</td>
           <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(g.neto)}</td>
           <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(g.iva)}</td>
@@ -1007,6 +1073,7 @@ function LibroCV({empEntries,tipo}){
         </tr></tfoot>
       </table></div>}
     </div>)})}
+    </div>
   </div>);
 }
 
