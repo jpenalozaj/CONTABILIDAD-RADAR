@@ -811,7 +811,11 @@ function LibroCV({empEntries,tipo}){
   const todosGrupos=useMemo(()=>{
     const docs=empEntries.filter(e=>e.tipoDoc===tipo);
     const m=new Map();
-    docs.forEach(d=>{const p=d.periodo||"Sin periodo";if(!m.has(p))m.set(p,[]);m.get(p).push(d)});
+    // Documentos importados antes de que se guardara "periodo" no lo tienen
+    // -- se usa el mes de la fecha de emision como respaldo para que no
+    // desaparezcan al filtrar por año/mes (no es igual de exacto que el
+    // periodo tributario real, pero es mejor que perderlos del filtro).
+    docs.forEach(d=>{const p=d.periodo||(/^\d{4}-\d{2}/.test(d.date||"")?d.date.slice(0,7).replace("-",""):"Sin periodo");if(!m.has(p))m.set(p,[]);m.get(p).push(d)});
     return[...m.entries()].sort((a,b)=>b[0].localeCompare(a[0])).map(([periodo,rows])=>({
       periodo,
       rows:rows.slice().sort((a,b)=>a.date.localeCompare(b.date)||(parseInt(a.folio)||0)-(parseInt(b.folio)||0)),
