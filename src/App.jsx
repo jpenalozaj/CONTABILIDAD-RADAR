@@ -498,12 +498,14 @@ const tpC={asset:"#06B6D4",liability:"#EF4444",equity:"#8B5CF6",income:"#10B981"
 function ContabP({eObj,accts,setAccts,entries,setEntries,empEntries,leafAccts,aLog,go}){
   const [tab,setTab]=useState("plan");
   if(!eObj)return<Ey i="🏢" t="Selecciona una empresa" d="Activa una empresa primero."><Bt onClick={()=>go("empresas")} p={true}>Ir a Empresas</Bt></Ey>;
-  const tabs=[{id:"plan",l:"Plan de Cuentas"},{id:"asientos",l:"Asientos"},{id:"csv",l:"Compras/Ventas SII"},{id:"conciliacion",l:"Conciliacion Bancaria"},{id:"diario",l:"Libro Diario"},{id:"mayor",l:"Libro Mayor"},{id:"balance",l:"Balance"},{id:"eerr",l:"Estado Resultados"},{id:"b8",l:"8 Columnas"}];
+  const tabs=[{id:"plan",l:"Plan de Cuentas"},{id:"asientos",l:"Asientos"},{id:"csv",l:"Compras/Ventas SII"},{id:"lcompras",l:"Libro de Compras"},{id:"lventas",l:"Libro de Ventas"},{id:"conciliacion",l:"Conciliacion Bancaria"},{id:"diario",l:"Libro Diario"},{id:"mayor",l:"Libro Mayor"},{id:"balance",l:"Balance"},{id:"eerr",l:"Estado Resultados"},{id:"b8",l:"8 Columnas"}];
   return(<div style={{maxWidth:960,margin:"0 auto"}}>
     <div style={{display:"flex",gap:6,marginBottom:20,flexWrap:"wrap"}}>{tabs.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{padding:"10px 18px",borderRadius:"var(--rs)",border:"none",fontSize:13,fontWeight:tab===t.id?700:500,background:tab===t.id?"var(--cyg)":"var(--sf)",color:tab===t.id?"var(--cy)":"var(--tx2)"}}>{t.l}</button>)}</div>
     {tab==="plan"&&<PlanCtas accts={accts} setAccts={setAccts} aLog={aLog}/>}
     {tab==="asientos"&&<Asientos entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} eObj={eObj} aLog={aLog}/>}
     {tab==="csv"&&<CSVSII entries={entries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} empEntries={empEntries} aLog={aLog}/>}
+    {tab==="lcompras"&&<LibroCV empEntries={empEntries} tipo="compra"/>}
+    {tab==="lventas"&&<LibroCV empEntries={empEntries} tipo="venta"/>}
     {tab==="conciliacion"&&<ConciliacionP entries={entries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} empEntries={empEntries} aLog={aLog}/>}
     {tab==="diario"&&<LDiario empEntries={empEntries} accts={accts}/>}
     {tab==="mayor"&&<LMayor empEntries={empEntries} accts={accts} leafAccts={leafAccts}/>}
@@ -704,7 +706,12 @@ function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog}){
   const [periodo,setPeriodo]=useState("");
   const [autoBusy,setAutoBusy]=useState(null);
   const nxtNum=useMemo(()=>{const ns=empEntries.map(e=>parseInt(e.num)||0);return Math.max(0,...ns)+1},[empEntries]);
-  const processCSVText=(text,tipo)=>{try{
+  // periodoTrib = periodo tributario (AAAAMM) que corresponde ante el SII —
+  // puede diferir del mes de la fecha de emision del documento (ej. una
+  // factura emitida a fin de mes pero reconocida/recibida el mes siguiente).
+  // Se guarda aparte de "date" (fecha de emision) para armar el Libro de
+  // Compras/Ventas mensual agrupado correctamente.
+  const processCSVText=(text,tipo,periodoTrib)=>{try{
     const rows=text.split("\n").filter(r=>r.trim());
     if(rows.length<2){setResult({ok:false,msg:"Archivo vacio o sin datos"});return}
     const isCompra=tipo==="compra";
@@ -724,12 +731,15 @@ function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog}){
       const lines=[];
       if(isCompra){if(neto>0)lines.push({ac:ctpAc,db:Math.abs(neto),cr:0});if(iva>0)lines.push({ac:ivaAc,db:Math.abs(iva),cr:0});lines.push({ac:tpAc,db:0,cr:Math.abs(total)})}
       else{lines.push({ac:tpAc,db:Math.abs(total),cr:0});if(neto>0)lines.push({ac:ctpAc,db:0,cr:Math.abs(neto)});if(iva>0)lines.push({ac:ivaAc,db:0,cr:Math.abs(iva)})}
-      if(lines.length>=2)imported.push({id:uid(),empresaId:eObj.id,num:String(n++).padStart(4,"0"),date:dt,desc:glosa,lines,rut:rut,folio:folio,razonSocial:razon,tipoDoc:isCompra?"compra":"venta"});
+      if(lines.length>=2)imported.push({id:uid(),empresaId:eObj.id,num:String(n++).padStart(4,"0"),date:dt,desc:glosa,lines,rut:rut,folio:folio,razonSocial:razon,tipoDoc:isCompra?"compra":"venta",periodo:periodoTrib||dt.slice(0,7).replace("-",""),neto:Math.abs(neto),iva:Math.abs(iva),total:Math.abs(total)});
     });
     if(imported.length>0){setEntries(p=>[...p,...imported]);aLog("CSV "+tipo+" importado",imported.length+" asientos - "+eObj.name);setResult({ok:true,msg:imported.length+" asientos importados de "+dataRows.length+" registros"})}
     else setResult({ok:false,msg:"No se pudieron importar asientos. Verifica el formato del CSV."})
   }catch(err){setResult({ok:false,msg:"Error: "+err.message})}};
-  const processCSV=(file,tipo)=>{const rd=new FileReader();rd.onload=ev=>processCSVText(ev.target.result,tipo);rd.readAsText(file)};
+  const processCSV=(file,tipo)=>{
+    if(!/^\d{6}$/.test(periodo)){setResult({ok:false,msg:"Antes de cargar el CSV, ingresa el periodo tributario (AAAAMM) al que corresponde ese libro."});return}
+    const rd=new FileReader();rd.onload=ev=>processCSVText(ev.target.result,tipo,periodo);rd.readAsText(file);
+  };
   const importarAuto=async(tipo)=>{
     if(!/^\d{6}$/.test(periodo)){setResult({ok:false,msg:"Ingresa el periodo en formato AAAAMM, ej: 202605"});return}
     setAutoBusy(tipo);setResult(null);
@@ -737,7 +747,7 @@ function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog}){
       const resp=await fetch(`http://localhost:4001/export?periodo=${periodo}&tipo=${tipo}`);
       const text=await resp.text();
       if(!resp.ok)throw new Error(text||("HTTP "+resp.status));
-      processCSVText(text,tipo);
+      processCSVText(text,tipo,periodo);
     }catch(err){
       setResult({ok:false,msg:"No se pudo conectar al puente local del SII. Corre 'node tools/sii-local-server.mjs' en tu computador (ver tools/README.md) y vuelve a intentar. ("+err.message+")"});
     }finally{setAutoBusy(null)}
@@ -745,17 +755,21 @@ function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog}){
 
   return(<div>
     <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:24,marginBottom:16}}>
+      <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Periodo tributario</div>
+      <div style={{fontSize:12,color:"var(--tx3)",marginBottom:12}}>El mes que corresponde este libro ante el SII (AAAAMM) — no siempre es el mismo mes de la fecha de emision de cada documento. Se usa tanto para importar automatico como para la carga manual, y define en que mes queda cada documento dentro del Libro de Compras/Libro de Ventas.</div>
+      <input value={periodo} onChange={e=>setPeriodo(e.target.value.replace(/\D/g,"").slice(0,6))} placeholder="Periodo AAAAMM, ej: 202605" style={{padding:"8px 12px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx)",fontSize:13,width:200}}/>
+    </div>
+    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:24,marginBottom:16}}>
       <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Importar automatico desde el SII</div>
       <div style={{fontSize:12,color:"var(--tx3)",marginBottom:16}}>Requiere el puente local corriendo en tu computador: <code>node tools/sii-local-server.mjs</code> (despues de <code>sii auth login</code>). Ver <code>tools/README.md</code> para instalarlo.</div>
       <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap"}}>
-        <input value={periodo} onChange={e=>setPeriodo(e.target.value.replace(/\D/g,"").slice(0,6))} placeholder="Periodo AAAAMM, ej: 202605" style={{padding:"8px 12px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx)",fontSize:13,width:200}}/>
         <button onClick={()=>importarAuto("compra")} disabled={!!autoBusy} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--cy)",color:"#fff",fontSize:12,fontWeight:600,cursor:autoBusy?"default":"pointer",opacity:autoBusy?.6:1}}>{autoBusy==="compra"?"Importando...":"Importar Compras"}</button>
         <button onClick={()=>importarAuto("venta")} disabled={!!autoBusy} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--pu)",color:"#fff",fontSize:12,fontWeight:600,cursor:autoBusy?"default":"pointer",opacity:autoBusy?.6:1}}>{autoBusy==="venta"?"Importando...":"Importar Ventas"}</button>
       </div>
     </div>
     <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:24,marginBottom:16}}>
       <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Carga manual de Libros SII</div>
-      <div style={{fontSize:12,color:"var(--tx3)",marginBottom:20}}>O sube el CSV descargado del SII a mano. Las compras se contabilizan como: Gastos por Clasificar (debe) + IVA CF (debe) / Proveedores (haber). Las ventas como: Clientes (debe) / Ventas (haber) + IVA DF (haber).</div>
+      <div style={{fontSize:12,color:"var(--tx3)",marginBottom:20}}>O sube el CSV descargado del SII a mano (con el periodo de arriba ya puesto). Las compras se contabilizan como: Gastos por Clasificar (debe) + IVA CF (debe) / Proveedores (haber). Las ventas como: Clientes (debe) / Ventas (haber) + IVA DF (haber).</div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
         <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:20,textAlign:"center"}}>
           <div style={{fontSize:28,marginBottom:8}}>📥</div>
@@ -776,6 +790,62 @@ function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog}){
       <div style={{fontSize:11,color:"var(--tx3)",fontWeight:600,marginBottom:8}}>Formato esperado del CSV SII</div>
       <div style={{fontSize:11,color:"var(--tx3)"}}>El sistema acepta el CSV estandar del SII (separado por punto y coma). Detecta automaticamente las columnas de Neto, IVA y Total. Las compras van a la cuenta "Gastos por Clasificar" (1.1.05.001) para que reclasifiques despues.</div>
     </div>
+  </div>);
+}
+
+// ═══ LIBRO DE COMPRAS / LIBRO DE VENTAS (mensual) ═══
+// Agrupa los documentos importados por "periodo" (periodo tributario ante
+// el SII, AAAAMM) en vez de por fecha de emision: un documento puede
+// emitirse a fin de mes pero reconocerse/recibirse el mes siguiente, y el
+// Libro de Compras/Ventas debe reflejar el mes tributario, no la fecha del
+// papel.
+function LibroCV({empEntries,tipo}){
+  const fmtPeriodo=p=>/^\d{6}$/.test(p)?p.slice(0,4)+"-"+p.slice(4,6):(p||"Sin periodo");
+  const grupos=useMemo(()=>{
+    const docs=empEntries.filter(e=>e.tipoDoc===tipo);
+    const m=new Map();
+    docs.forEach(d=>{const p=d.periodo||"Sin periodo";if(!m.has(p))m.set(p,[]);m.get(p).push(d)});
+    return[...m.entries()].sort((a,b)=>b[0].localeCompare(a[0])).map(([periodo,rows])=>({
+      periodo,
+      rows:rows.slice().sort((a,b)=>a.date.localeCompare(b.date)||(parseInt(a.folio)||0)-(parseInt(b.folio)||0)),
+      neto:rows.reduce((s,r)=>s+(r.neto||0),0),
+      iva:rows.reduce((s,r)=>s+(r.iva||0),0),
+      total:rows.reduce((s,r)=>s+(r.total||0),0),
+    }));
+  },[empEntries,tipo]);
+  return(<div>
+    <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>{tipo==="compra"?"Libro de Compras":"Libro de Ventas"}</div>
+    <div style={{fontSize:12,color:"var(--tx3)",marginBottom:20}}>Agrupado por periodo tributario (mes ante el SII), que puede ser distinto al mes de la fecha de emision de cada documento.</div>
+    {grupos.length===0?<Ey i="📚" t="Sin documentos" d={"Importa "+(tipo==="compra"?"compras":"ventas")+" del SII en la pestaña 'Compras/Ventas SII'."}/>:
+    grupos.map(g=><div key={g.periodo} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:20,marginBottom:16}}>
+      <div style={{fontSize:13,fontWeight:700,color:"var(--cy)",marginBottom:12}}>{fmtPeriodo(g.periodo)} — {g.rows.length} documentos</div>
+      <div style={{overflowX:"auto"}}><table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
+        <thead><tr style={{borderBottom:"1px solid var(--bd)"}}>
+          <th style={{textAlign:"left",padding:"6px 8px"}}>Fecha emision</th>
+          <th style={{textAlign:"left",padding:"6px 8px"}}>Folio</th>
+          <th style={{textAlign:"left",padding:"6px 8px"}}>RUT</th>
+          <th style={{textAlign:"left",padding:"6px 8px"}}>Razon social</th>
+          <th style={{textAlign:"right",padding:"6px 8px"}}>Neto</th>
+          <th style={{textAlign:"right",padding:"6px 8px"}}>IVA</th>
+          <th style={{textAlign:"right",padding:"6px 8px"}}>Total</th>
+        </tr></thead>
+        <tbody>{g.rows.map(r=><tr key={r.id} style={{borderBottom:"1px solid var(--bd)"}}>
+          <td style={{padding:"6px 8px"}}>{fD(r.date)}</td>
+          <td style={{padding:"6px 8px",fontFamily:"monospace"}}>{r.folio}</td>
+          <td style={{padding:"6px 8px",fontFamily:"monospace"}}>{r.rut}</td>
+          <td style={{padding:"6px 8px"}}>{r.razonSocial}</td>
+          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(r.neto||0)}</td>
+          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(r.iva||0)}</td>
+          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace",fontWeight:600}}>${fmt(r.total||0)}</td>
+        </tr>)}</tbody>
+        <tfoot><tr style={{borderTop:"2px solid var(--bd)",fontWeight:700}}>
+          <td colSpan={4} style={{padding:"6px 8px"}}>Total {fmtPeriodo(g.periodo)}</td>
+          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(g.neto)}</td>
+          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(g.iva)}</td>
+          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(g.total)}</td>
+        </tr></tfoot>
+      </table></div>
+    </div>)}
   </div>);
 }
 
