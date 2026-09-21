@@ -40,8 +40,10 @@ Leyenda de estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho
       Probado con una cartola Santander real (98 movimientos, sumas
       cuadran exacto contra los totales que imprime el propio banco).
       Soporta por ahora solo formato Santander (Historica/Provisoria).
-- [ ] Automatizar la carga de Compras/Ventas desde el SII sin CSV manual —
-      ver nota mas abajo, evaluado pero no construido todavia.
+- [x] Automatizar la carga de Compras/Ventas desde el SII sin bajar el CSV a
+      mano del sitio — `tools/sii-rcv-export.mjs` (script LOCAL, fuera de la
+      app web, ver `tools/README.md`). Gratis, sin cuenta de terceros, sin
+      que ninguna clave toque RADAR ni Supabase — ver nota mas abajo.
 
 **Nota sobre lector de Excel:** se descarto la libreria `xlsx` de npm
 (vulnerabilidades sin parche: Prototype Pollution, ReDoS) y tambien
@@ -51,16 +53,33 @@ esa libreria no maneja). Se escribio un lector propio minimalista
 (`src/lib/xlsxLite.js`, ZIP + XML nativos del navegador, sin dependencias)
 que si funciona con el archivo real.
 
-**Nota sobre automatizar el SII (investigado, no implementado):**
+**Nota sobre automatizar el SII (investigado y resuelto — gratis):**
 Nubox no construye su propio conector — usa **Fintoc**
 (fintoc.com, infraestructura financiera chilena tipo Plaid): el cliente
 escribe su clave del SII directo en un widget de Fintoc, que nunca es
-visible ni se guarda en la plataforma que integra. Tambien existen APIs
-mas chicas ya armadas para bajar el RCV en JSON (BaseAPI, SimpleAPI,
-ApiPyme, ApiRCV), desde ~$15.000/mes; el estado de sus planes gratis no
-quedo confirmado al revisar. Integrar cualquiera de estas es un trabajo
-de tamano similar a la Fase 1 (Supabase) — requiere cuenta propia en el
-proveedor elegido, y no se ha decidido cual ni si vale la pena todavia.
+visible ni se guarda en la plataforma que integra. Existen tambien APIs
+de pago para bajar el RCV en JSON (SimpleAPI desde 0 costo con limite de
+consultas; BaseAPI cerro registro de cuentas nuevas y deja de operar el
+11-dic-2026). Se descarto integrar cualquiera de estas por ahora: son un
+trabajo de tamano similar a la Fase 1 (Supabase) y requieren decidir un
+proveedor pago o casi-pago.
+
+En vez de eso se encontro y audito `@albertomarturelo/sii-cli`
+(github.com/albertomarturelo/sii, MIT, npm hace ~1 semana al revisar):
+misma idea que Fintoc — el login pasa por un navegador real donde el
+usuario escribe su Clave directo en la pagina del SII, nunca por codigo
+de la libreria — pero sin costo ni cuenta de terceros. Auditoria manual
+del codigo fuente completo (no solo el README) antes de usarla: todas las
+URLs a las que se conecta son `sii.cl`/`claveunica.gob.cl` (cero
+telemetria), la Clave nunca se escribe a disco ni se loguea, el
+almacenamiento opcional usa el llavero nativo del SO. Se armo
+`tools/sii-rcv-export.mjs` sobre esta CLI, que convierte su salida JSON al
+CSV que ya lee RADAR — probado con datos sinteticos (forma exacta segun
+los tipos TypeScript de la libreria, no contra el SII real: eso requeriria
+una Clave real, que nunca se le pide a una sesion de IA). Limitacion que
+no se puede evitar: el SII exige reCAPTCHA en el login, asi que siempre va
+a requerir que un humano inicie sesion a mano — el script ahorra el paso
+de navegar y exportar despues de eso, no el login en si.
 
 **Limitacion conocida:** los datos viven solo en el navegador de un
 computador. Sin base de datos real, no hay multi-dispositivo, no hay acceso
@@ -203,3 +222,11 @@ Objetivo: que tus clientes puedan entrar al Portal desde cualquier lugar.
   ya no existian. Se investigo automatizar la carga del SII sin CSV manual
   (Fintoc, BaseAPI y similares) pero se dejo pendiente de decision — ver
   nota en Fase 0 mas arriba.
+- 2026-09-21 — Resuelta la automatizacion del SII: se descarto Fintoc/BaseAPI
+  (de pago o dados de baja) a favor de `@albertomarturelo/sii-cli`, una
+  libreria MIT gratuita con login por navegador (la Clave nunca toca
+  codigo de terceros). Auditado su codigo fuente completo antes de
+  recomendarla (no solo el README): sin telemetria, sin escritura de la
+  Clave a disco. Armado `tools/sii-rcv-export.mjs`, que convierte su
+  salida a CSV para RADAR. Es un script LOCAL fuera de la app — nunca se
+  ejecuta en Supabase ni en el navegador de RADAR.
