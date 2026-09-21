@@ -54,7 +54,10 @@ export async function fetchRcvCsv(periodo, tipo) {
   catch { throw new Error("La salida de \"sii\" no fue JSON valido. Salida cruda:\n" + raw); }
 
   const docs = data.docs || [];
-  const rows = [["fecha", "rut", "razon_social", "folio", "neto", "iva", "total"]];
+  // "exento" va aparte de "neto": un documento no afecto/exento (ej. tipo 34)
+  // no tiene IVA pero si un monto que hay que contabilizar igual — antes se
+  // perdia silenciosamente porque el importador de RADAR solo miraba neto/iva.
+  const rows = [["fecha", "rut", "razon_social", "folio", "neto", "exento", "iva", "total"]];
   for (const d of docs) {
     rows.push([
       normFecha(d.fechaEmision),
@@ -62,6 +65,7 @@ export async function fetchRcvCsv(periodo, tipo) {
       d.razonSocial || "",
       d.folio ?? "",
       d.montoNeto ?? 0,
+      d.montoExento ?? 0,
       d.montoIva ?? 0,
       d.montoTotal ?? 0,
     ]);
@@ -69,4 +73,34 @@ export async function fetchRcvCsv(periodo, tipo) {
 
   const csv = rows.map((r) => r.map(csvField).join(";")).join("\n") + "\n";
   return { csv, count: docs.length, incomplete: !!data.incomplete, rejectedTypes: data.rejectedTypes || [] };
+}
+
+// periodo: "AAAAMM", tipo: "compra"|"venta" -> el Resumen por Tipo de
+// Documento oficial del SII para ese periodo (mismos numeros que muestra el
+// portal del SII en "Resumen Registro de Compras/Ventas"), para comparar
+// contra lo que RADAR tiene importado.
+export async function fetchRcvResumen(periodo, tipo) {
+  if (!/^\d{6}$/.test(periodo || "")) throw new Error("Periodo invalido, usa formato AAAAMM (ej: 202605).");
+  if (tipo !== "compra" && tipo !== "venta") throw new Error('Tipo invalido, usa "compra" o "venta".');
+
+  const args = ["rcv", "summary", periodo];
+  if (tipo === "venta") args.push("--venta");
+
+  const raw = await runSiiCli(args);
+  let data;
+  try { data = JSON.parse(raw); }
+  catch { throw new Error("La salida de \"sii\" no fue JSON valido. Salida cruda:\n" + raw); }
+
+  return {
+    rows: (data.rows || []).map((r) => ({
+      codigo: r.codigoTipoDoc ?? "",
+      descripcion: r.descripcion ?? "",
+      documentos: r.totalDocumentos ?? 0,
+      exento: r.montoExento ?? 0,
+      neto: r.montoNeto ?? 0,
+      iva: r.montoIva ?? 0,
+      total: r.montoTotal ?? 0,
+    })),
+    totalDocumentos: data.totalDocumentos ?? null,
+  };
 }

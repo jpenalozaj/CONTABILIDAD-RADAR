@@ -15,7 +15,11 @@ Compras/Ventas SII. Hay dos formas de usarla:
 
 - **sii-local-server.mjs** — un puente local que deja hacerlo con un clic
   desde dentro de RADAR (boton "Importar automatico"), sin descargar ni
-  subir ningun archivo a mano. Recomendado.
+  subir ningun archivo a mano. Recomendado. Tambien expone el "Resumen
+  Registro de Compras/Ventas" oficial del SII (por tipo de documento) para
+  el boton "Comparar con RCV oficial" en el Libro de Compras/Libro de
+  Ventas de RADAR — mismos numeros que el propio portal del SII, para
+  detectar si falta algo por importar.
 - **sii-rcv-export.mjs** — un script de linea de comandos que genera el CSV
   como archivo, para subirlo a mano en RADAR. Util si prefieres no dejar un
   servidor corriendo, o si algo falla con la opcion de arriba.

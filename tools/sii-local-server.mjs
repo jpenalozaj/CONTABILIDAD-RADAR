@@ -16,7 +16,7 @@
 //   4) En RADAR: Contabilidad > Compras/Ventas SII > "Importar automatico"
 
 import { createServer } from "node:http";
-import { fetchRcvCsv } from "./sii-rcv-core.mjs";
+import { fetchRcvCsv, fetchRcvResumen } from "./sii-rcv-core.mjs";
 
 const PORT = 4001;
 
@@ -29,23 +29,41 @@ const server = createServer(async (req, res) => {
   if (req.method === "OPTIONS") { res.writeHead(204); res.end(); return; }
 
   const url = new URL(req.url, `http://localhost:${PORT}`);
-  if (url.pathname !== "/export") { res.writeHead(404); res.end("No encontrado"); return; }
-
   const periodo = url.searchParams.get("periodo") || "";
   const tipo = url.searchParams.get("tipo") || "";
 
-  try {
-    console.log(`Consultando SII: periodo=${periodo} tipo=${tipo} ...`);
-    const { csv, count, incomplete, rejectedTypes } = await fetchRcvCsv(periodo, tipo);
-    if (incomplete) console.log(`Aviso: el SII rechazo estos tipos de documento (revisalos a mano): ${rejectedTypes.join(", ")}`);
-    console.log(`Listo: ${count} documentos enviados a RADAR.`);
-    res.writeHead(200, { "Content-Type": "text/csv; charset=utf-8" });
-    res.end(csv);
-  } catch (err) {
-    console.error("Error: " + err.message);
-    res.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" });
-    res.end(err.message);
+  if (url.pathname === "/export") {
+    try {
+      console.log(`Consultando SII: periodo=${periodo} tipo=${tipo} ...`);
+      const { csv, count, incomplete, rejectedTypes } = await fetchRcvCsv(periodo, tipo);
+      if (incomplete) console.log(`Aviso: el SII rechazo estos tipos de documento (revisalos a mano): ${rejectedTypes.join(", ")}`);
+      console.log(`Listo: ${count} documentos enviados a RADAR.`);
+      res.writeHead(200, { "Content-Type": "text/csv; charset=utf-8" });
+      res.end(csv);
+    } catch (err) {
+      console.error("Error: " + err.message);
+      res.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end(err.message);
+    }
+    return;
   }
+
+  if (url.pathname === "/summary") {
+    try {
+      console.log(`Consultando resumen oficial SII: periodo=${periodo} tipo=${tipo} ...`);
+      const resumen = await fetchRcvResumen(periodo, tipo);
+      console.log(`Listo: ${resumen.rows.length} filas de resumen enviadas a RADAR.`);
+      res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+      res.end(JSON.stringify(resumen));
+    } catch (err) {
+      console.error("Error: " + err.message);
+      res.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end(err.message);
+    }
+    return;
+  }
+
+  res.writeHead(404); res.end("No encontrado");
 });
 
 server.listen(PORT, "127.0.0.1", () => {

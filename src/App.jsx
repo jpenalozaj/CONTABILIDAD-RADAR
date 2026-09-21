@@ -720,18 +720,26 @@ function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog}){
     dataRows.forEach(row=>{
       const c=row.split(";").map(x=>x.trim().replace(/^"|"$/g,""));
       if(c.length<7)return;
-      let neto=0,iva=0,total=0,fecha="",rut="",razon="",folio="";
+      // "exento" (documentos no afectos/exentos, ej. tipo 34) no tiene IVA
+      // pero si un monto a contabilizar -- si solo se mira neto/iva, esos
+      // documentos quedan con menos de 2 lineas y se descartan en silencio.
+      let neto=0,exento=0,iva=0,total=0,fecha="",rut="",razon="",folio="";
       const toNum=s=>parseInt((s||"").replace(/\./g,"").replace(/,/g,""))||0;
       if(c.length>=13){fecha=c[5]||"";rut=c[1]||"";razon=c[2]||"";folio=c[3]||"";neto=toNum(c[7]);iva=toNum(c[9]);total=toNum(c[12])}
+      else if(c.length>=8){fecha=c[0]||"";rut=c[1]||"";razon=c[2]||"";folio=c[3]||"";neto=toNum(c[4]);exento=toNum(c[5]);iva=toNum(c[6]);total=toNum(c[7])}
       else{fecha=c[0]||"";rut=c[1]||"";razon=c[2]||"";folio=c[3]||"";neto=toNum(c[4]);iva=toNum(c[5]);total=toNum(c[6])}
-      if(!total&&neto)total=neto+iva;
+      if(!total)total=neto+exento+iva;
       if(total===0)return;
       const dt=fecha.includes("/")?(()=>{const p=fecha.split("/");return(p[2]||"2026")+"-"+(p[1]||"01").padStart(2,"0")+"-"+(p[0]||"01").padStart(2,"0")})():fecha||new Date().toISOString().slice(0,10);
       const glosa=(isCompra?"Compra":"Venta")+" F"+folio+" "+razon.slice(0,30);
+      // Se junta neto+exento en una sola linea contable (misma contracuenta),
+      // y el total-iva define esa linea para que el asiento cuadre exacto
+      // aunque los montos del SII tengan alguna diferencia de redondeo.
+      const netoExento=Math.abs(total)-Math.abs(iva);
       const lines=[];
-      if(isCompra){if(neto>0)lines.push({ac:ctpAc,db:Math.abs(neto),cr:0});if(iva>0)lines.push({ac:ivaAc,db:Math.abs(iva),cr:0});lines.push({ac:tpAc,db:0,cr:Math.abs(total)})}
-      else{lines.push({ac:tpAc,db:Math.abs(total),cr:0});if(neto>0)lines.push({ac:ctpAc,db:0,cr:Math.abs(neto)});if(iva>0)lines.push({ac:ivaAc,db:0,cr:Math.abs(iva)})}
-      if(lines.length>=2)imported.push({id:uid(),empresaId:eObj.id,num:String(n++).padStart(4,"0"),date:dt,desc:glosa,lines,rut:rut,folio:folio,razonSocial:razon,tipoDoc:isCompra?"compra":"venta",periodo:periodoTrib||dt.slice(0,7).replace("-",""),neto:Math.abs(neto),iva:Math.abs(iva),total:Math.abs(total)});
+      if(isCompra){if(netoExento>0)lines.push({ac:ctpAc,db:netoExento,cr:0});if(iva>0)lines.push({ac:ivaAc,db:Math.abs(iva),cr:0});lines.push({ac:tpAc,db:0,cr:Math.abs(total)})}
+      else{lines.push({ac:tpAc,db:Math.abs(total),cr:0});if(netoExento>0)lines.push({ac:ctpAc,db:0,cr:netoExento});if(iva>0)lines.push({ac:ivaAc,db:0,cr:Math.abs(iva)})}
+      if(lines.length>=2)imported.push({id:uid(),empresaId:eObj.id,num:String(n++).padStart(4,"0"),date:dt,desc:glosa,lines,rut:rut,folio:folio,razonSocial:razon,tipoDoc:isCompra?"compra":"venta",periodo:periodoTrib||dt.slice(0,7).replace("-",""),neto:Math.abs(neto),exento:Math.abs(exento),iva:Math.abs(iva),total:Math.abs(total)});
     });
     if(imported.length>0){setEntries(p=>[...p,...imported]);aLog("CSV "+tipo+" importado",imported.length+" asientos - "+eObj.name);setResult({ok:true,msg:imported.length+" asientos importados de "+dataRows.length+" registros"})}
     else setResult({ok:false,msg:"No se pudieron importar asientos. Verifica el formato del CSV."})
@@ -788,7 +796,7 @@ function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog}){
     {result&&<div style={{background:result.ok?"rgba(16,185,129,.1)":"rgba(239,68,68,.1)",border:"1px solid "+(result.ok?"rgba(16,185,129,.3)":"rgba(239,68,68,.3)"),borderRadius:"var(--rs)",padding:16,fontSize:13,color:result.ok?"var(--gn)":"var(--rd)",marginBottom:16}}>{result.ok?"✓ ":"✗ "}{result.msg}</div>}
     <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:16}}>
       <div style={{fontSize:11,color:"var(--tx3)",fontWeight:600,marginBottom:8}}>Formato esperado del CSV SII</div>
-      <div style={{fontSize:11,color:"var(--tx3)"}}>El sistema acepta el CSV estandar del SII (separado por punto y coma). Detecta automaticamente las columnas de Neto, IVA y Total. Las compras van a la cuenta "Gastos por Clasificar" (1.1.05.001) para que reclasifiques despues.</div>
+      <div style={{fontSize:11,color:"var(--tx3)"}}>El sistema acepta el CSV estandar del SII (separado por punto y coma) y el que genera <code>tools/sii-rcv-export.mjs</code> (con o sin columna de Exento). Detecta automaticamente las columnas de Neto, Exento, IVA y Total. Las compras van a la cuenta "Gastos por Clasificar" (1.1.05.001) para que reclasifiques despues.</div>
     </div>
   </div>);
 }
@@ -805,6 +813,9 @@ function LibroCV({empEntries,tipo}){
   const [filtroAno,setFiltroAno]=useState("todos");
   const [filtroMes,setFiltroMes]=useState("todos");
   const [cerrados,setCerrados]=useState(()=>new Set());
+  const [rcvOficial,setRcvOficial]=useState(null);
+  const [rcvBusy,setRcvBusy]=useState(false);
+  const [rcvErr,setRcvErr]=useState(null);
   const fmtPeriodo=p=>{if(!/^\d{6}$/.test(p))return p||"Sin periodo";const mm=MESES.find(m=>m[0]===p.slice(4,6));return(mm?mm[1]:p.slice(4,6))+" "+p.slice(0,4)};
   const toggle=p=>setCerrados(prev=>{const n=new Set(prev);n.has(p)?n.delete(p):n.add(p);return n});
 
@@ -819,6 +830,7 @@ function LibroCV({empEntries,tipo}){
     return[...m.entries()].sort((a,b)=>b[0].localeCompare(a[0])).map(([periodo,rows])=>({
       periodo,
       rows:rows.slice().sort((a,b)=>a.date.localeCompare(b.date)||(parseInt(a.folio)||0)-(parseInt(b.folio)||0)),
+      exento:rows.reduce((s,r)=>s+(r.exento||0),0),
       neto:rows.reduce((s,r)=>s+(r.neto||0),0),
       iva:rows.reduce((s,r)=>s+(r.iva||0),0),
       total:rows.reduce((s,r)=>s+(r.total||0),0),
@@ -837,12 +849,41 @@ function LibroCV({empEntries,tipo}){
 
   const granTotal=useMemo(()=>({
     docs:grupos.reduce((s,g)=>s+g.rows.length,0),
+    exento:grupos.reduce((s,g)=>s+g.exento,0),
     neto:grupos.reduce((s,g)=>s+g.neto,0),
     iva:grupos.reduce((s,g)=>s+g.iva,0),
     total:grupos.reduce((s,g)=>s+g.total,0),
   }),[grupos]);
 
+  const periodoSel=filtroAno!=="todos"&&filtroMes!=="todos"?filtroAno+filtroMes:null;
+  useEffect(()=>{setRcvOficial(null);setRcvErr(null)},[periodoSel,tipo]);
+
+  const oficialTot=useMemo(()=>{
+    if(!rcvOficial)return null;
+    return{
+      docs:rcvOficial.totalDocumentos??rcvOficial.rows.reduce((s,r)=>s+(r.documentos||0),0),
+      exento:rcvOficial.rows.reduce((s,r)=>s+(r.exento||0),0),
+      neto:rcvOficial.rows.reduce((s,r)=>s+(r.neto||0),0),
+      iva:rcvOficial.rows.reduce((s,r)=>s+(r.iva||0),0),
+      total:rcvOficial.rows.reduce((s,r)=>s+(r.total||0),0),
+    };
+  },[rcvOficial]);
+  const coincide=oficialTot&&Math.abs(oficialTot.total-granTotal.total)<1&&oficialTot.docs===granTotal.docs;
+
+  const compararRCV=async()=>{
+    if(!periodoSel)return;
+    setRcvBusy(true);setRcvErr(null);setRcvOficial(null);
+    try{
+      const resp=await fetch(`http://localhost:4001/summary?periodo=${periodoSel}&tipo=${tipo}`);
+      if(!resp.ok){const msg=await resp.text();throw new Error(msg||("HTTP "+resp.status))}
+      setRcvOficial(await resp.json());
+    }catch(err){
+      setRcvErr("No se pudo conectar al puente local del SII. Corre 'node tools/sii-local-server.mjs' en tu computador y vuelve a intentar. ("+err.message+")");
+    }finally{setRcvBusy(false)}
+  };
+
   const selStyle={padding:"8px 12px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx)",fontSize:13};
+  const ivaLabel=tipo==="compra"?"IVA Recuperable":"IVA Debito Fiscal";
 
   return(<div>
     <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>{tipo==="compra"?"Libro de Compras":"Libro de Ventas"}</div>
@@ -858,13 +899,44 @@ function LibroCV({empEntries,tipo}){
         {MESES.map(([v,l])=><option key={v} value={v}>{l}</option>)}
       </select>
       {(filtroAno!=="todos"||filtroMes!=="todos")&&<button onClick={()=>{setFiltroAno("todos");setFiltroMes("todos")}} style={{padding:"8px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"transparent",color:"var(--tx3)",fontSize:12,cursor:"pointer"}}>Limpiar filtro</button>}
+      {periodoSel&&<button onClick={compararRCV} disabled={rcvBusy} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--pu)",color:"#fff",fontSize:12,fontWeight:600,cursor:rcvBusy?"default":"pointer",opacity:rcvBusy?.6:1}}>{rcvBusy?"Consultando SII...":"Comparar con RCV oficial"}</button>}
     </div>
 
     {grupos.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:20}}>
       <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700}}>{granTotal.docs}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Documentos</div></div>
+      <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700}}>${fmt(granTotal.exento)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Exento</div></div>
       <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700}}>${fmt(granTotal.neto)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Neto</div></div>
       <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700}}>${fmt(granTotal.iva)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>IVA</div></div>
       <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700,color:"var(--cy)"}}>${fmt(granTotal.total)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Total</div></div>
+    </div>}
+
+    {rcvErr&&<div style={{background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.3)",borderRadius:"var(--rs)",padding:16,fontSize:13,color:"var(--rd)",marginBottom:16}}>✗ {rcvErr}</div>}
+
+    {rcvOficial&&<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:20,marginBottom:20}}>
+      <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>Resumen Registro de {tipo==="compra"?"Compras":"Ventas"} {fmtPeriodo(periodoSel)} — segun el SII</div>
+      <div style={{fontSize:11,color:"var(--tx3)",marginBottom:12}}>Resumen por tipo de documento, tal como lo entrega el SII para este periodo.</div>
+      <div style={{overflowX:"auto"}}><table style={{width:"100%",fontSize:12,borderCollapse:"collapse",marginBottom:16}}>
+        <thead><tr style={{borderBottom:"1px solid var(--bd)"}}>
+          <th style={{textAlign:"left",padding:"6px 8px"}}>Tipo Documento</th>
+          <th style={{textAlign:"right",padding:"6px 8px"}}>Documentos</th>
+          <th style={{textAlign:"right",padding:"6px 8px"}}>Exento</th>
+          <th style={{textAlign:"right",padding:"6px 8px"}}>Neto</th>
+          <th style={{textAlign:"right",padding:"6px 8px"}}>{ivaLabel}</th>
+          <th style={{textAlign:"right",padding:"6px 8px"}}>Total</th>
+        </tr></thead>
+        <tbody>{rcvOficial.rows.map(r=><tr key={r.codigo} style={{borderBottom:"1px solid var(--bd)"}}>
+          <td style={{padding:"6px 8px"}}>{r.descripcion||"—"} ({r.codigo})</td>
+          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>{r.documentos}</td>
+          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(r.exento)}</td>
+          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(r.neto)}</td>
+          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(r.iva)}</td>
+          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace",fontWeight:600}}>${fmt(r.total)}</td>
+        </tr>)}</tbody>
+      </table></div>
+      <div style={{background:coincide?"rgba(16,185,129,.1)":"rgba(245,158,11,.1)",border:"1px solid "+(coincide?"rgba(16,185,129,.3)":"rgba(245,158,11,.3)"),borderRadius:"var(--rs)",padding:16,fontSize:13,color:coincide?"var(--gn)":"var(--yl,#F59E0B)"}}>
+        {coincide?"✓ Coincide con el RCV del SII — mismos documentos y mismo total.":
+        "⚠ No coincide con el RCV del SII. SII: "+oficialTot.docs+" documentos, $"+fmt(oficialTot.total)+" — RADAR: "+granTotal.docs+" documentos, $"+fmt(granTotal.total)+" (diferencia $"+fmt(Math.abs(oficialTot.total-granTotal.total))+"). Puede que falten documentos por importar en este periodo, o que el SII haya agregado/rechazado documentos despues de tu ultima importacion — vuelve a importar este periodo para actualizar."}
+      </div>
     </div>}
 
     {grupos.length===0?<Ey i="📚" t="Sin documentos" d={todosGrupos.length===0?("Importa "+(tipo==="compra"?"compras":"ventas")+" del SII en la pestaña 'Compras/Ventas SII'."):"No hay documentos para el periodo elegido."}/>:
@@ -880,6 +952,7 @@ function LibroCV({empEntries,tipo}){
           <th style={{textAlign:"left",padding:"6px 8px"}}>Folio</th>
           <th style={{textAlign:"left",padding:"6px 8px"}}>RUT</th>
           <th style={{textAlign:"left",padding:"6px 8px"}}>Razon social</th>
+          <th style={{textAlign:"right",padding:"6px 8px"}}>Exento</th>
           <th style={{textAlign:"right",padding:"6px 8px"}}>Neto</th>
           <th style={{textAlign:"right",padding:"6px 8px"}}>IVA</th>
           <th style={{textAlign:"right",padding:"6px 8px"}}>Total</th>
@@ -889,12 +962,14 @@ function LibroCV({empEntries,tipo}){
           <td style={{padding:"6px 8px",fontFamily:"monospace"}}>{r.folio}</td>
           <td style={{padding:"6px 8px",fontFamily:"monospace"}}>{r.rut}</td>
           <td style={{padding:"6px 8px"}}>{r.razonSocial}</td>
+          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(r.exento||0)}</td>
           <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(r.neto||0)}</td>
           <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(r.iva||0)}</td>
           <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace",fontWeight:600}}>${fmt(r.total||0)}</td>
         </tr>)}</tbody>
         <tfoot><tr style={{borderTop:"2px solid var(--bd)",fontWeight:700}}>
           <td colSpan={4} style={{padding:"6px 8px"}}>Total {fmtPeriodo(g.periodo)}</td>
+          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(g.exento)}</td>
           <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(g.neto)}</td>
           <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(g.iva)}</td>
           <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(g.total)}</td>
