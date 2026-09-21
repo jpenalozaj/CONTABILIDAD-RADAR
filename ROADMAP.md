@@ -51,9 +51,9 @@ sea la base para que el Portal del Cliente sea usable por terceros.
       los componentes (`setEmps`, `setAccts`, etc. siguen igual)
 - [x] Pantalla de configuracion faltante si no hay `.env` con las variables
       de Supabase, en vez de que la app truene
-- [ ] **Pendiente de ti:** crear el proyecto en supabase.com, correr
-      `supabase/schema.sql` en su SQL Editor, y completar `.env` con tu URL
-      y anon key (instrucciones en `README.md` → "Datos")
+- [x] Proyecto creado en supabase.com, `supabase/schema.sql` corrido, `.env`
+      configurado y probado en el computador de Jonas (Windows) — login y
+      creacion de cuenta funcionando de punta a punta
 - [ ] Login separado para clientes que entran solo al Portal (hoy todos los
       usuarios ven el dashboard completo del contador)
 - [ ] Migracion: si ya cargaste datos de prueba en localStorage en una
@@ -149,3 +149,11 @@ Objetivo: que tus clientes puedan entrar al Portal desde cualquier lugar.
   usuario cree el proyecto real en supabase.com y complete el `.env`
   (probado localmente contra un proyecto falso: la app maneja bien tanto
   la falta de configuracion como errores de red, sin crashear).
+- 2026-09-21 — Fase 1 cerrada de punta a punta: Jonas instalo Node.js y
+  VS Code por primera vez, bajo el proyecto desde GitHub, creo el proyecto
+  en supabase.com, corrio el schema y configuro el `.env`. Problemas
+  resueltos en el camino: PowerShell bloqueaba `npm` por politica de
+  ejecucion de scripts (se uso Command Prompt en su lugar), el ZIP de
+  GitHub quedo con una carpeta duplicada adentro, y la URL de Supabase
+  tenia `/rest/v1/` pegado al final por copiar del lugar equivocado.
+  Cuenta creada y login funcionando en su computador.
