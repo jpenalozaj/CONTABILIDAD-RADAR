@@ -799,9 +799,16 @@ function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog}){
 // emitirse a fin de mes pero reconocerse/recibirse el mes siguiente, y el
 // Libro de Compras/Ventas debe reflejar el mes tributario, no la fecha del
 // papel.
+const MESES=[["01","Enero"],["02","Febrero"],["03","Marzo"],["04","Abril"],["05","Mayo"],["06","Junio"],["07","Julio"],["08","Agosto"],["09","Septiembre"],["10","Octubre"],["11","Noviembre"],["12","Diciembre"]];
+
 function LibroCV({empEntries,tipo}){
-  const fmtPeriodo=p=>/^\d{6}$/.test(p)?p.slice(0,4)+"-"+p.slice(4,6):(p||"Sin periodo");
-  const grupos=useMemo(()=>{
+  const [filtroAno,setFiltroAno]=useState("todos");
+  const [filtroMes,setFiltroMes]=useState("todos");
+  const [cerrados,setCerrados]=useState(()=>new Set());
+  const fmtPeriodo=p=>{if(!/^\d{6}$/.test(p))return p||"Sin periodo";const mm=MESES.find(m=>m[0]===p.slice(4,6));return(mm?mm[1]:p.slice(4,6))+" "+p.slice(0,4)};
+  const toggle=p=>setCerrados(prev=>{const n=new Set(prev);n.has(p)?n.delete(p):n.add(p);return n});
+
+  const todosGrupos=useMemo(()=>{
     const docs=empEntries.filter(e=>e.tipoDoc===tipo);
     const m=new Map();
     docs.forEach(d=>{const p=d.periodo||"Sin periodo";if(!m.has(p))m.set(p,[]);m.get(p).push(d)});
@@ -813,13 +820,57 @@ function LibroCV({empEntries,tipo}){
       total:rows.reduce((s,r)=>s+(r.total||0),0),
     }));
   },[empEntries,tipo]);
+
+  const anos=useMemo(()=>[...new Set(todosGrupos.filter(g=>/^\d{6}$/.test(g.periodo)).map(g=>g.periodo.slice(0,4)))].sort((a,b)=>b.localeCompare(a)),[todosGrupos]);
+
+  const grupos=useMemo(()=>todosGrupos.filter(g=>{
+    if(filtroAno==="todos"&&filtroMes==="todos")return true;
+    if(!/^\d{6}$/.test(g.periodo))return false;
+    if(filtroAno!=="todos"&&g.periodo.slice(0,4)!==filtroAno)return false;
+    if(filtroMes!=="todos"&&g.periodo.slice(4,6)!==filtroMes)return false;
+    return true;
+  }),[todosGrupos,filtroAno,filtroMes]);
+
+  const granTotal=useMemo(()=>({
+    docs:grupos.reduce((s,g)=>s+g.rows.length,0),
+    neto:grupos.reduce((s,g)=>s+g.neto,0),
+    iva:grupos.reduce((s,g)=>s+g.iva,0),
+    total:grupos.reduce((s,g)=>s+g.total,0),
+  }),[grupos]);
+
+  const selStyle={padding:"8px 12px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx)",fontSize:13};
+
   return(<div>
     <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>{tipo==="compra"?"Libro de Compras":"Libro de Ventas"}</div>
-    <div style={{fontSize:12,color:"var(--tx3)",marginBottom:20}}>Agrupado por periodo tributario (mes ante el SII), que puede ser distinto al mes de la fecha de emision de cada documento.</div>
-    {grupos.length===0?<Ey i="📚" t="Sin documentos" d={"Importa "+(tipo==="compra"?"compras":"ventas")+" del SII en la pestaña 'Compras/Ventas SII'."}/>:
-    grupos.map(g=><div key={g.periodo} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:20,marginBottom:16}}>
-      <div style={{fontSize:13,fontWeight:700,color:"var(--cy)",marginBottom:12}}>{fmtPeriodo(g.periodo)} — {g.rows.length} documentos</div>
-      <div style={{overflowX:"auto"}}><table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
+    <div style={{fontSize:12,color:"var(--tx3)",marginBottom:16}}>Agrupado por periodo tributario (mes ante el SII), que puede ser distinto al mes de la fecha de emision de cada documento.</div>
+
+    <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap",marginBottom:16}}>
+      <select value={filtroAno} onChange={e=>setFiltroAno(e.target.value)} style={selStyle}>
+        <option value="todos">Todos los años</option>
+        {anos.map(a=><option key={a} value={a}>{a}</option>)}
+      </select>
+      <select value={filtroMes} onChange={e=>setFiltroMes(e.target.value)} style={selStyle}>
+        <option value="todos">Todos los meses</option>
+        {MESES.map(([v,l])=><option key={v} value={v}>{l}</option>)}
+      </select>
+      {(filtroAno!=="todos"||filtroMes!=="todos")&&<button onClick={()=>{setFiltroAno("todos");setFiltroMes("todos")}} style={{padding:"8px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"transparent",color:"var(--tx3)",fontSize:12,cursor:"pointer"}}>Limpiar filtro</button>}
+    </div>
+
+    {grupos.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:20}}>
+      <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700}}>{granTotal.docs}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Documentos</div></div>
+      <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700}}>${fmt(granTotal.neto)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Neto</div></div>
+      <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700}}>${fmt(granTotal.iva)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>IVA</div></div>
+      <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700,color:"var(--cy)"}}>${fmt(granTotal.total)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Total</div></div>
+    </div>}
+
+    {grupos.length===0?<Ey i="📚" t="Sin documentos" d={todosGrupos.length===0?("Importa "+(tipo==="compra"?"compras":"ventas")+" del SII en la pestaña 'Compras/Ventas SII'."):"No hay documentos para el periodo elegido."}/>:
+    grupos.map(g=>{const abierto=!cerrados.has(g.periodo);return(
+    <div key={g.periodo} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:20,marginBottom:16}}>
+      <div onClick={()=>toggle(g.periodo)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
+        <div style={{fontSize:13,fontWeight:700,color:"var(--cy)"}}>{abierto?"▾":"▸"} {fmtPeriodo(g.periodo)} — {g.rows.length} documentos</div>
+        <div style={{fontSize:13,fontWeight:700}}>${fmt(g.total)}</div>
+      </div>
+      {abierto&&<div style={{overflowX:"auto",marginTop:12}}><table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
         <thead><tr style={{borderBottom:"1px solid var(--bd)"}}>
           <th style={{textAlign:"left",padding:"6px 8px"}}>Fecha emision</th>
           <th style={{textAlign:"left",padding:"6px 8px"}}>Folio</th>
@@ -844,8 +895,8 @@ function LibroCV({empEntries,tipo}){
           <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(g.iva)}</td>
           <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(g.total)}</td>
         </tr></tfoot>
-      </table></div>
-    </div>)}
+      </table></div>}
+    </div>)})}
   </div>);
 }
 
