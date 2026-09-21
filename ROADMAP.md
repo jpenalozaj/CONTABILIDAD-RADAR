@@ -35,20 +35,37 @@ de clientes al Portal, y hay riesgo de perder informacion.
 Objetivo: que los datos sobrevivan a un cambio de navegador o de equipo, y
 sea la base para que el Portal del Cliente sea usable por terceros.
 
-- [ ] Crear proyecto Supabase (plan gratuito) y definir esquema: empresas,
-      plan_cuentas, asientos, lineas_asiento, evaluaciones, remuneraciones,
-      documentos, tareas — con `usuario_id` / `empresa_id` para aislar datos
-- [ ] Autenticacion (Supabase Auth): login del contador (owner) y, mas
-      adelante, login separado para clientes que entran al Portal
-- [ ] Reemplazar las funciones `ld()`/`sv()` (localStorage) por llamadas a
-      Supabase, manteniendo la misma forma de los datos para no reescribir
-      la UI
-- [ ] Migracion de datos: script o boton "Exportar/Importar" para mover lo
-      que ya este cargado en localStorage hacia Supabase
-- [ ] Reglas de acceso (Row Level Security) para que cada contador solo vea
-      sus propias empresas, y cada cliente solo vea la suya
+- [x] Esquema definido en `supabase/schema.sql`: una tabla generica
+      `radar_data` (`user_id`, `collection`, `row_id`, `payload jsonb`) que
+      guarda empresas, plan_cuentas, asientos, evaluaciones, remuneraciones,
+      documentos, tareas y log — mismo formato que usaba localStorage, para
+      no reescribir la UI. Se puede normalizar a tablas relacionales mas
+      adelante si el volumen de datos o los reportes lo piden.
+- [x] Row Level Security: cada fila solo es visible/editable por su
+      `user_id` (`auth.uid()`), incluida en el mismo `schema.sql`
+- [x] Autenticacion (Supabase Auth) con correo/contrasena: pantalla de
+      login/crear cuenta (`AuthScreen`), gate en `App` que solo muestra el
+      dashboard con sesion activa, boton "Salir" en el sidebar
+- [x] `src/lib/supabaseClient.js` + `src/lib/sync.js` reemplazan `ld()`/`sv()`
+      (localStorage) por carga/guardado en Supabase, sin tocar la logica de
+      los componentes (`setEmps`, `setAccts`, etc. siguen igual)
+- [x] Pantalla de configuracion faltante si no hay `.env` con las variables
+      de Supabase, en vez de que la app truene
+- [ ] **Pendiente de ti:** crear el proyecto en supabase.com, correr
+      `supabase/schema.sql` en su SQL Editor, y completar `.env` con tu URL
+      y anon key (instrucciones en `README.md` → "Datos")
+- [ ] Login separado para clientes que entran solo al Portal (hoy todos los
+      usuarios ven el dashboard completo del contador)
+- [ ] Migracion: si ya cargaste datos de prueba en localStorage en una
+      sesion anterior, hoy se pierden al pasar a Supabase — no hay boton de
+      exportar/importar todavia (no critico: no hay datos reales de
+      clientes en juego aun)
 
-**Bloquea:** Fase 4 (produccion) y el uso real del Portal Cliente.
+**Como probarlo:** sigue los pasos de `README.md` → "Datos", corre
+`npm run dev`, crea una cuenta y confirma que las empresas/asientos que
+cargues sigan ahi si recargas la pagina o entras desde otro navegador.
+
+**Bloquea:** Fase 5 (produccion) y el uso real del Portal Cliente.
 
 ---
 
@@ -126,3 +143,9 @@ Objetivo: que tus clientes puedan entrar al Portal desde cualquier lugar.
   detalle) que habia quedado pendiente. Corregido bug donde Balance, EERR,
   8 Columnas y Portal Cliente ignoraban saldos de cuentas con sub-cuentas.
   Creado este roadmap.
+- 2026-09-21 — Fase 1 (codigo) completa: esquema `supabase/schema.sql` con
+  RLS, cliente Supabase, pantalla de login/crear cuenta, y reemplazo de
+  localStorage por sync a Supabase sin reescribir la UI. Falta que el
+  usuario cree el proyecto real en supabase.com y complete el `.env`
+  (probado localmente contra un proyecto falso: la app maneja bien tanto
+  la falta de configuracion como errores de red, sin crashear).

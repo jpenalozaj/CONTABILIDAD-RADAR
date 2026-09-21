@@ -30,11 +30,14 @@
 
    Espera a que termine (puede tardar 1-2 minutos).
 
-6. Ejecuta este comando para iniciar RADAR:
+6. Configura Supabase (una vez): ver la seccion "Datos" mas abajo. Sin esto
+   RADAR muestra una pantalla explicando que falta configurar.
+
+7. Ejecuta este comando para iniciar RADAR:
 
    npm run dev
 
-7. Se abrira automaticamente tu navegador en:
+8. Se abrira automaticamente tu navegador en:
 
    http://localhost:5173
 
@@ -58,9 +61,13 @@ radar-project/
   index.html          - Pagina principal
   package.json        - Dependencias del proyecto
   vite.config.js      - Configuracion del servidor
+  supabase/schema.sql - Esquema y RLS de la base de datos
+  .env.example        - Plantilla de variables de entorno
   src/
     main.jsx          - Punto de entrada
-    App.jsx           - TODA la aplicacion RADAR (1297 lineas)
+    App.jsx           - TODA la aplicacion RADAR
+    lib/supabaseClient.js - Cliente de Supabase
+    lib/sync.js        - Carga/guardado generico de datos por usuario
 
 ## Modulos incluidos
 
@@ -75,11 +82,32 @@ radar-project/
 
 ## Datos
 
-Los datos se guardan en el localStorage del navegador.
-Mientras uses el mismo navegador, tus datos se mantienen entre sesiones.
+Los datos se guardan en Supabase (Postgres), no en el navegador. Cada
+usuario ve solo sus propias empresas y registros (Row Level Security).
+
+Configuracion (una sola vez):
+
+1. Crea una cuenta gratuita en https://supabase.com y un proyecto nuevo.
+2. En el proyecto, ve a SQL Editor, pega el contenido de
+   `supabase/schema.sql` y ejecutalo. Esto crea la tabla y sus reglas de
+   seguridad.
+3. Ve a Project Settings > API y copia la "Project URL" y la
+   "anon public key".
+4. En la carpeta del proyecto crea un archivo `.env` (copia `.env.example`)
+   con:
+
+   VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
+   VITE_SUPABASE_ANON_KEY=tu-anon-key
+
+5. Reinicia `npm run dev`. Ahora RADAR pide crear cuenta / iniciar sesion,
+   y tus datos quedan disponibles desde cualquier navegador o equipo.
+
+Por defecto, Supabase Auth exige confirmar el correo antes de poder
+iniciar sesion (revisa la bandeja de entrada tras crear la cuenta). Esto se
+puede desactivar en Authentication > Providers > Email mientras pruebas.
 
 ## Notas
 
-- Para produccion se necesitaria un backend con base de datos real
-- Este es un MVP/prototipo funcional
+- Ver `ROADMAP.md` para las fases siguientes (informes con IA, modulos
+  nuevos, despliegue a produccion).
 - Desarrollado por Jonas Penaloza - RADAR 2026

@@ -1,4 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { supabase } from "./lib/supabaseClient";
+import { loadCollection, saveCollection } from "./lib/sync";
 
 const ST = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -172,7 +174,8 @@ function mkQ(y){return[
 function visQ(qs,r){const v=[];if(!qs.length)return v;v.push(qs[0]);let c=qs[0];while(c){const rv=r[c.id];if(rv===undefined||rv===""||rv===null)break;const ni=c.nx?c.nx(rv):null;if(!ni)break;const nq=qs.find(q=>q.id===ni);if(!nq)break;v.push(nq);c=nq}return v}
 function ySt(y,r){const e=r["e_"+y];if(!e)return{s:"pend",l:"Sin evaluar",c:"#64748B"};if(e==="aceptada")return{s:"ok",l:"Aceptada",c:"#10B981"};if(e==="no_presentada")return{s:"alert",l:"No presentada",c:"#EF4444"};if(r["obs_"+y])return{s:"rev",l:"Observada - Revisada",c:"#F59E0B"};return{s:"proc",l:"Observada - En revision",c:"#F59E0B"}}
 
-export default function App(){
+function Dashboard({session}){
+  const userId=session.user.id;
   const [rdy,setRdy]=useState(false);
   const [pg,setPg]=useState("inicio");
   const [emps,setEmps]=useState([]);
@@ -185,15 +188,35 @@ export default function App(){
   const [docs,setDocs]=useState([]);
   const [tareas,setTareas]=useState([]);
   const [sb,setSb]=useState(false);
-  useEffect(()=>{(()=>{const e=ld("r:e",[]);const v=ld("r:v",[]);const l=ld("r:l",[]);const a=ld("r:a",DFLT_ACCTS);const en=ld("r:en",[]);const rm=ld("r:rm",[]);const dc=ld("r:dc",[]);const ta=ld("r:ta",[]);setEmps(e);setEvs(v);setLog(l);setAccts(a);setEntries(en);setRems(rm);setDocs(dc);setTareas(ta);if(e.length>0)setAEmp(e[0].id);setRdy(true)})()},[]);
-  useEffect(()=>{if(rdy)sv("r:e",emps)},[emps,rdy]);
-  useEffect(()=>{if(rdy)sv("r:v",evs)},[evs,rdy]);
-  useEffect(()=>{if(rdy)sv("r:l",log)},[log,rdy]);
-  useEffect(()=>{if(rdy)sv("r:a",accts)},[accts,rdy]);
-  useEffect(()=>{if(rdy)sv("r:en",entries)},[entries,rdy]);
-  useEffect(()=>{if(rdy)sv("r:rm",rems)},[rems,rdy]);
-  useEffect(()=>{if(rdy)sv("r:dc",docs)},[docs,rdy]);
-  useEffect(()=>{if(rdy)sv("r:ta",tareas)},[tareas,rdy]);
+  const prevIds=useRef({e:new Set(),v:new Set(),l:new Set(),a:new Set(),en:new Set(),rm:new Set(),dc:new Set(),ta:new Set()});
+  useEffect(()=>{let cancelled=false;(async()=>{
+    const[e,v,l,a,en,rm,dc,ta]=await Promise.all([
+      loadCollection(userId,"empresas",[]),
+      loadCollection(userId,"evaluaciones",[]),
+      loadCollection(userId,"log",[]),
+      loadCollection(userId,"plan_cuentas",DFLT_ACCTS),
+      loadCollection(userId,"entries",[]),
+      loadCollection(userId,"remuneraciones",[]),
+      loadCollection(userId,"documentos",[]),
+      loadCollection(userId,"tareas",[]),
+    ]);
+    if(cancelled)return;
+    prevIds.current={
+      e:new Set(e.map(x=>String(x.id))),v:new Set(v.map(x=>String(x.id))),l:new Set(l.map(x=>String(x.id))),
+      a:new Set(a.map(x=>String(x.cd))),en:new Set(en.map(x=>String(x.id))),rm:new Set(rm.map(x=>String(x.id))),
+      dc:new Set(dc.map(x=>String(x.id))),ta:new Set(ta.map(x=>String(x.id))),
+    };
+    setEmps(e);setEvs(v);setLog(l);setAccts(a);setEntries(en);setRems(rm);setDocs(dc);setTareas(ta);
+    if(e.length>0)setAEmp(e[0].id);setRdy(true);
+  })();return()=>{cancelled=true}},[userId]);
+  useEffect(()=>{if(rdy)saveCollection(userId,"empresas",emps,prevIds.current.e).then(s=>prevIds.current.e=s)},[emps,rdy]);
+  useEffect(()=>{if(rdy)saveCollection(userId,"evaluaciones",evs,prevIds.current.v).then(s=>prevIds.current.v=s)},[evs,rdy]);
+  useEffect(()=>{if(rdy)saveCollection(userId,"log",log,prevIds.current.l).then(s=>prevIds.current.l=s)},[log,rdy]);
+  useEffect(()=>{if(rdy)saveCollection(userId,"plan_cuentas",accts,prevIds.current.a,"cd").then(s=>prevIds.current.a=s)},[accts,rdy]);
+  useEffect(()=>{if(rdy)saveCollection(userId,"entries",entries,prevIds.current.en).then(s=>prevIds.current.en=s)},[entries,rdy]);
+  useEffect(()=>{if(rdy)saveCollection(userId,"remuneraciones",rems,prevIds.current.rm).then(s=>prevIds.current.rm=s)},[rems,rdy]);
+  useEffect(()=>{if(rdy)saveCollection(userId,"documentos",docs,prevIds.current.dc).then(s=>prevIds.current.dc=s)},[docs,rdy]);
+  useEffect(()=>{if(rdy)saveCollection(userId,"tareas",tareas,prevIds.current.ta).then(s=>prevIds.current.ta=s)},[tareas,rdy]);
   const aLog=(a,d)=>setLog(p=>[{id:uid(),time:new Date().toISOString(),action:a,detail:d},...p].slice(0,50));
   const eObj=useMemo(()=>emps.find(e=>e.id===aEmp),[emps,aEmp]);
   const eEvs=useMemo(()=>evs.filter(e=>e.empresaId===aEmp),[evs,aEmp]);
@@ -215,7 +238,10 @@ export default function App(){
       <div style={{padding:"24px 20px 20px",borderBottom:"1px solid var(--bd)"}}><div style={{display:"flex",alignItems:"center",gap:12}}><div style={{color:"var(--cy)"}}>{IC.radar}</div><div><div style={{fontSize:18,fontWeight:800,letterSpacing:4,color:"var(--cy)"}}>RADAR</div><div style={{fontSize:10,color:"var(--tx3)",letterSpacing:1}}>INTELIGENCIA EMPRESARIAL</div></div></div></div>
       {emps.length>0&&<div style={{padding:"16px 16px 8px"}}><div style={{fontSize:10,textTransform:"uppercase",letterSpacing:1.5,color:"var(--tx3)",marginBottom:8,paddingLeft:4}}>Empresa Activa</div><select value={aEmp||""} onChange={e=>setAEmp(e.target.value)} style={{fontSize:12,padding:"8px 12px",background:"var(--sf2)"}}>{emps.map(e=><option key={e.id} value={e.id}>{e.name}</option>)}</select></div>}
       <nav style={{flex:1,padding:12,overflowY:"auto"}}><div style={{display:"flex",flexDirection:"column",gap:2}}>{nav.map(n=><button key={n.id} onClick={()=>go(n.id)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:"var(--rs)",border:"none",width:"100%",textAlign:"left",fontSize:13,fontWeight:pg===n.id?600:400,background:pg===n.id?"var(--cyg)":"transparent",color:pg===n.id?"var(--cy)":n.soon?"var(--tx3)":"var(--tx2)",opacity:n.soon?.5:1,cursor:n.soon?"default":"pointer"}}>{n.icon}<span>{n.label}</span>{n.soon&&<span style={{marginLeft:"auto",fontSize:9,background:"var(--bd)",padding:"2px 6px",borderRadius:4,color:"var(--tx3)"}}>Pronto</span>}</button>)}</div></nav>
-      <div style={{padding:"16px 20px",borderTop:"1px solid var(--bd)",fontSize:10,color:"var(--tx3)"}}>RADAR 2026</div>
+      <div style={{padding:"14px 20px",borderTop:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+        <div style={{fontSize:10,color:"var(--tx3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={session.user.email}>{session.user.email}</div>
+        <button onClick={()=>supabase.auth.signOut()} style={{background:"none",border:"none",color:"var(--tx3)",fontSize:10,cursor:"pointer",flexShrink:0,padding:0}}>Salir</button>
+      </div>
     </aside>
     <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
       <header style={{display:"flex",alignItems:"center",gap:12,padding:"0 20px",height:56,minHeight:56,background:"var(--sf)",borderBottom:"1px solid var(--bd)"}}><button onClick={()=>setSb(true)} style={{background:"none",border:"none",color:"var(--tx2)",padding:4}}>{IC.menu}</button><h1 style={{fontSize:15,fontWeight:600}}>{nav.find(n=>n.id===pg)?.label||"RADAR"}</h1>{eObj&&pg!=="empresas"&&pg!=="inicio"&&<span style={{marginLeft:"auto",fontSize:11,padding:"4px 14px",borderRadius:20,background:"var(--cyg)",color:"var(--cy)",border:"1px solid var(--cy2)",fontWeight:500}}>{eObj.name}</span>}</header>
@@ -231,6 +257,71 @@ export default function App(){
       </div>
     </div>
   </div><style>{`@media(min-width:768px){.rsb{transform:translateX(0)!important;position:static!important}}`}</style></>);
+}
+
+function AuthScreen(){
+  const[mode,setMode]=useState("login");
+  const[email,setEmail]=useState("");
+  const[password,setPassword]=useState("");
+  const[busy,setBusy]=useState(false);
+  const[msg,setMsg]=useState(null);
+  const submit=async(ev)=>{
+    ev.preventDefault();setBusy(true);setMsg(null);
+    const{error}=mode==="login"
+      ?await supabase.auth.signInWithPassword({email,password})
+      :await supabase.auth.signUp({email,password});
+    setBusy(false);
+    if(error)setMsg({t:"err",m:error.message});
+    else if(mode==="signup")setMsg({t:"ok",m:"Cuenta creada. Si tu proyecto pide confirmacion por correo, revisa tu bandeja antes de iniciar sesion."});
+  };
+  return(<><style>{ST}</style>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)"}}>
+      <form onSubmit={submit} style={{width:340,background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:28}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:24,color:"var(--cy)"}}>{IC.radar}<div style={{fontSize:18,fontWeight:800,letterSpacing:4}}>RADAR</div></div>
+        <div style={{display:"flex",gap:6,marginBottom:20,background:"var(--sf2)",borderRadius:"var(--rs)",padding:4}}>
+          <button type="button" onClick={()=>{setMode("login");setMsg(null)}} style={{flex:1,padding:"8px 0",borderRadius:6,border:"none",fontSize:12,fontWeight:600,background:mode==="login"?"var(--cy)":"transparent",color:mode==="login"?"#fff":"var(--tx2)"}}>Iniciar sesion</button>
+          <button type="button" onClick={()=>{setMode("signup");setMsg(null)}} style={{flex:1,padding:"8px 0",borderRadius:6,border:"none",fontSize:12,fontWeight:600,background:mode==="signup"?"var(--cy)":"transparent",color:mode==="signup"?"#fff":"var(--tx2)"}}>Crear cuenta</button>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Correo</label><input type="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu@estudio.cl"/></div>
+          <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Contrasena</label><input type="password" required minLength={6} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Minimo 6 caracteres"/></div>
+        </div>
+        {msg&&<div style={{marginTop:14,fontSize:12,padding:"10px 12px",borderRadius:"var(--rs)",background:msg.t==="err"?"rgba(239,68,68,.1)":"rgba(16,185,129,.1)",color:msg.t==="err"?"var(--rd)":"var(--gn)",border:"1px solid "+(msg.t==="err"?"rgba(239,68,68,.2)":"rgba(16,185,129,.2)")}}>{msg.m}</div>}
+        <button type="submit" disabled={busy} style={{marginTop:18,width:"100%",padding:"12px 0",borderRadius:"var(--rs)",border:"none",background:"var(--cy)",color:"#fff",fontWeight:600,fontSize:13,cursor:busy?"default":"pointer",opacity:busy?.6:1}}>{busy?"Un momento...":mode==="login"?"Iniciar sesion":"Crear cuenta"}</button>
+      </form>
+    </div>
+  </>);
+}
+
+function ConfigMissing(){
+  return(<><style>{ST}</style>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",padding:20}}>
+      <div style={{maxWidth:480,background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:28}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16,color:"var(--cy)"}}>{IC.radar}<div style={{fontSize:18,fontWeight:800,letterSpacing:4}}>RADAR</div></div>
+        <div style={{fontSize:14,fontWeight:600,marginBottom:10}}>Falta configurar Supabase</div>
+        <div style={{fontSize:13,color:"var(--tx2)",lineHeight:1.6,marginBottom:14}}>
+          Crea un proyecto gratuito en supabase.com, corre <code style={{background:"var(--sf2)",padding:"1px 6px",borderRadius:4}}>supabase/schema.sql</code> en su SQL Editor,
+          y define <code style={{background:"var(--sf2)",padding:"1px 6px",borderRadius:4}}>VITE_SUPABASE_URL</code> y <code style={{background:"var(--sf2)",padding:"1px 6px",borderRadius:4}}>VITE_SUPABASE_ANON_KEY</code> en
+          un archivo <code style={{background:"var(--sf2)",padding:"1px 6px",borderRadius:4}}>.env</code> (mira <code style={{background:"var(--sf2)",padding:"1px 6px",borderRadius:4}}>.env.example</code>).
+        </div>
+        <div style={{fontSize:12,color:"var(--tx3)"}}>Reinicia <code style={{background:"var(--sf2)",padding:"1px 6px",borderRadius:4}}>npm run dev</code> despues de crear el .env.</div>
+      </div>
+    </div>
+  </>);
+}
+
+export default function App(){
+  const[session,setSession]=useState(undefined);
+  useEffect(()=>{
+    if(!supabase)return;
+    supabase.auth.getSession().then(({data})=>setSession(data.session));
+    const{data:sub}=supabase.auth.onAuthStateChange((_ev,s)=>setSession(s));
+    return()=>sub.subscription.unsubscribe();
+  },[]);
+  if(!supabase)return<ConfigMissing/>;
+  if(session===undefined)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#050A18"}}><div style={{textAlign:"center",color:"#06B6D4"}}><div style={{fontSize:24,fontWeight:800,letterSpacing:6}}>RADAR</div><div style={{fontSize:12,color:"#64748B",marginTop:8}}>Cargando...</div></div></div>;
+  if(!session)return<AuthScreen/>;
+  return<Dashboard key={session.user.id} session={session}/>;
 }
 
 function HomeP({emps,eObj,evs,log}){
