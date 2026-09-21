@@ -6,7 +6,10 @@ import { spawn } from "node:child_process";
 
 export function runSiiCli(args) {
   return new Promise((resolve, reject) => {
-    const child = spawn("sii", args, { stdio: ["ignore", "pipe", "inherit"] });
+    // En Windows, "sii" instalado con npm -g es en realidad "sii.cmd"; spawn
+    // no lo resuelve sin shell:true (falla con ENOENT aunque el comando SI
+    // funcione a mano en la terminal).
+    const child = spawn("sii", args, { stdio: ["ignore", "pipe", "inherit"], shell: process.platform === "win32" });
     let out = "";
     child.stdout.on("data", (d) => (out += d));
     child.on("error", (err) => {
