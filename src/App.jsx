@@ -596,7 +596,9 @@ function PlanCtas({accts,setAccts,aLog}){
 
 function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog}){
   const [showF,setShowF]=useState(false);
-  const [fm,setFm]=useState({date:new Date().toISOString().slice(0,10),desc:"",lines:[{ac:"",db:0,cr:0},{ac:"",db:0,cr:0}]});
+  const [editId,setEditId]=useState(null);
+  const blankFm=()=>({date:new Date().toISOString().slice(0,10),desc:"",lines:[{ac:"",db:0,cr:0},{ac:"",db:0,cr:0}]});
+  const [fm,setFm]=useState(blankFm());
   const nxt=useMemo(()=>{const ns=empEntries.map(e=>parseInt(e.num)||0);return String(Math.max(0,...ns)+1).padStart(4,"0")},[empEntries]);
   const uLine=(i,f,v)=>setFm(p=>{const ls=[...p.lines];ls[i]={...ls[i],[f]:f==="ac"?v:Math.max(0,parseFloat(v)||0)};return{...p,lines:ls}});
   const addL=()=>setFm(p=>({...p,lines:[...p.lines,{ac:"",db:0,cr:0}]}));
@@ -604,15 +606,24 @@ function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog}){
   const tD=fm.lines.reduce((s,l)=>s+(l.db||0),0);
   const tC=fm.lines.reduce((s,l)=>s+(l.cr||0),0);
   const bal=Math.abs(tD-tC)<0.01&&tD>0;
-  const doSave=()=>{if(!fm.desc||!bal)return;if(fm.lines.some(l=>!l.ac)){alert("Selecciona cuenta en todas las lineas");return}const e={id:uid(),empresaId:eObj.id,num:nxt,date:fm.date,desc:fm.desc,lines:fm.lines.filter(l=>l.db>0||l.cr>0)};setEntries(p=>[...p,e]);aLog("Asiento "+nxt,fm.desc);setFm({date:new Date().toISOString().slice(0,10),desc:"",lines:[{ac:"",db:0,cr:0},{ac:"",db:0,cr:0}]});setShowF(false)};
+  const openNew=()=>{setFm(blankFm());setEditId(null);setShowF(true)};
+  const openEdit=e=>{setFm({date:e.date,desc:e.desc,lines:e.lines.map(l=>({ac:l.ac,db:l.db||0,cr:l.cr||0}))});setEditId(e.id);setShowF(true)};
+  const doSave=()=>{
+    if(!fm.desc||!bal)return;
+    if(fm.lines.some(l=>!l.ac)){alert("Selecciona cuenta en todas las lineas");return}
+    const lines=fm.lines.filter(l=>l.db>0||l.cr>0);
+    if(editId){setEntries(p=>p.map(e=>e.id===editId?{...e,date:fm.date,desc:fm.desc,lines}:e));aLog("Asiento editado",fm.desc)}
+    else{const e={id:uid(),empresaId:eObj.id,num:nxt,date:fm.date,desc:fm.desc,lines};setEntries(p=>[...p,e]);aLog("Asiento "+nxt,fm.desc)}
+    setFm(blankFm());setEditId(null);setShowF(false);
+  };
   const delE=id=>setEntries(p=>p.filter(e=>e.id!==id));
   const handleCSV=ev=>{const f=ev.target.files?.[0];if(!f)return;const rd=new FileReader();rd.onload=e=>{try{const rows=e.target.result.split("\n").filter(r=>r.trim()).slice(1);const imp=[];let cur=null;let n=parseInt(nxt);rows.forEach(row=>{const c=row.split(/[,;\t]/).map(x=>x.trim().replace(/^"|"$/g,""));if(c.length>=5){const[dt,gl,ct,dStr,hStr]=c;const db=parseFloat(dStr)||0;const cr=parseFloat(hStr)||0;const ac=leafAccts.find(a=>a.cd===ct||a.nm.toLowerCase().includes(ct.toLowerCase()));if(!cur||cur.desc!==gl||cur.date!==dt){if(cur&&cur.lines.length>0)imp.push(cur);cur={id:uid(),empresaId:eObj.id,num:String(n++).padStart(4,"0"),date:dt||new Date().toISOString().slice(0,10),desc:gl,lines:[]}}if(ac)cur.lines.push({ac:ac.cd,db,cr})}});if(cur&&cur.lines.length>0)imp.push(cur);if(imp.length>0){setEntries(p=>[...p,...imp]);aLog("CSV importado",imp.length+" asientos");alert(imp.length+" asiento(s) importado(s)")}else alert("No se importaron asientos. Verifica formato: Fecha,Glosa,Cuenta,Debe,Haber")}catch(err){alert("Error: "+err.message)}};rd.readAsText(f);ev.target.value=""};
 
   return(<div>
-    <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:16,justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:12,color:"var(--tx3)"}}>{empEntries.length} asientos</span><div style={{display:"flex",gap:8}}><label style={{display:"flex",alignItems:"center",gap:8,background:"var(--sf2)",color:"var(--tx2)",border:"1px solid var(--bd)",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,cursor:"pointer"}}>CSV<input type="file" accept=".csv,.txt" onChange={handleCSV} style={{display:"none"}}/></label><Bt onClick={()=>setShowF(!showF)} p={true}>{IC.plus} Nuevo Asiento</Bt></div></div>
+    <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:16,justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:12,color:"var(--tx3)"}}>{empEntries.length} asientos</span><div style={{display:"flex",gap:8}}><label style={{display:"flex",alignItems:"center",gap:8,background:"var(--sf2)",color:"var(--tx2)",border:"1px solid var(--bd)",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,cursor:"pointer"}}>CSV<input type="file" accept=".csv,.txt" onChange={handleCSV} style={{display:"none"}}/></label><Bt onClick={()=>showF?setShowF(false):openNew()} p={true}>{IC.plus} Nuevo Asiento</Bt></div></div>
     <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:12,marginBottom:16,fontSize:11,color:"var(--tx3)"}}><b>CSV:</b> Fecha, Glosa, CodigoCuenta, Debe, Haber</div>
     {showF&&<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:20,marginBottom:16}}>
-      <div style={{fontSize:13,fontWeight:600,marginBottom:12}}>Asiento N {nxt}</div>
+      <div style={{fontSize:13,fontWeight:600,marginBottom:12}}>{editId?"Editar Asiento N "+(empEntries.find(e=>e.id===editId)?.num||""):"Asiento N "+nxt}</div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}><input type="date" value={fm.date} onChange={e=>setFm(p=>({...p,date:e.target.value}))}/><input placeholder="Glosa / Descripcion" value={fm.desc} onChange={e=>setFm(p=>({...p,desc:e.target.value}))}/></div>
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         <div style={{display:"grid",gridTemplateColumns:"1fr 90px 90px 32px",gap:8,fontSize:10,color:"var(--tx3)",fontWeight:500,padding:"0 4px"}}><span>Cuenta</span><span style={{textAlign:"right"}}>Debe</span><span style={{textAlign:"right"}}>Haber</span><span></span></div>
@@ -630,10 +641,10 @@ function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog}){
           <span style={{padding:"3px 10px",borderRadius:4,fontSize:11,fontWeight:600,background:bal?"rgba(16,185,129,.15)":"rgba(239,68,68,.15)",color:bal?"var(--gn)":"var(--rd)"}}>{bal?"Cuadrado":"Descuadrado"}</span>
         </div>
       </div>
-      <div style={{display:"flex",gap:8,marginTop:12}}><Bt onClick={doSave} p={bal}>{bal?"Guardar":"Descuadrado"}</Bt><Bt onClick={()=>setShowF(false)}>Cancelar</Bt></div>
+      <div style={{display:"flex",gap:8,marginTop:12}}><Bt onClick={doSave} p={bal}>{bal?(editId?"Guardar cambios":"Guardar"):"Descuadrado"}</Bt><Bt onClick={()=>{setShowF(false);setEditId(null)}}>Cancelar</Bt></div>
     </div>}
-    <div style={{display:"flex",flexDirection:"column",gap:8}}>{[...empEntries].sort((a,b)=>b.date.localeCompare(a.date)).map(e=><div key={e.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:16}}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:10,fontFamily:"monospace",background:"var(--sf2)",padding:"2px 8px",borderRadius:4}}>N {e.num}</span><span style={{fontSize:13,fontWeight:500}}>{e.desc}</span></div><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:11,color:"var(--tx3)"}}>{fD(e.date)}</span><button onClick={()=>delE(e.id)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5}}>x</button></div></div>
+    <div style={{display:"flex",flexDirection:"column",gap:8}}>{[...empEntries].sort((a,b)=>b.date.localeCompare(a.date)).map(e=><div key={e.id} style={{background:"var(--sf)",border:"1px solid "+(editId===e.id?"var(--cy)":"var(--bd)"),borderRadius:"var(--r)",padding:16}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:10,fontFamily:"monospace",background:"var(--sf2)",padding:"2px 8px",borderRadius:4}}>N {e.num}</span><span style={{fontSize:13,fontWeight:500}}>{e.desc}</span></div><div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:11,color:"var(--tx3)"}}>{fD(e.date)}</span><button onClick={()=>openEdit(e)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.6,fontSize:11}}>editar</button><button onClick={()=>{if(confirm("Eliminar este asiento?"))delE(e.id)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5}}>x</button></div></div>
       <div style={{fontSize:11}}>{e.lines.map((l,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 80px 80px",gap:8,padding:"2px 0"}}><span style={{color:"var(--tx2)",paddingLeft:l.cr>0?20:0}}>{l.ac} {leafAccts.find(a=>a.cd===l.ac)?.nm||""}</span><span style={{textAlign:"right",fontFamily:"monospace"}}>{l.db>0?"$"+fmt(l.db):""}</span><span style={{textAlign:"right",fontFamily:"monospace"}}>{l.cr>0?"$"+fmt(l.cr):""}</span></div>)}</div>
     </div>)}</div>
   </div>);
