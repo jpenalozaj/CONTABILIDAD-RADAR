@@ -1,4 +1,4 @@
-import { supabase } from "./supabaseClient";
+import { supabase } from "./supabaseClient.js";
 
 // RADAR stores every collection (empresas, asientos, plan de cuentas, etc.)
 // as JSON rows in one generic table, keyed by (user_id, collection, row_id).

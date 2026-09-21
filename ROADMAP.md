@@ -23,6 +23,44 @@ Leyenda de estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho
 - [x] Asientos, Libro Diario, Libro Mayor, Balance, Estado de Resultados,
       Balance 8 Columnas — todos calculando sobre las cuentas hoja reales
 - [x] Persistencia en `localStorage` del navegador
+- [x] Importador de Compras/Ventas SII (CSV manual) — corregido para postear
+      a los codigos de cuenta correctos tras la reestructuracion IFRS, y
+      ahora guarda RUT/folio/razon social como datos propios del asiento
+      (`src/lib/rut.js`)
+- [x] Conciliacion Bancaria (`src/lib/cartola.js`, `xlsxLite.js`,
+      `conciliacion.js`, tab nueva en Contabilidad): sube la cartola del
+      banco, detecta automatico que movimientos ya estan contabilizados
+      (cruce contra los propios asientos por cuenta+fecha±5 dias+monto), y
+      para el resto sugiere la contracuenta cruzando primero por monto
+      contra Compras/Ventas SII ya importadas, RUT como desempate — nunca
+      adivina si hay 2+ candidatos, deja elegir. Mismo diseño validado en
+      el proyecto de Montajes Quintana (Fase 5C de ese proyecto), adaptado
+      a que RADAR no tiene un ERP externo (Softland) que consultar: el
+      "ya contabilizado" se compara contra los asientos de RADAR mismo.
+      Probado con una cartola Santander real (98 movimientos, sumas
+      cuadran exacto contra los totales que imprime el propio banco).
+      Soporta por ahora solo formato Santander (Historica/Provisoria).
+- [ ] Automatizar la carga de Compras/Ventas desde el SII sin CSV manual —
+      ver nota mas abajo, evaluado pero no construido todavia.
+
+**Nota sobre lector de Excel:** se descarto la libreria `xlsx` de npm
+(vulnerabilidades sin parche: Prototype Pollution, ReDoS) y tambien
+`exceljs` (no pudo leer una cartola real de Santander — algunos sistemas
+de reportes bancarios generan `.xlsx` con prefijos de namespace XML que
+esa libreria no maneja). Se escribio un lector propio minimalista
+(`src/lib/xlsxLite.js`, ZIP + XML nativos del navegador, sin dependencias)
+que si funciona con el archivo real.
+
+**Nota sobre automatizar el SII (investigado, no implementado):**
+Nubox no construye su propio conector — usa **Fintoc**
+(fintoc.com, infraestructura financiera chilena tipo Plaid): el cliente
+escribe su clave del SII directo en un widget de Fintoc, que nunca es
+visible ni se guarda en la plataforma que integra. Tambien existen APIs
+mas chicas ya armadas para bajar el RCV en JSON (BaseAPI, SimpleAPI,
+ApiPyme, ApiRCV), desde ~$15.000/mes; el estado de sus planes gratis no
+quedo confirmado al revisar. Integrar cualquiera de estas es un trabajo
+de tamano similar a la Fase 1 (Supabase) — requiere cuenta propia en el
+proveedor elegido, y no se ha decidido cual ni si vale la pena todavia.
 
 **Limitacion conocida:** los datos viven solo en el navegador de un
 computador. Sin base de datos real, no hay multi-dispositivo, no hay acceso
@@ -157,3 +195,11 @@ Objetivo: que tus clientes puedan entrar al Portal desde cualquier lugar.
   GitHub quedo con una carpeta duplicada adentro, y la URL de Supabase
   tenia `/rest/v1/` pegado al final por copiar del lugar equivocado.
   Cuenta creada y login funcionando en su computador.
+- 2026-09-21 — Conciliacion Bancaria construida y probada contra una
+  cartola Santander real de Jonas (Montajes Quintana, otro proyecto suyo
+  fuera de RADAR, usado como referencia de diseño — ver Fase 5C de ese
+  proyecto). De paso se encontro y corrigio un bug urgente: el importador
+  de Compras/Ventas SII posteaba a codigos de cuenta viejos (pre-IFRS) que
+  ya no existian. Se investigo automatizar la carga del SII sin CSV manual
+  (Fintoc, BaseAPI y similares) pero se dejo pendiente de decision — ver
+  nota en Fase 0 mas arriba.

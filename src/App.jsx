@@ -1,6 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "./lib/supabaseClient";
 import { loadCollection, saveCollection } from "./lib/sync";
+import { normRut } from "./lib/rut";
+import { parseCartolaSantander, decodeRutFromGlosa } from "./lib/cartola";
+import { yaContabilizado, sugerirContraparte, armarAsiento } from "./lib/conciliacion";
 
 const ST = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -495,12 +498,13 @@ const tpC={asset:"#06B6D4",liability:"#EF4444",equity:"#8B5CF6",income:"#10B981"
 function ContabP({eObj,accts,setAccts,entries,setEntries,empEntries,leafAccts,aLog,go}){
   const [tab,setTab]=useState("plan");
   if(!eObj)return<Ey i="🏢" t="Selecciona una empresa" d="Activa una empresa primero."><Bt onClick={()=>go("empresas")} p={true}>Ir a Empresas</Bt></Ey>;
-  const tabs=[{id:"plan",l:"Plan de Cuentas"},{id:"asientos",l:"Asientos"},{id:"csv",l:"Compras/Ventas SII"},{id:"diario",l:"Libro Diario"},{id:"mayor",l:"Libro Mayor"},{id:"balance",l:"Balance"},{id:"eerr",l:"Estado Resultados"},{id:"b8",l:"8 Columnas"}];
+  const tabs=[{id:"plan",l:"Plan de Cuentas"},{id:"asientos",l:"Asientos"},{id:"csv",l:"Compras/Ventas SII"},{id:"conciliacion",l:"Conciliacion Bancaria"},{id:"diario",l:"Libro Diario"},{id:"mayor",l:"Libro Mayor"},{id:"balance",l:"Balance"},{id:"eerr",l:"Estado Resultados"},{id:"b8",l:"8 Columnas"}];
   return(<div style={{maxWidth:960,margin:"0 auto"}}>
     <div style={{display:"flex",gap:6,marginBottom:20,flexWrap:"wrap"}}>{tabs.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{padding:"10px 18px",borderRadius:"var(--rs)",border:"none",fontSize:13,fontWeight:tab===t.id?700:500,background:tab===t.id?"var(--cyg)":"var(--sf)",color:tab===t.id?"var(--cy)":"var(--tx2)"}}>{t.l}</button>)}</div>
     {tab==="plan"&&<PlanCtas accts={accts} setAccts={setAccts} aLog={aLog}/>}
     {tab==="asientos"&&<Asientos entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} eObj={eObj} aLog={aLog}/>}
     {tab==="csv"&&<CSVSII entries={entries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} empEntries={empEntries} aLog={aLog}/>}
+    {tab==="conciliacion"&&<ConciliacionP entries={entries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} empEntries={empEntries} aLog={aLog}/>}
     {tab==="diario"&&<LDiario empEntries={empEntries} accts={accts}/>}
     {tab==="mayor"&&<LMayor empEntries={empEntries} accts={accts} leafAccts={leafAccts}/>}
     {tab==="balance"&&<Balance empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj}/>}
@@ -703,7 +707,7 @@ function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog}){
     if(rows.length<2){setResult({ok:false,msg:"Archivo vacio o sin datos"});return}
     const hdr=rows[0].toLowerCase();const isCompra=tipo==="compra";
     const dataRows=rows.slice(1);const imported=[];let n=nxtNum;
-    const ivaAc=isCompra?"1.1.06":"2.1.04";const ctpAc=isCompra?"1.1.09":"4.1.01";const tpAc=isCompra?"2.1.01":"1.1.03";
+    const ivaAc=isCompra?"1.1.03.001":"2.1.02.001";const ctpAc=isCompra?"1.1.05.001":"4.1.01.001";const tpAc=isCompra?"2.1.01.001":"1.1.02.001";
     dataRows.forEach(row=>{
       const c=row.split(";").map(x=>x.trim().replace(/^"|"$/g,""));
       if(c.length<7)return;
@@ -718,7 +722,7 @@ function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog}){
       const lines=[];
       if(isCompra){if(neto>0)lines.push({ac:ctpAc,db:Math.abs(neto),cr:0});if(iva>0)lines.push({ac:ivaAc,db:Math.abs(iva),cr:0});lines.push({ac:tpAc,db:0,cr:Math.abs(total)})}
       else{lines.push({ac:tpAc,db:Math.abs(total),cr:0});if(neto>0)lines.push({ac:ctpAc,db:0,cr:Math.abs(neto)});if(iva>0)lines.push({ac:ivaAc,db:0,cr:Math.abs(iva)})}
-      if(lines.length>=2)imported.push({id:uid(),empresaId:eObj.id,num:String(n++).padStart(4,"0"),date:dt,desc:glosa,lines});
+      if(lines.length>=2)imported.push({id:uid(),empresaId:eObj.id,num:String(n++).padStart(4,"0"),date:dt,desc:glosa,lines,rut:rut,folio:folio,razonSocial:razon,tipoDoc:isCompra?"compra":"venta"});
     });
     if(imported.length>0){setEntries(p=>[...p,...imported]);aLog("CSV "+tipo+" importado",imported.length+" asientos - "+eObj.name);setResult({ok:true,msg:imported.length+" asientos importados de "+dataRows.length+" registros"})}
     else setResult({ok:false,msg:"No se pudieron importar asientos. Verifica el formato del CSV."})
@@ -746,8 +750,120 @@ function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog}){
     {result&&<div style={{background:result.ok?"rgba(16,185,129,.1)":"rgba(239,68,68,.1)",border:"1px solid "+(result.ok?"rgba(16,185,129,.3)":"rgba(239,68,68,.3)"),borderRadius:"var(--rs)",padding:16,fontSize:13,color:result.ok?"var(--gn)":"var(--rd)",marginBottom:16}}>{result.ok?"✓ ":"✗ "}{result.msg}</div>}
     <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:16}}>
       <div style={{fontSize:11,color:"var(--tx3)",fontWeight:600,marginBottom:8}}>Formato esperado del CSV SII</div>
-      <div style={{fontSize:11,color:"var(--tx3)"}}>El sistema acepta el CSV estandar del SII (separado por punto y coma). Detecta automaticamente las columnas de Neto, IVA y Total. Las compras van a la cuenta "Gastos por Clasificar" (1.1.09) para que reclasifiques despues.</div>
+      <div style={{fontSize:11,color:"var(--tx3)"}}>El sistema acepta el CSV estandar del SII (separado por punto y coma). Detecta automaticamente las columnas de Neto, IVA y Total. Las compras van a la cuenta "Gastos por Clasificar" (1.1.05.001) para que reclasifiques despues.</div>
     </div>
+  </div>);
+}
+
+// ═══ CONCILIACION BANCARIA ═══
+function ConciliacionP({entries,setEntries,leafAccts,eObj,empEntries,aLog}){
+  const [cuentaBanco,setCuentaBanco]=useState("");
+  const [movs,setMovs]=useState(null); // null = sin cartola cargada
+  const [err,setErr]=useState(null);
+  const [loading,setLoading]=useState(false);
+  const [clasif,setClasif]=useState({}); // {movId: {contracuenta, candidatoId}}
+
+  const bancoLeaf=useMemo(()=>leafAccts.filter(a=>a.cd.startsWith("1.1.01.")),[leafAccts]);
+  const nxtNum=useMemo(()=>{const ns=empEntries.map(e=>parseInt(e.num)||0);return Math.max(0,...ns)+1},[empEntries]);
+
+  const cargarCartola=(file)=>{
+    if(!cuentaBanco){setErr("Primero elige a que cuenta bancaria corresponde esta cartola.");return}
+    setErr(null);setLoading(true);setMovs(null);setClasif({});
+    file.arrayBuffer().then(parseCartolaSantander).then(parsed=>{setMovs(parsed);setLoading(false)}).catch(e=>{setErr(e.message);setLoading(false)});
+  };
+
+  const analisis=useMemo(()=>{
+    if(!movs)return null;
+    const contab=[],pend=[];
+    for(const m of movs){
+      const match=yaContabilizado(m,cuentaBanco,empEntries);
+      if(match)contab.push({mov:m,asiento:match});
+      else pend.push({mov:m,sugerencia:sugerirContraparte(m,empEntries)});
+    }
+    return{contab,pend};
+  },[movs,cuentaBanco,empEntries]);
+
+  const setContracuenta=(movId,cd)=>setClasif(p=>({...p,[movId]:{...p[movId],contracuenta:cd}}));
+  const elegirCandidato=(movId,cand)=>setClasif(p=>({...p,[movId]:{...p[movId],contracuenta:cand.mov.cargoAbono==="C"?"2.1.01.001":"1.1.02.001",candidatoId:cand.id,rut:cand.rut}}));
+
+  const generarAsientos=()=>{
+    if(!analisis)return;
+    let n=nxtNum;const nuevos=[];
+    analisis.pend.forEach(({mov,sugerencia})=>{
+      const c=clasif[mov.id];
+      const contracuenta=c?.contracuenta||(sugerencia.estado==="match"?(mov.cargoAbono==="C"?"2.1.01.001":"1.1.02.001"):null);
+      if(!contracuenta)return;
+      nuevos.push(armarAsiento(mov,cuentaBanco,contracuenta,n++,eObj.id,"Conciliacion bancaria"));
+    });
+    if(nuevos.length===0){setErr("No hay ningun movimiento clasificado todavia — elige contracuenta al menos en uno.");return}
+    setEntries(p=>[...p,...nuevos]);
+    aLog("Conciliacion bancaria",nuevos.length+" asientos generados - "+eObj.name);
+    setMovs(null);setClasif({});setErr(null);
+  };
+
+  const fmtRut=r=>{const n=normRut(r);return n?n.slice(0,-1)+"-"+n.slice(-1):""};
+
+  return(<div>
+    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:24,marginBottom:16}}>
+      <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Conciliacion Bancaria</div>
+      <div style={{fontSize:12,color:"var(--tx3)",marginBottom:16}}>Sube la cartola del banco (Santander, formato Historica/Provisoria). Primero se detecta que movimientos ya tienen un asiento contabilizado; para el resto se sugiere la contracuenta cruzando con Compras/Ventas SII ya importadas.</div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:12,alignItems:"end"}}>
+        <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Cuenta bancaria (Disponible)</label>
+          <select value={cuentaBanco} onChange={e=>setCuentaBanco(e.target.value)}><option value="">-- Selecciona --</option>{bancoLeaf.map(a=><option key={a.cd} value={a.cd}>{a.cd} {a.nm}</option>)}</select>
+        </div>
+        <label style={{display:"inline-flex",alignItems:"center",gap:8,background:"var(--cy)",color:"#fff",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>Cargar cartola<input type="file" accept=".xlsx" onChange={e=>{if(e.target.files?.[0])cargarCartola(e.target.files[0]);e.target.value=""}} style={{display:"none"}}/></label>
+      </div>
+      {loading&&<div style={{marginTop:12,fontSize:12,color:"var(--tx3)"}}>Leyendo cartola...</div>}
+      {err&&<div style={{marginTop:12,background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.3)",borderRadius:"var(--rs)",padding:12,fontSize:12,color:"var(--rd)"}}>{err}</div>}
+    </div>
+
+    {analisis&&<>
+      <div style={{display:"flex",gap:12,marginBottom:16}}>
+        <div style={{flex:1,background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:16,textAlign:"center"}}><div style={{fontSize:24,fontWeight:700,color:"var(--gn)"}}>{analisis.contab.length}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Ya contabilizados</div></div>
+        <div style={{flex:1,background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:16,textAlign:"center"}}><div style={{fontSize:24,fontWeight:700,color:"var(--am)"}}>{analisis.pend.length}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Pendientes de clasificar</div></div>
+      </div>
+
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",overflow:"hidden",marginBottom:16}}>
+        <div style={{padding:"14px 20px",borderBottom:"1px solid var(--bd)",background:"var(--sf2)",fontSize:13,fontWeight:600}}>Pendientes de clasificar</div>
+        {analisis.pend.length===0?<div style={{padding:24,textAlign:"center",color:"var(--tx3)",fontSize:13}}>Todo lo de esta cartola ya esta contabilizado.</div>:
+        <div style={{overflowX:"auto"}}><table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
+          <thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:10,color:"var(--tx3)"}}><th style={{textAlign:"left",padding:"8px 12px"}}>Fecha</th><th style={{textAlign:"left",padding:"8px 8px"}}>Glosa</th><th style={{textAlign:"right",padding:"8px 8px"}}>Monto</th><th style={{textAlign:"center",padding:"8px 8px"}}>C/A</th><th style={{textAlign:"left",padding:"8px 12px",minWidth:260}}>Contracuenta / sugerencia</th></tr></thead>
+          <tbody>{analisis.pend.map(({mov,sugerencia})=>{
+            const c=clasif[mov.id];
+            return<tr key={mov.id} style={{borderBottom:"1px solid var(--bd)"}}>
+              <td style={{padding:"8px 12px",whiteSpace:"nowrap"}}>{fD(mov.fecha)}</td>
+              <td style={{padding:"8px 8px"}}>{mov.descripcion}</td>
+              <td style={{padding:"8px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(mov.monto)}</td>
+              <td style={{padding:"8px 8px",textAlign:"center"}}>{mov.cargoAbono==="C"?"Cargo":"Abono"}</td>
+              <td style={{padding:"8px 12px"}}>
+                {sugerencia.estado==="ambiguo"?
+                  <select value={c?.candidatoId||""} onChange={e=>{const cand=sugerencia.candidatos.find(x=>x.id===e.target.value);if(cand)elegirCandidato(mov.id,{...cand,mov})}} style={{fontSize:11,marginBottom:4}}>
+                    <option value="">-- {sugerencia.candidatos.length} candidatos, elige --</option>
+                    {sugerencia.candidatos.map(cand=><option key={cand.id} value={cand.id}>F{cand.folio} {cand.razonSocial} ({fmtRut(cand.rut)})</option>)}
+                  </select>
+                :sugerencia.estado==="match"?
+                  <div style={{fontSize:11,color:sugerencia.confianza==="alta"?"var(--gn)":"var(--am)",marginBottom:4}}>{sugerencia.confianza==="alta"?"✓ ":"⚠ "}F{sugerencia.candidato.folio} {sugerencia.candidato.razonSocial} ({fmtRut(sugerencia.candidato.rut)})</div>
+                :<div style={{fontSize:11,color:"var(--tx3)",marginBottom:4}}>{sugerencia.motivo}</div>}
+                <input list="cuentasConciliacionList" value={c?.contracuenta??(sugerencia.estado==="match"?(mov.cargoAbono==="C"?"2.1.01.001":"1.1.02.001"):"")} onChange={e=>setContracuenta(mov.id,e.target.value)} placeholder="Codigo de cuenta" style={{fontSize:11,padding:"4px 8px"}}/>
+              </td>
+            </tr>;
+          })}</tbody>
+        </table></div>}
+      </div>
+      <datalist id="cuentasConciliacionList">{leafAccts.map(a=><option key={a.cd} value={a.cd}>{a.nm}</option>)}</datalist>
+
+      <details style={{marginBottom:16}}>
+        <summary style={{cursor:"pointer",fontSize:13,fontWeight:600,padding:"10px 0"}}>Ya contabilizados ({analisis.contab.length}) — verificacion</summary>
+        <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",overflow:"hidden",marginTop:8}}>
+          {analisis.contab.length===0?<div style={{padding:16,textAlign:"center",color:"var(--tx3)",fontSize:12}}>Ninguno.</div>:
+          <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}><tbody>{analisis.contab.map(({mov,asiento})=><tr key={mov.id} style={{borderBottom:"1px solid var(--bd)"}}>
+            <td style={{padding:"6px 12px",whiteSpace:"nowrap"}}>{fD(mov.fecha)}</td><td style={{padding:"6px 8px"}}>{mov.descripcion}</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(mov.monto)}</td><td style={{padding:"6px 12px",fontSize:11,color:"var(--tx3)"}}>Asiento N {asiento.num}</td>
+          </tr>)}</tbody></table>}
+        </div>
+      </details>
+
+      <Bt onClick={generarAsientos} p={true}>Generar asientos de los clasificados</Bt>
+    </>}
   </div>);
 }
 
