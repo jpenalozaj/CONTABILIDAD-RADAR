@@ -741,12 +741,37 @@ function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog}){
       else{lines.push({ac:tpAc,db:Math.abs(total),cr:0});if(netoExento>0)lines.push({ac:ctpAc,db:0,cr:netoExento});if(iva>0)lines.push({ac:ivaAc,db:0,cr:Math.abs(iva)})}
       if(lines.length>=2)imported.push({id:uid(),empresaId:eObj.id,num:String(n++).padStart(4,"0"),date:dt,desc:glosa,lines,rut:rut,folio:folio,razonSocial:razon,tipoDoc:isCompra?"compra":"venta",periodo:periodoTrib||dt.slice(0,7).replace("-",""),neto:Math.abs(neto),exento:Math.abs(exento),iva:Math.abs(iva),total:Math.abs(total)});
     });
-    if(imported.length>0){setEntries(p=>[...p,...imported]);aLog("CSV "+tipo+" importado",imported.length+" asientos - "+eObj.name);setResult({ok:true,msg:imported.length+" asientos importados de "+dataRows.length+" registros"})}
+    if(imported.length>0){
+      // Reimportar el mismo periodo (ej. para corregir un bug de un import
+      // anterior) reemplaza los asientos con el mismo folio+RUT en vez de
+      // duplicarlos.
+      const claves=new Set(imported.map(im=>im.tipoDoc+"|"+im.folio+"|"+im.rut));
+      setEntries(p=>[...p.filter(e=>!(e.empresaId===eObj.id&&e.tipoDoc===(isCompra?"compra":"venta")&&claves.has(e.tipoDoc+"|"+e.folio+"|"+e.rut))),...imported]);
+      aLog("CSV "+tipo+" importado",imported.length+" asientos - "+eObj.name);
+      setResult({ok:true,msg:imported.length+" asientos importados de "+dataRows.length+" registros"});
+    }
     else setResult({ok:false,msg:"No se pudieron importar asientos. Verifica el formato del CSV."})
   }catch(err){setResult({ok:false,msg:"Error: "+err.message})}};
   const processCSV=(file,tipo)=>{
     if(!/^\d{6}$/.test(periodo)){setResult({ok:false,msg:"Antes de cargar el CSV, ingresa el periodo tributario (AAAAMM) al que corresponde ese libro."});return}
     const rd=new FileReader();rd.onload=ev=>processCSVText(ev.target.result,tipo,periodo);rd.readAsText(file);
+  };
+  const limpiarDuplicados=()=>{
+    const relevantes=empEntries.filter(e=>(e.tipoDoc==="compra"||e.tipoDoc==="venta")&&e.folio&&e.rut);
+    const porClave=new Map();
+    relevantes.forEach(e=>{
+      const clave=e.tipoDoc+"|"+e.folio+"|"+e.rut;
+      const prev=porClave.get(clave);
+      // Se queda con el que tiene monto (>0); si ambos tienen monto, con el
+      // ultimo encontrado (el import mas reciente).
+      if(!prev||e.total>0||prev.total===0)porClave.set(clave,e);
+    });
+    const keepIds=new Set([...porClave.values()].map(e=>e.id));
+    const eliminarIds=new Set(relevantes.filter(e=>!keepIds.has(e.id)).map(e=>e.id));
+    if(eliminarIds.size===0){setResult({ok:true,msg:"No se encontraron documentos duplicados."});return}
+    setEntries(p=>p.filter(e=>!eliminarIds.has(e.id)));
+    aLog("Duplicados eliminados",eliminarIds.size+" asientos - "+eObj.name);
+    setResult({ok:true,msg:eliminarIds.size+" asientos duplicados o vacios eliminados."});
   };
   const importarAuto=async(tipo)=>{
     if(!/^\d{6}$/.test(periodo)){setResult({ok:false,msg:"Ingresa el periodo en formato AAAAMM, ej: 202605"});return}
@@ -774,6 +799,12 @@ function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog}){
         <button onClick={()=>importarAuto("compra")} disabled={!!autoBusy} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--cy)",color:"#fff",fontSize:12,fontWeight:600,cursor:autoBusy?"default":"pointer",opacity:autoBusy?.6:1}}>{autoBusy==="compra"?"Importando...":"Importar Compras"}</button>
         <button onClick={()=>importarAuto("venta")} disabled={!!autoBusy} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--pu)",color:"#fff",fontSize:12,fontWeight:600,cursor:autoBusy?"default":"pointer",opacity:autoBusy?.6:1}}>{autoBusy==="venta"?"Importando...":"Importar Ventas"}</button>
       </div>
+      <div style={{fontSize:11,color:"var(--tx3)",marginTop:12}}>Si reimportas el mismo periodo, reemplaza los asientos con el mismo folio+RUT en vez de duplicarlos.</div>
+    </div>
+    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:24,marginBottom:16}}>
+      <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Limpieza</div>
+      <div style={{fontSize:12,color:"var(--tx3)",marginBottom:12}}>Si algo quedo duplicado de una importacion anterior (ej. de antes de este arreglo), esto elimina las copias sin monto y deja solo una por documento (folio+RUT).</div>
+      <button onClick={limpiarDuplicados} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"transparent",color:"var(--tx2)",fontSize:12,fontWeight:600,cursor:"pointer"}}>Eliminar duplicados</button>
     </div>
     <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:24,marginBottom:16}}>
       <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Carga manual de Libros SII</div>
