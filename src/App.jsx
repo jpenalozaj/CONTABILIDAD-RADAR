@@ -21,17 +21,22 @@ textarea{resize:vertical;min-height:80px}button{font-family:inherit;cursor:point
    exportar a PDF -- en pantalla los reportes se quedan con el tema
    oscuro normal de RADAR, sin tocar nada. */
 @media print{
+  @page{size:landscape;margin:12mm}
   body *{visibility:hidden}
   .report,.report *{visibility:visible}
   .report{position:absolute;left:0;top:0;width:100%;padding:0;box-shadow:none}
   .no-print{display:none!important}
-  .report,.report *{background:#fff!important;color:#000!important;border-color:#999!important;box-shadow:none!important}
-  .rpt-print-head{display:block!important;text-align:center;padding:0 0 20px;border-bottom:2px solid #333;margin-bottom:20px}
-  .rpt-print-head .rpt-co{font-family:Georgia,'Times New Roman',serif;font-size:19px;font-weight:700}
+  .report,.report *{background:#fff!important;color:#000!important;border-color:#ccc!important;box-shadow:none!important}
+  .rpt-print-head{display:block!important;text-align:center;padding:0 0 16px;border-bottom:2px solid #333;margin-bottom:18px}
+  .rpt-print-head .rpt-co{font-family:Georgia,'Times New Roman',serif;font-size:20px;font-weight:700}
   .rpt-print-head .rpt-rut{font-size:11px;margin-top:3px}
   .rpt-print-head .rpt-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:2px;margin-top:12px}
   .rpt-print-head .rpt-sub{font-size:11px;margin-top:4px}
-  table{page-break-inside:avoid}
+  table{page-break-inside:avoid;font-size:11px!important}
+  th,td{padding:5px 8px!important}
+  .rpt-stats{display:flex!important;border-top:1px solid #333;border-bottom:1px solid #333;padding:10px 0!important;margin-bottom:18px!important;gap:0!important}
+  .rpt-stat{flex:1;background:transparent!important;border:none!important;border-radius:0!important;padding:0 12px!important;border-right:1px solid #ccc!important;text-align:center}
+  .rpt-stat:last-child{border-right:none!important}
 }`;
 
 function ld(k,fb){try{const r=localStorage.getItem(k);return r?JSON.parse(r):fb}catch{return fb}}
@@ -1032,12 +1037,12 @@ function LibroCV({empEntries,tipo,eObj}){
     <div className="report">
     <ReportHeader eObj={eObj} title={tipo==="compra"?"Libro de Compras":"Libro de Ventas"} subtitle={periodoSel?fmtPeriodo(periodoSel):"Todos los periodos"}/>
 
-    {grupos.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:20}}>
-      <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700}}>{granTotal.docs}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Documentos</div></div>
-      <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700}}>${fmt(granTotal.exento)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Exento</div></div>
-      <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700}}>${fmt(granTotal.neto)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Neto</div></div>
-      <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700}}>${fmt(granTotal.iva)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>IVA</div></div>
-      <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700,color:"var(--cy)"}}>${fmt(granTotal.total)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Total</div></div>
+    {grupos.length>0&&<div className="rpt-stats" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:20}}>
+      <div className="rpt-stat" style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700}}>{granTotal.docs}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Documentos</div></div>
+      <div className="rpt-stat" style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700}}>${fmt(granTotal.exento)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Exento</div></div>
+      <div className="rpt-stat" style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700}}>${fmt(granTotal.neto)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Neto</div></div>
+      <div className="rpt-stat" style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700}}>${fmt(granTotal.iva)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>IVA</div></div>
+      <div className="rpt-stat" style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700,color:"var(--cy)"}}>${fmt(granTotal.total)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Total</div></div>
     </div>}
 
     {rcvErr&&<div style={{background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.3)",borderRadius:"var(--rs)",padding:16,fontSize:13,color:"var(--rd)",marginBottom:16}}>✗ {rcvErr}</div>}
@@ -1091,7 +1096,7 @@ function LibroCV({empEntries,tipo,eObj}){
         <tbody>{g.rows.map(r=><tr key={r.id} style={{borderBottom:"1px solid var(--bd)"}}>
           <td style={{padding:"6px 8px"}}>{fD(r.date)}</td>
           <td style={{padding:"6px 8px",fontFamily:"monospace"}}>{r.folio}</td>
-          <td style={{padding:"6px 8px",fontSize:11}}>{r.tipoDocCod?fmtTipoDoc(r.tipoDocCod):"—"}</td>
+          <td style={{padding:"6px 8px",fontSize:11,fontFamily:"monospace"}} title={r.tipoDocCod?fmtTipoDoc(r.tipoDocCod):""}>{r.tipoDocCod||"—"}</td>
           <td style={{padding:"6px 8px",fontFamily:"monospace"}}>{r.rut}</td>
           <td style={{padding:"6px 8px"}}>{r.razonSocial}</td>
           <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(r.exento||0)}</td>
