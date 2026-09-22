@@ -4,6 +4,21 @@ import { normRut } from "./rut.js";
 const CTA_PROVEEDORES = "2.1.01.001";
 const CTA_CLIENTES = "1.1.02.001";
 
+// Reglas de categorizacion automatica: "rut" (memoria por proveedor, se
+// aprende sola cuando reclasificas un gasto) o "palabra" (definida a mano,
+// para casos sin documento asociado, ej. comisiones bancarias).
+export function buscarReglaPorRut(reglas, rut) {
+  if (!rut) return null;
+  const n = normRut(rut);
+  if (!n) return null;
+  return (reglas || []).find((r) => r.criterio === "rut" && normRut(r.valor) === n) || null;
+}
+export function buscarReglaPorPalabra(reglas, texto) {
+  if (!texto) return null;
+  const t = texto.toLowerCase();
+  return (reglas || []).find((r) => r.criterio === "palabra" && r.valor && t.includes(r.valor.toLowerCase())) || null;
+}
+
 // ¿Este movimiento de cartola ya tiene un asiento contabilizado en la
 // cuenta bancaria elegida? Busca por (cuenta, fecha ± ventanaDias, monto
 // en el lado correcto segun Cargo/Abono) — mismo criterio que uso el
@@ -29,7 +44,7 @@ export function yaContabilizado(mov, cuentaBanco, empEntries, ventanaDias = 5) {
 // CSV SII), y si el RUT venia codificado en la glosa lo usa como
 // desempate — igual orden que se valido en la conciliacion de referencia
 // (monto primero, RUT desempata, nunca al reves).
-export function sugerirContraparte(mov, empEntries) {
+export function sugerirContraparte(mov, empEntries, reglas) {
   const tipoBuscado = mov.cargoAbono === "C" ? "compra" : "venta";
   const ctaContraparte = mov.cargoAbono === "C" ? CTA_PROVEEDORES : CTA_CLIENTES;
   const rutGlosa = decodeRutFromGlosa(mov.descripcion);
@@ -43,6 +58,16 @@ export function sugerirContraparte(mov, empEntries) {
   });
 
   if (candidatas.length === 0) {
+    // Sin documento que calce (ej. comision bancaria, sin RUT en la glosa):
+    // ultimo recurso, revisar si hay una regla de categorizacion guardada.
+    const regla = (rutGlosa && buscarReglaPorRut(reglas, rutGlosa)) || buscarReglaPorPalabra(reglas, mov.descripcion);
+    if (regla) {
+      return {
+        estado: "regla",
+        contracuenta: regla.contracuenta,
+        motivo: `Coincide con tu regla de categorizacion (${regla.criterio === "rut" ? "RUT " + regla.valor : `palabra "${regla.valor}"`}).`,
+      };
+    }
     return { estado: "sin_match", motivo: rutGlosa ? "Ni el RUT ni el monto calzaron con compras/ventas." : "El monto no calza con ninguna compra/venta registrada." };
   }
   if (candidatas.length === 1) {

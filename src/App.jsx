@@ -3,7 +3,7 @@ import { supabase } from "./lib/supabaseClient";
 import { loadCollection, saveCollection } from "./lib/sync";
 import { normRut } from "./lib/rut";
 import { parseCartolaSantander, decodeRutFromGlosa } from "./lib/cartola";
-import { yaContabilizado, sugerirContraparte, armarAsiento } from "./lib/conciliacion";
+import { yaContabilizado, sugerirContraparte, armarAsiento, buscarReglaPorRut, buscarReglaPorPalabra } from "./lib/conciliacion";
 
 const ST = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -212,10 +212,11 @@ function Dashboard({session}){
   const [rems,setRems]=useState([]);
   const [docs,setDocs]=useState([]);
   const [tareas,setTareas]=useState([]);
+  const [reglas,setReglas]=useState([]);
   const [sb,setSb]=useState(false);
-  const prevIds=useRef({e:new Set(),v:new Set(),l:new Set(),a:new Set(),en:new Set(),rm:new Set(),dc:new Set(),ta:new Set()});
+  const prevIds=useRef({e:new Set(),v:new Set(),l:new Set(),a:new Set(),en:new Set(),rm:new Set(),dc:new Set(),ta:new Set(),rg:new Set()});
   useEffect(()=>{let cancelled=false;(async()=>{
-    const[e,v,l,a,en,rm,dc,ta]=await Promise.all([
+    const[e,v,l,a,en,rm,dc,ta,rg]=await Promise.all([
       loadCollection(userId,"empresas",[]),
       loadCollection(userId,"evaluaciones",[]),
       loadCollection(userId,"log",[]),
@@ -224,14 +225,15 @@ function Dashboard({session}){
       loadCollection(userId,"remuneraciones",[]),
       loadCollection(userId,"documentos",[]),
       loadCollection(userId,"tareas",[]),
+      loadCollection(userId,"reglas_categorizacion",[]),
     ]);
     if(cancelled)return;
     prevIds.current={
       e:new Set(e.map(x=>String(x.id))),v:new Set(v.map(x=>String(x.id))),l:new Set(l.map(x=>String(x.id))),
       a:new Set(a.map(x=>String(x.cd))),en:new Set(en.map(x=>String(x.id))),rm:new Set(rm.map(x=>String(x.id))),
-      dc:new Set(dc.map(x=>String(x.id))),ta:new Set(ta.map(x=>String(x.id))),
+      dc:new Set(dc.map(x=>String(x.id))),ta:new Set(ta.map(x=>String(x.id))),rg:new Set(rg.map(x=>String(x.id))),
     };
-    setEmps(e);setEvs(v);setLog(l);setAccts(a);setEntries(en);setRems(rm);setDocs(dc);setTareas(ta);
+    setEmps(e);setEvs(v);setLog(l);setAccts(a);setEntries(en);setRems(rm);setDocs(dc);setTareas(ta);setReglas(rg);
     if(e.length>0)setAEmp(e[0].id);setRdy(true);
   })();return()=>{cancelled=true}},[userId]);
   useEffect(()=>{if(rdy)saveCollection(userId,"empresas",emps,prevIds.current.e).then(s=>prevIds.current.e=s)},[emps,rdy]);
@@ -242,10 +244,12 @@ function Dashboard({session}){
   useEffect(()=>{if(rdy)saveCollection(userId,"remuneraciones",rems,prevIds.current.rm).then(s=>prevIds.current.rm=s)},[rems,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"documentos",docs,prevIds.current.dc).then(s=>prevIds.current.dc=s)},[docs,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"tareas",tareas,prevIds.current.ta).then(s=>prevIds.current.ta=s)},[tareas,rdy]);
+  useEffect(()=>{if(rdy)saveCollection(userId,"reglas_categorizacion",reglas,prevIds.current.rg).then(s=>prevIds.current.rg=s)},[reglas,rdy]);
   const aLog=(a,d)=>setLog(p=>[{id:uid(),time:new Date().toISOString(),action:a,detail:d},...p].slice(0,50));
   const eObj=useMemo(()=>emps.find(e=>e.id===aEmp),[emps,aEmp]);
   const eEvs=useMemo(()=>evs.filter(e=>e.empresaId===aEmp),[evs,aEmp]);
   const empEntries=useMemo(()=>entries.filter(e=>e.empresaId===aEmp),[entries,aEmp]);
+  const empReglas=useMemo(()=>reglas.filter(r=>r.empresaId===aEmp),[reglas,aEmp]);
   const empRems=useMemo(()=>rems.filter(r=>r.empresaId===aEmp),[rems,aEmp]);
   const empDocs=useMemo(()=>docs.filter(d=>d.empresaId===aEmp),[docs,aEmp]);
   const empTareas=useMemo(()=>tareas.filter(t=>t.empresaId===aEmp),[tareas,aEmp]);
@@ -274,7 +278,7 @@ function Dashboard({session}){
         {pg==="inicio"&&<HomeP emps={emps} eObj={eObj} evs={evs} log={log}/>}
         {pg==="empresas"&&<EmpP emps={emps} setEmps={setEmps} aEmp={aEmp} setAEmp={setAEmp} aLog={aLog}/>}
         {pg==="radar"&&<RadP eObj={eObj} evs={evs} setEvs={setEvs} eEvs={eEvs} aLog={aLog} go={go}/>}
-        {pg==="contabilidad"&&<ContabP eObj={eObj} accts={accts} setAccts={setAccts} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go}/>}
+        {pg==="contabilidad"&&<ContabP eObj={eObj} accts={accts} setAccts={setAccts} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go} reglas={empReglas} setReglas={setReglas}/>}
         {pg==="remuneraciones"&&<RemP eObj={eObj} rems={rems} setRems={setRems} empRems={empRems} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go}/>}
         {pg==="documentos"&&<DocsP eObj={eObj} docs={docs} setDocs={setDocs} empDocs={empDocs} aLog={aLog} go={go}/>}
         {pg==="planificacion"&&<PlanP eObj={eObj} tareas={tareas} setTareas={setTareas} empTareas={empTareas} aLog={aLog} go={go}/>}
@@ -529,18 +533,20 @@ function ReportHeader({eObj,title,subtitle}){
 const tpL={asset:"Activo",liability:"Pasivo",equity:"Patrimonio",income:"Ingreso",expense:"Gasto"};
 const tpC={asset:"#06B6D4",liability:"#EF4444",equity:"#8B5CF6",income:"#10B981",expense:"#F59E0B"};
 
-function ContabP({eObj,accts,setAccts,entries,setEntries,empEntries,leafAccts,aLog,go}){
+function ContabP({eObj,accts,setAccts,entries,setEntries,empEntries,leafAccts,aLog,go,reglas,setReglas}){
   const [tab,setTab]=useState("plan");
   if(!eObj)return<Ey i="🏢" t="Selecciona una empresa" d="Activa una empresa primero."><Bt onClick={()=>go("empresas")} p={true}>Ir a Empresas</Bt></Ey>;
-  const tabs=[{id:"plan",l:"Plan de Cuentas"},{id:"asientos",l:"Asientos"},{id:"csv",l:"Compras/Ventas SII"},{id:"lcompras",l:"Libro de Compras"},{id:"lventas",l:"Libro de Ventas"},{id:"conciliacion",l:"Conciliacion Bancaria"},{id:"diario",l:"Libro Diario"},{id:"mayor",l:"Libro Mayor"},{id:"balance",l:"Balance"},{id:"eerr",l:"Estado Resultados"},{id:"b8",l:"8 Columnas"}];
+  const porClasificarN=empEntries.filter(e=>e.lines.some(l=>l.ac==="1.1.05.001")).length;
+  const tabs=[{id:"plan",l:"Plan de Cuentas"},{id:"asientos",l:"Asientos"},{id:"csv",l:"Compras/Ventas SII"},{id:"lcompras",l:"Libro de Compras"},{id:"lventas",l:"Libro de Ventas"},{id:"porclasificar",l:"Por Clasificar"+(porClasificarN>0?" ("+porClasificarN+")":"")},{id:"conciliacion",l:"Conciliacion Bancaria"},{id:"diario",l:"Libro Diario"},{id:"mayor",l:"Libro Mayor"},{id:"balance",l:"Balance"},{id:"eerr",l:"Estado Resultados"},{id:"b8",l:"8 Columnas"}];
   return(<div style={{maxWidth:960,margin:"0 auto"}}>
     <div style={{display:"flex",gap:6,marginBottom:20,flexWrap:"wrap"}}>{tabs.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{padding:"10px 18px",borderRadius:"var(--rs)",border:"none",fontSize:13,fontWeight:tab===t.id?700:500,background:tab===t.id?"var(--cyg)":"var(--sf)",color:tab===t.id?"var(--cy)":"var(--tx2)"}}>{t.l}</button>)}</div>
     {tab==="plan"&&<PlanCtas accts={accts} setAccts={setAccts} aLog={aLog}/>}
     {tab==="asientos"&&<Asientos entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} eObj={eObj} aLog={aLog}/>}
-    {tab==="csv"&&<CSVSII entries={entries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} empEntries={empEntries} aLog={aLog}/>}
+    {tab==="csv"&&<CSVSII entries={entries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} empEntries={empEntries} aLog={aLog} reglas={reglas}/>}
     {tab==="lcompras"&&<LibroCV empEntries={empEntries} tipo="compra" eObj={eObj}/>}
     {tab==="lventas"&&<LibroCV empEntries={empEntries} tipo="venta" eObj={eObj}/>}
-    {tab==="conciliacion"&&<ConciliacionP entries={entries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} empEntries={empEntries} aLog={aLog}/>}
+    {tab==="porclasificar"&&<PorClasificar empEntries={empEntries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} aLog={aLog} reglas={reglas} setReglas={setReglas}/>}
+    {tab==="conciliacion"&&<ConciliacionP entries={entries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} empEntries={empEntries} aLog={aLog} reglas={reglas} setReglas={setReglas}/>}
     {tab==="diario"&&<LDiario empEntries={empEntries} accts={accts} eObj={eObj}/>}
     {tab==="mayor"&&<LMayor empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj}/>}
     {tab==="balance"&&<Balance empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj}/>}
@@ -759,7 +765,7 @@ function LMayor({empEntries,accts,leafAccts,eObj}){
 }
 
 // ═══ CSV SII (Compras/Ventas) ═══
-function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog}){
+function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog,reglas}){
   const [result,setResult]=useState(null);
   const [periodo,setPeriodo]=useState("");
   const [autoBusy,setAutoBusy]=useState(null);
@@ -774,7 +780,7 @@ function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog}){
     if(rows.length<2){setResult({ok:false,msg:"Archivo vacio o sin datos"});return}
     const isCompra=tipo==="compra";
     const dataRows=rows.slice(1);const imported=[];let n=nxtNum;
-    const ivaAc=isCompra?"1.1.03.001":"2.1.02.001";const ctpAc=isCompra?"1.1.05.001":"4.1.01.001";const tpAc=isCompra?"2.1.01.001":"1.1.02.001";
+    const ivaAc=isCompra?"1.1.03.001":"2.1.02.001";const ctpAcDefault=isCompra?"1.1.05.001":"4.1.01.001";const tpAc=isCompra?"2.1.01.001":"1.1.02.001";
     dataRows.forEach(row=>{
       const c=row.split(";").map(x=>x.trim().replace(/^"|"$/g,""));
       if(c.length<7)return;
@@ -791,6 +797,11 @@ function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog}){
       if(total===0)return;
       const dt=fecha.includes("/")?(()=>{const p=fecha.split("/");return(p[2]||"2026")+"-"+(p[1]||"01").padStart(2,"0")+"-"+(p[0]||"01").padStart(2,"0")})():fecha||new Date().toISOString().slice(0,10);
       const glosa=(isCompra?"Compra":"Venta")+" F"+folio+" "+razon.slice(0,30);
+      // Si ya aprendimos (o definiste a mano) que las facturas de este RUT
+      // van a una cuenta especifica, se contabilizan ahi directo en vez de
+      // caer en "Gastos por Clasificar" a la espera de que las reclasifiques.
+      const reglaRut=isCompra?buscarReglaPorRut(reglas,rut):null;
+      const ctpAc=reglaRut?.contracuenta||ctpAcDefault;
       // Se junta neto+exento en una sola linea contable (misma contracuenta),
       // y el total-iva define esa linea para que el asiento cuadre exacto
       // aunque los montos del SII tengan alguna diferencia de redondeo.
@@ -1129,7 +1140,7 @@ function LibroCV({empEntries,tipo,eObj}){
 }
 
 // ═══ CONCILIACION BANCARIA ═══
-function ConciliacionP({entries,setEntries,leafAccts,eObj,empEntries,aLog}){
+function ConciliacionP({entries,setEntries,leafAccts,eObj,empEntries,aLog,reglas}){
   const [cuentaBanco,setCuentaBanco]=useState("");
   const [movs,setMovs]=useState(null); // null = sin cartola cargada
   const [err,setErr]=useState(null);
@@ -1151,10 +1162,10 @@ function ConciliacionP({entries,setEntries,leafAccts,eObj,empEntries,aLog}){
     for(const m of movs){
       const match=yaContabilizado(m,cuentaBanco,empEntries);
       if(match)contab.push({mov:m,asiento:match});
-      else pend.push({mov:m,sugerencia:sugerirContraparte(m,empEntries)});
+      else pend.push({mov:m,sugerencia:sugerirContraparte(m,empEntries,reglas)});
     }
     return{contab,pend};
-  },[movs,cuentaBanco,empEntries]);
+  },[movs,cuentaBanco,empEntries,reglas]);
 
   const setContracuenta=(movId,cd)=>setClasif(p=>({...p,[movId]:{...p[movId],contracuenta:cd}}));
   const elegirCandidato=(movId,cand)=>setClasif(p=>({...p,[movId]:{...p[movId],contracuenta:cand.mov.cargoAbono==="C"?"2.1.01.001":"1.1.02.001",candidatoId:cand.id,rut:cand.rut}}));
@@ -1164,7 +1175,7 @@ function ConciliacionP({entries,setEntries,leafAccts,eObj,empEntries,aLog}){
     let n=nxtNum;const nuevos=[];
     analisis.pend.forEach(({mov,sugerencia})=>{
       const c=clasif[mov.id];
-      const contracuenta=c?.contracuenta||(sugerencia.estado==="match"?(mov.cargoAbono==="C"?"2.1.01.001":"1.1.02.001"):null);
+      const contracuenta=c?.contracuenta||(sugerencia.estado==="match"?(mov.cargoAbono==="C"?"2.1.01.001":"1.1.02.001"):sugerencia.estado==="regla"?sugerencia.contracuenta:null);
       if(!contracuenta)return;
       nuevos.push(armarAsiento(mov,cuentaBanco,contracuenta,n++,eObj.id,"Conciliacion bancaria"));
     });
@@ -1216,8 +1227,10 @@ function ConciliacionP({entries,setEntries,leafAccts,eObj,empEntries,aLog}){
                   </select>
                 :sugerencia.estado==="match"?
                   <div style={{fontSize:11,color:sugerencia.confianza==="alta"?"var(--gn)":"var(--am)",marginBottom:4}}>{sugerencia.confianza==="alta"?"✓ ":"⚠ "}F{sugerencia.candidato.folio} {sugerencia.candidato.razonSocial} ({fmtRut(sugerencia.candidato.rut)})</div>
+                :sugerencia.estado==="regla"?
+                  <div style={{fontSize:11,color:"var(--cy)",marginBottom:4}}>⚙ {sugerencia.motivo}</div>
                 :<div style={{fontSize:11,color:"var(--tx3)",marginBottom:4}}>{sugerencia.motivo}</div>}
-                <input list="cuentasConciliacionList" value={c?.contracuenta??(sugerencia.estado==="match"?(mov.cargoAbono==="C"?"2.1.01.001":"1.1.02.001"):"")} onChange={e=>setContracuenta(mov.id,e.target.value)} placeholder="Codigo de cuenta" style={{fontSize:11,padding:"4px 8px"}}/>
+                <input list="cuentasConciliacionList" value={c?.contracuenta??(sugerencia.estado==="match"?(mov.cargoAbono==="C"?"2.1.01.001":"1.1.02.001"):sugerencia.estado==="regla"?sugerencia.contracuenta:"")} onChange={e=>setContracuenta(mov.id,e.target.value)} placeholder="Codigo de cuenta" style={{fontSize:11,padding:"4px 8px"}}/>
               </td>
             </tr>;
           })}</tbody>
@@ -1237,6 +1250,143 @@ function ConciliacionP({entries,setEntries,leafAccts,eObj,empEntries,aLog}){
 
       <Bt onClick={generarAsientos} p={true}>Generar asientos de los clasificados</Bt>
     </>}
+  </div>);
+}
+
+// ═══ POR CLASIFICAR + REGLAS DE CATEGORIZACION ═══
+// Compras importadas del SII que cayeron en "Gastos por Clasificar"
+// (1.1.05.001) porque no habia una regla que dijera donde van. Al
+// reclasificar aqui, RADAR aprende sola una regla por RUT — la proxima
+// importacion de ese mismo proveedor ya no pasa por esta bandeja.
+const CTA_POR_CLASIFICAR="1.1.05.001";
+
+function PorClasificar({empEntries,setEntries,leafAccts,eObj,aLog,reglas,setReglas}){
+  const pendientes=useMemo(()=>empEntries.filter(e=>e.tipoDoc==="compra"&&e.lines.some(l=>l.ac===CTA_POR_CLASIFICAR)).sort((a,b)=>b.date.localeCompare(a.date)),[empEntries]);
+  const [sel,setSel]=useState(()=>new Set());
+  const [cuentaLote,setCuentaLote]=useState("");
+  const [porFila,setPorFila]=useState({});
+  const [nuevaPalabra,setNuevaPalabra]=useState("");
+  const [nuevaPalabraCta,setNuevaPalabraCta]=useState("");
+  const am=useMemo(()=>Object.fromEntries(leafAccts.map(a=>[a.cd,a.nm])),[leafAccts]);
+
+  const toggleSel=id=>setSel(p=>{const n=new Set(p);n.has(id)?n.delete(id):n.add(id);return n});
+  const toggleAll=()=>setSel(p=>p.size===pendientes.length&&pendientes.length>0?new Set():new Set(pendientes.map(e=>e.id)));
+
+  // Reclasifica los asientos indicados y, para cada RUT distinto entre
+  // ellos, guarda/actualiza la regla automatica correspondiente.
+  const aplicarReclasificacion=(ids,destinoPorEntry)=>{
+    const reglasNuevas=new Map();
+    setEntries(prev=>prev.map(e=>{
+      if(!ids.includes(e.id))return e;
+      const destino=destinoPorEntry(e);
+      if(!destino)return e;
+      if(e.rut)reglasNuevas.set(normRut(e.rut),{rut:e.rut,contracuenta:destino});
+      return{...e,lines:e.lines.map(l=>l.ac===CTA_POR_CLASIFICAR?{...l,ac:destino}:l)};
+    }));
+    if(reglasNuevas.size>0)setReglas(prev=>{
+      let next=[...prev];
+      reglasNuevas.forEach((val,rutNorm)=>{
+        const idx=next.findIndex(r=>r.criterio==="rut"&&normRut(r.valor)===rutNorm);
+        if(idx>=0)next[idx]={...next[idx],contracuenta:val.contracuenta};
+        else next.push({id:uid(),empresaId:eObj.id,criterio:"rut",valor:val.rut,contracuenta:val.contracuenta,creada:new Date().toISOString()});
+      });
+      return next;
+    });
+  };
+
+  const aplicarLote=()=>{
+    if(!cuentaLote||sel.size===0)return;
+    const ids=[...sel];
+    aplicarReclasificacion(ids,()=>cuentaLote);
+    aLog("Reclasificacion masiva",ids.length+" asientos - "+eObj.name);
+    setSel(new Set());setCuentaLote("");
+  };
+  const aplicarUno=id=>{
+    const cta=porFila[id];
+    if(!cta)return;
+    aplicarReclasificacion([id],()=>cta);
+    aLog("Reclasificacion",eObj.name);
+    setPorFila(p=>{const n={...p};delete n[id];return n});
+  };
+
+  const agregarPalabra=()=>{
+    if(!nuevaPalabra.trim()||!nuevaPalabraCta)return;
+    setReglas(p=>[...p,{id:uid(),empresaId:eObj.id,criterio:"palabra",valor:nuevaPalabra.trim(),contracuenta:nuevaPalabraCta,creada:new Date().toISOString()}]);
+    setNuevaPalabra("");setNuevaPalabraCta("");
+  };
+  const borrarRegla=id=>setReglas(p=>p.filter(r=>r.id!==id));
+
+  return(<div>
+    <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Por Clasificar</div>
+    <div style={{fontSize:12,color:"var(--tx3)",marginBottom:16}}>Compras importadas del SII que quedaron en "Gastos por Clasificar". Al reclasificar, RADAR recuerda la cuenta para ese RUT y la aplica sola la proxima vez.</div>
+
+    {pendientes.length===0?<Ey i="✅" t="Nada pendiente" d="Todas las compras importadas ya tienen una cuenta asignada."/>:<>
+    <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap",marginBottom:12,background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:12}}>
+      <span style={{fontSize:12,color:"var(--tx3)"}}>{sel.size} seleccionados</span>
+      <select value={cuentaLote} onChange={e=>setCuentaLote(e.target.value)} style={{maxWidth:280}}>
+        <option value="">-- Cuenta destino --</option>
+        {leafAccts.map(a=><option key={a.cd} value={a.cd}>{a.cd} {a.nm}</option>)}
+      </select>
+      <button onClick={aplicarLote} disabled={!cuentaLote||sel.size===0} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--cy)",color:"#fff",fontSize:12,fontWeight:600,cursor:(!cuentaLote||sel.size===0)?"default":"pointer",opacity:(!cuentaLote||sel.size===0)?.5:1}}>Reclasificar seleccionados</button>
+    </div>
+
+    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",overflow:"hidden",marginBottom:24}}>
+      <div style={{overflowX:"auto"}}><table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
+        <thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:10,color:"var(--tx3)",background:"var(--sf2)"}}>
+          <th style={{padding:"8px 12px"}}><input type="checkbox" checked={sel.size===pendientes.length&&pendientes.length>0} onChange={toggleAll}/></th>
+          <th style={{textAlign:"left",padding:"8px 8px"}}>Fecha</th>
+          <th style={{textAlign:"left",padding:"8px 8px"}}>Folio</th>
+          <th style={{textAlign:"left",padding:"8px 8px"}}>RUT</th>
+          <th style={{textAlign:"left",padding:"8px 8px"}}>Razon social</th>
+          <th style={{textAlign:"right",padding:"8px 8px"}}>Monto</th>
+          <th style={{textAlign:"left",padding:"8px 12px",minWidth:220}}>Reclasificar a</th>
+        </tr></thead>
+        <tbody>{pendientes.map(e=>{
+          const linea=e.lines.find(l=>l.ac===CTA_POR_CLASIFICAR);
+          const monto=(linea?.db||0)||(linea?.cr||0);
+          return<tr key={e.id} style={{borderBottom:"1px solid var(--bd)"}}>
+            <td style={{padding:"8px 12px"}}><input type="checkbox" checked={sel.has(e.id)} onChange={()=>toggleSel(e.id)}/></td>
+            <td style={{padding:"8px 8px",whiteSpace:"nowrap"}}>{fD(e.date)}</td>
+            <td style={{padding:"8px 8px",fontFamily:"monospace"}}>{e.folio||"—"}</td>
+            <td style={{padding:"8px 8px",fontFamily:"monospace"}}>{e.rut||"—"}</td>
+            <td style={{padding:"8px 8px"}}>{e.razonSocial||e.desc}</td>
+            <td style={{padding:"8px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(monto)}</td>
+            <td style={{padding:"8px 12px"}}>
+              <div style={{display:"flex",gap:6}}>
+                <select value={porFila[e.id]||""} onChange={ev=>setPorFila(p=>({...p,[e.id]:ev.target.value}))} style={{fontSize:11}}>
+                  <option value="">-- Cuenta --</option>
+                  {leafAccts.map(a=><option key={a.cd} value={a.cd}>{a.cd} {a.nm}</option>)}
+                </select>
+                <button onClick={()=>aplicarUno(e.id)} disabled={!porFila[e.id]} style={{padding:"4px 10px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx2)",fontSize:11,cursor:porFila[e.id]?"pointer":"default",opacity:porFila[e.id]?1:.5}}>Aplicar</button>
+              </div>
+            </td>
+          </tr>;
+        })}</tbody>
+      </table></div>
+    </div>
+    </>}
+
+    <details>
+      <summary style={{cursor:"pointer",fontSize:13,fontWeight:600,padding:"10px 0"}}>Reglas de categorizacion guardadas ({reglas.length})</summary>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:16,marginTop:8}}>
+        <div style={{fontSize:11,color:"var(--tx3)",marginBottom:12}}>Las reglas por RUT se aprenden solas al reclasificar arriba. Las reglas por palabra clave son para movimientos de Conciliacion Bancaria sin documento asociado (ej. "comision" → Gastos Bancarios) — agregalas a mano.</div>
+        <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
+          <input value={nuevaPalabra} onChange={e=>setNuevaPalabra(e.target.value)} placeholder="Palabra clave (ej: comision)" style={{maxWidth:220}}/>
+          <select value={nuevaPalabraCta} onChange={e=>setNuevaPalabraCta(e.target.value)} style={{maxWidth:280}}>
+            <option value="">-- Cuenta --</option>
+            {leafAccts.map(a=><option key={a.cd} value={a.cd}>{a.cd} {a.nm}</option>)}
+          </select>
+          <button onClick={agregarPalabra} disabled={!nuevaPalabra.trim()||!nuevaPalabraCta} style={{padding:"8px 16px",borderRadius:"var(--rs)",border:"none",background:"var(--cy)",color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer"}}>Agregar regla</button>
+        </div>
+        {reglas.length===0?<div style={{fontSize:12,color:"var(--tx3)"}}>Sin reglas todavia.</div>:
+        <div style={{display:"flex",flexDirection:"column",gap:6}}>{reglas.map(r=>
+          <div key={r.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:12,padding:"6px 10px",background:"var(--sf2)",borderRadius:"var(--rs)"}}>
+            <span>{r.criterio==="rut"?"RUT "+r.valor:'Palabra "'+r.valor+'"'} → {am[r.contracuenta]||r.contracuenta}</span>
+            <button onClick={()=>borrarRegla(r.id)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.6,fontSize:11}}>eliminar</button>
+          </div>
+        )}</div>}
+      </div>
+    </details>
   </div>);
 }
 
