@@ -778,8 +778,10 @@ function LDiario({empEntries,accts,eObj,ccostos}){
 }
 
 function Balance({empEntries,accts,leafAccts,eObj}){
+  const [fechaCorte,setFechaCorte]=useState(()=>new Date().toISOString().slice(0,10));
   if(!empEntries.length)return<Ey i="⚖️" t="Sin datos" d="Registra asientos para generar el Balance."/>;
-  const bals=useMemo(()=>{const b={};leafAccts.forEach(a=>{b[a.cd]={db:0,cr:0}});empEntries.forEach(e=>e.lines.forEach(l=>{if(!b[l.ac])b[l.ac]={db:0,cr:0};b[l.ac].db+=(l.db||0);b[l.ac].cr+=(l.cr||0)}));return b},[empEntries,leafAccts]);
+  const filtradas=useMemo(()=>empEntries.filter(e=>e.date<=fechaCorte),[empEntries,fechaCorte]);
+  const bals=useMemo(()=>{const b={};leafAccts.forEach(a=>{b[a.cd]={db:0,cr:0}});filtradas.forEach(e=>e.lines.forEach(l=>{if(!b[l.ac])b[l.ac]={db:0,cr:0};b[l.ac].db+=(l.db||0);b[l.ac].cr+=(l.cr||0)}));return b},[filtradas,leafAccts]);
   const getB=(cd,tp)=>{const b=bals[cd]||{db:0,cr:0};return(tp==="asset"||tp==="expense")?b.db-b.cr:b.cr-b.db};
   const mkSec=tp=>{const l2=accts.filter(a=>a.tp===tp&&a.lv===2);return l2.map(g=>{const ch=leafAccts.filter(a=>a.tp===tp&&a.cd.startsWith(g.cd+"."));const items=ch.map(c=>({cd:c.cd,nm:c.nm,bal:getB(c.cd,tp)})).filter(c=>c.bal!==0);return{grp:g.nm,items,sub:items.reduce((s,c)=>s+c.bal,0)}}).filter(g=>g.items.length>0)};
   const assets=mkSec("asset");const liabs=mkSec("liability");const eq=mkSec("equity");
@@ -794,9 +796,13 @@ function Balance({empEntries,accts,leafAccts,eObj}){
   </div>;
 
   return(<div className="report" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:28,maxWidth:700}}>
-    <ReportHeader eObj={eObj} title="Balance General" subtitle={"Al "+new Date().toLocaleDateString("es-CL")}/>
-    <div className="no-print" style={{display:"flex",justifyContent:"flex-end",marginBottom:8}}><button onClick={()=>window.print()} style={{padding:"6px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx2)",fontSize:11,fontWeight:600,cursor:"pointer"}}>Exportar PDF</button></div>
-    <div className="no-print" style={{textAlign:"center",marginBottom:24}}><div style={{fontSize:18,fontWeight:700}}>{eObj?.name}</div><div style={{fontSize:13,color:"var(--tx3)"}}>Balance General</div><div style={{fontSize:11,color:"var(--tx3)"}}>Al {new Date().toLocaleDateString("es-CL")}</div></div>
+    <ReportHeader eObj={eObj} title="Balance General" subtitle={"Al "+fD(fechaCorte)}/>
+    <div className="no-print" style={{display:"flex",justifyContent:"flex-end",gap:8,marginBottom:8,alignItems:"center"}}>
+      <label style={{fontSize:11,color:"var(--tx3)"}}>Fecha de corte</label>
+      <input type="date" value={fechaCorte} onChange={e=>setFechaCorte(e.target.value)} style={{maxWidth:160,fontSize:11,padding:"6px 10px"}}/>
+      <button onClick={()=>window.print()} style={{padding:"6px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx2)",fontSize:11,fontWeight:600,cursor:"pointer"}}>Exportar PDF</button>
+    </div>
+    <div className="no-print" style={{textAlign:"center",marginBottom:24}}><div style={{fontSize:18,fontWeight:700}}>{eObj?.name}</div><div style={{fontSize:13,color:"var(--tx3)"}}>Balance General</div><div style={{fontSize:11,color:"var(--tx3)"}}>Al {fD(fechaCorte)}</div></div>
     <div style={{display:"flex",flexDirection:"column",gap:24}}>
       <BSec title="Activos" groups={assets} total={tA} color="var(--cy)"/>
       <BSec title="Pasivos" groups={liabs} total={tL} color="var(--rd)"/>
@@ -810,21 +816,39 @@ function Balance({empEntries,accts,leafAccts,eObj}){
 // ═══ ESTADO DE RESULTADOS ═══
 function EERR({empEntries,accts,leafAccts,eObj,ccostos}){
   const [filtroCC,setFiltroCC]=useState("todos");
+  const anios=useMemo(()=>[...new Set(empEntries.map(e=>e.date?.slice(0,4)).filter(Boolean))].sort((a,b)=>b.localeCompare(a)),[empEntries]);
+  const [anio,setAnio]=useState("todos");
+  const [comparar,setComparar]=useState(false);
   if(!empEntries.length)return<Ey i="📈" t="Sin datos" d="Registra asientos para generar el Estado de Resultados."/>;
-  const filtradas=filtroCC==="todos"?empEntries:empEntries.filter(e=>e.centroCosto===filtroCC);
   const ccNombre=ccostos?.find(c=>c.id===filtroCC)?.nombre;
-  const bals=useMemo(()=>{const b={};leafAccts.forEach(a=>{b[a.cd]={db:0,cr:0}});filtradas.forEach(e=>e.lines.forEach(l=>{if(!b[l.ac])b[l.ac]={db:0,cr:0};b[l.ac].db+=(l.db||0);b[l.ac].cr+=(l.cr||0)}));return b},[filtradas,leafAccts]);
-  const getB=(cd,tp)=>{const b=bals[cd]||{db:0,cr:0};return tp==="income"?b.cr-b.db:b.db-b.cr};
-  const mkSec=tp=>{const l2=accts.filter(a=>a.tp===tp&&a.lv===2);return l2.map(g=>{const ch=leafAccts.filter(a=>a.tp===tp&&a.cd.startsWith(g.cd+"."));const items=ch.map(c=>({cd:c.cd,nm:c.nm,bal:getB(c.cd,tp)})).filter(c=>c.bal!==0);return{grp:g.nm,items,sub:items.reduce((s,c)=>s+c.bal,0)}}).filter(g=>g.items.length>0)};
-  const inc=mkSec("income");const exp=mkSec("expense");
-  const tI=inc.reduce((s,g)=>s+g.sub,0);const tE=exp.reduce((s,g)=>s+g.sub,0);const net=tI-tE;
+
+  const calcPeriodo=(anioSel)=>{
+    const base=filtroCC==="todos"?empEntries:empEntries.filter(e=>e.centroCosto===filtroCC);
+    const filtradas=anioSel==="todos"?base:base.filter(e=>e.date?.slice(0,4)===anioSel);
+    const b={};leafAccts.forEach(a=>{b[a.cd]={db:0,cr:0}});
+    filtradas.forEach(e=>e.lines.forEach(l=>{if(!b[l.ac])b[l.ac]={db:0,cr:0};b[l.ac].db+=(l.db||0);b[l.ac].cr+=(l.cr||0)}));
+    const getB=(cd,tp)=>{const x=b[cd]||{db:0,cr:0};return tp==="income"?x.cr-x.db:x.db-x.cr};
+    const mkSec=tp=>{const l2=accts.filter(a=>a.tp===tp&&a.lv===2);return l2.map(g=>{const ch=leafAccts.filter(a=>a.tp===tp&&a.cd.startsWith(g.cd+"."));const items=ch.map(c=>({cd:c.cd,nm:c.nm,bal:getB(c.cd,tp)})).filter(c=>c.bal!==0);return{grp:g.nm,items,sub:items.reduce((s,c)=>s+c.bal,0)}}).filter(g=>g.items.length>0)};
+    const inc=mkSec("income");const exp=mkSec("expense");
+    const tI=inc.reduce((s,g)=>s+g.sub,0);const tE=exp.reduce((s,g)=>s+g.sub,0);
+    return{inc,exp,tI,tE,net:tI-tE};
+  };
+  const actual=useMemo(()=>calcPeriodo(anio),[anio,filtroCC,empEntries]);
+  const anioAnterior=anio==="todos"?null:String(parseInt(anio)-1);
+  const anterior=useMemo(()=>comparar&&anioAnterior?calcPeriodo(anioAnterior):null,[comparar,anioAnterior,filtroCC,empEntries]);
+  const variacion=(a,b)=>b===0?(a===0?0:null):((a-b)/Math.abs(b))*100;
+  const fmtVar=v=>v===null?"—":(v>=0?"+":"")+v.toFixed(1)+"%";
+  const{inc,exp,tI,tE,net}=actual;
+
   return(<div className="report" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:28,maxWidth:700}}>
-    <ReportHeader eObj={eObj} title="Estado de Resultados" subtitle={(ccNombre?"Centro de costo: "+ccNombre+" — ":"")+"Al "+new Date().toLocaleDateString("es-CL")}/>
-    <div className="no-print" style={{display:"flex",justifyContent:"flex-end",gap:8,marginBottom:8}}>
+    <ReportHeader eObj={eObj} title="Estado de Resultados" subtitle={(ccNombre?"Centro de costo: "+ccNombre+" — ":"")+(anio==="todos"?"Todo el historial":"Año "+anio)}/>
+    <div className="no-print" style={{display:"flex",justifyContent:"flex-end",gap:8,marginBottom:8,flexWrap:"wrap",alignItems:"center"}}>
+      <select value={anio} onChange={e=>setAnio(e.target.value)} style={{fontSize:11,padding:"6px 10px",maxWidth:160}}><option value="todos">Todo el historial</option>{anios.map(a=><option key={a} value={a}>{a}</option>)}</select>
+      {anio!=="todos"&&<label style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:"var(--tx3)"}}><input type="checkbox" checked={comparar} onChange={e=>setComparar(e.target.checked)}/>Comparar con {anioAnterior}</label>}
       {ccostos?.length>0&&<select value={filtroCC} onChange={e=>setFiltroCC(e.target.value)} style={{fontSize:11,padding:"6px 10px",maxWidth:220}}><option value="todos">Todos los centros de costo</option>{ccostos.map(c=><option key={c.id} value={c.id}>{c.nombre}</option>)}</select>}
       <button onClick={()=>window.print()} style={{padding:"6px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx2)",fontSize:11,fontWeight:600,cursor:"pointer"}}>Exportar PDF</button>
     </div>
-    <div className="no-print" style={{textAlign:"center",marginBottom:24}}><div style={{fontSize:18,fontWeight:700}}>{eObj?.name}</div><div style={{fontSize:13,color:"var(--tx3)"}}>Estado de Resultados{ccNombre?" — "+ccNombre:""}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Al {new Date().toLocaleDateString("es-CL")}</div></div>
+    <div className="no-print" style={{textAlign:"center",marginBottom:24}}><div style={{fontSize:18,fontWeight:700}}>{eObj?.name}</div><div style={{fontSize:13,color:"var(--tx3)"}}>Estado de Resultados{ccNombre?" — "+ccNombre:""}</div><div style={{fontSize:11,color:"var(--tx3)"}}>{anio==="todos"?"Todo el historial":"Año "+anio}</div></div>
     <div><div style={{fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:12,color:"var(--gn)"}}>Ingresos</div>
       {inc.map((g,i)=><div key={i} style={{marginBottom:8}}><div style={{fontSize:11,fontWeight:600,color:"var(--tx2)",paddingLeft:8,marginBottom:4}}>{g.grp}</div>
         {g.items.map((it,j)=><div key={j} style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:12,padding:"3px 0 3px 24px"}}><span style={{color:"var(--tx2)"}}>{it.nm}</span><span style={{textAlign:"right",fontFamily:"monospace"}}>${fmt(it.bal)}</span></div>)}</div>)}
@@ -836,6 +860,17 @@ function EERR({empEntries,accts,leafAccts,eObj,ccostos}){
       <div style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:13,fontWeight:700,padding:"10px 0",borderTop:"2px solid var(--bd2)"}}><span>TOTAL COSTOS Y GASTOS</span><span style={{textAlign:"right",fontFamily:"monospace"}}>(${fmt(tE)})</span></div>
     </div>
     <div style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:15,fontWeight:700,padding:"14px 0",borderTop:"3px double var(--bd2)",marginTop:16,color:net>=0?"var(--gn)":"var(--rd)"}}><span>{net>=0?"UTILIDAD":"PERDIDA"} DEL EJERCICIO</span><span style={{textAlign:"right",fontFamily:"monospace"}}>${fmt(net)}</span></div>
+    {anterior&&<div style={{marginTop:28,paddingTop:20,borderTop:"1px solid var(--bd)"}}>
+      <div style={{fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:12,color:"var(--tx3)"}}>Comparativo {anio} vs {anioAnterior}</div>
+      <div style={{overflowX:"auto"}}><table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
+        <thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:10,color:"var(--tx3)"}}><th style={{textAlign:"left",padding:"6px 8px"}}></th><th style={{textAlign:"right",padding:"6px 8px"}}>{anio}</th><th style={{textAlign:"right",padding:"6px 8px"}}>{anioAnterior}</th><th style={{textAlign:"right",padding:"6px 8px"}}>Variacion</th></tr></thead>
+        <tbody>
+          <tr style={{borderBottom:"1px solid var(--bd)"}}><td style={{padding:"6px 8px"}}>Ingresos</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(tI)}</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(anterior.tI)}</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace",color:tI>=anterior.tI?"var(--gn)":"var(--rd)"}}>{fmtVar(variacion(tI,anterior.tI))}</td></tr>
+          <tr style={{borderBottom:"1px solid var(--bd)"}}><td style={{padding:"6px 8px"}}>Costos y Gastos</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(tE)}</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(anterior.tE)}</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace",color:tE<=anterior.tE?"var(--gn)":"var(--rd)"}}>{fmtVar(variacion(tE,anterior.tE))}</td></tr>
+          <tr style={{fontWeight:700}}><td style={{padding:"6px 8px"}}>{net>=0?"Utilidad":"Perdida"}</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(net)}</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(anterior.net)}</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace",color:net>=anterior.net?"var(--gn)":"var(--rd)"}}>{fmtVar(variacion(net,anterior.net))}</td></tr>
+        </tbody>
+      </table></div>
+    </div>}
   </div>);
 }
 
