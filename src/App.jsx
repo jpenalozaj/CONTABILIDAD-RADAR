@@ -590,12 +590,13 @@ const tpL={asset:"Activo",liability:"Pasivo",equity:"Patrimonio",income:"Ingreso
 const tpC={asset:"#06B6D4",liability:"#EF4444",equity:"#8B5CF6",income:"#10B981",expense:"#F59E0B"};
 
 function ContabP({eObj,accts,setAccts,entries,setEntries,empEntries,leafAccts,aLog,go,reglas,setReglas,ccostos,setCcostos}){
-  const [tab,setTab]=useState("plan");
+  const [tab,setTab]=useState("dashboard");
   if(!eObj)return<Ey i="🏢" t="Selecciona una empresa" d="Activa una empresa primero."><Bt onClick={()=>go("empresas")} p={true}>Ir a Empresas</Bt></Ey>;
   const porClasificarN=empEntries.filter(e=>e.lines.some(l=>l.ac==="1.1.05.001")).length;
-  const tabs=[{id:"plan",l:"Plan de Cuentas"},{id:"asientos",l:"Asientos"},{id:"csv",l:"Compras/Ventas SII"},{id:"lcompras",l:"Libro de Compras"},{id:"lventas",l:"Libro de Ventas"},{id:"porclasificar",l:"Por Clasificar"+(porClasificarN>0?" ("+porClasificarN+")":"")},{id:"conciliacion",l:"Conciliacion Bancaria"},{id:"diario",l:"Libro Diario"},{id:"mayor",l:"Libro Mayor"},{id:"auxiliar",l:"Auxiliares"},{id:"ccostos",l:"Centros de Costo"},{id:"balance",l:"Balance"},{id:"eerr",l:"Estado Resultados"},{id:"b8",l:"8 Columnas"}];
+  const tabs=[{id:"dashboard",l:"Dashboard"},{id:"plan",l:"Plan de Cuentas"},{id:"asientos",l:"Asientos"},{id:"csv",l:"Compras/Ventas SII"},{id:"lcompras",l:"Libro de Compras"},{id:"lventas",l:"Libro de Ventas"},{id:"porclasificar",l:"Por Clasificar"+(porClasificarN>0?" ("+porClasificarN+")":"")},{id:"conciliacion",l:"Conciliacion Bancaria"},{id:"diario",l:"Libro Diario"},{id:"mayor",l:"Libro Mayor"},{id:"auxiliar",l:"Auxiliares"},{id:"ccostos",l:"Centros de Costo"},{id:"balance",l:"Balance"},{id:"eerr",l:"Estado Resultados"},{id:"b8",l:"8 Columnas"}];
   return(<div style={{maxWidth:960,margin:"0 auto"}}>
     <div style={{display:"flex",gap:6,marginBottom:20,flexWrap:"wrap"}}>{tabs.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{padding:"10px 18px",borderRadius:"var(--rs)",border:"none",fontSize:13,fontWeight:tab===t.id?700:500,background:tab===t.id?"var(--cyg)":"var(--sf)",color:tab===t.id?"var(--cy)":"var(--tx2)"}}>{t.l}</button>)}</div>
+    {tab==="dashboard"&&<DashboardFin empEntries={empEntries} leafAccts={leafAccts} eObj={eObj}/>}
     {tab==="plan"&&<PlanCtas accts={accts} setAccts={setAccts} aLog={aLog}/>}
     {tab==="asientos"&&<Asientos entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} eObj={eObj} aLog={aLog} ccostos={ccostos}/>}
     {tab==="csv"&&<CSVSII entries={entries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} empEntries={empEntries} aLog={aLog} reglas={reglas}/>}
@@ -639,6 +640,115 @@ function CentrosCosto({ccostos,setCcostos,eObj,aLog}){
         <button onClick={()=>eliminar(c.id,c.nombre)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.6,fontSize:11}}>eliminar</button>
       </div>
     )}</div>}
+  </div>);
+}
+
+// ═══ DASHBOARD FINANCIERO ═══
+// Flujo de caja mensual (cuentas 1.1.01.* = bancos/disponible), ingresos
+// vs gastos por mes, y top clientes/proveedores -- todo derivado de los
+// asientos que ya existen, sin cuenta ni tabla nueva.
+function ChartIngresosGastos({data}){
+  const max=Math.max(1,...data.map(d=>Math.max(d.ingresos,d.gastos)));
+  const w=100/data.length;
+  return(<div>
+    <div style={{display:"flex",gap:16,marginBottom:8,fontSize:11,color:"var(--tx3)"}}>
+      <span style={{display:"flex",alignItems:"center",gap:5}}><span style={{width:8,height:8,borderRadius:2,background:"var(--gn)",display:"inline-block"}}/>Ingresos</span>
+      <span style={{display:"flex",alignItems:"center",gap:5}}><span style={{width:8,height:8,borderRadius:2,background:"var(--am)",display:"inline-block"}}/>Gastos</span>
+    </div>
+    <svg viewBox="0 0 100 58" style={{width:"100%",height:180,display:"block"}} preserveAspectRatio="none">
+      <line x1="0" y1="55" x2="100" y2="55" stroke="var(--bd)" strokeWidth="0.3"/>
+      {data.map((d,i)=>{const x=i*w;const hI=(d.ingresos/max)*50;const hG=(d.gastos/max)*50;return(
+        <g key={d.mes}><title>{d.mes}: Ingresos ${fmt(d.ingresos)} · Gastos ${fmt(d.gastos)}</title>
+          <rect x={x+w*0.15} y={55-hI} width={w*0.3} height={hI} rx={0.6} fill="var(--gn)"/>
+          <rect x={x+w*0.55} y={55-hG} width={w*0.3} height={hG} rx={0.6} fill="var(--am)"/>
+        </g>);})}
+    </svg>
+    <div style={{display:"flex",fontSize:9,color:"var(--tx3)"}}>{data.map(d=><div key={d.mes} style={{flex:1,textAlign:"center"}}>{d.mes.slice(5,7)}/{d.mes.slice(2,4)}</div>)}</div>
+  </div>);
+}
+function ChartFlujoCaja({data}){
+  const max=Math.max(1,...data.map(d=>Math.abs(d.flujoCaja)));
+  const w=100/data.length;
+  return(<div>
+    <svg viewBox="0 0 100 60" style={{width:"100%",height:180,display:"block"}} preserveAspectRatio="none">
+      <line x1="0" y1="30" x2="100" y2="30" stroke="var(--bd)" strokeWidth="0.3"/>
+      {data.map((d,i)=>{const x=i*w;const h=(Math.abs(d.flujoCaja)/max)*28;const pos=d.flujoCaja>=0;return(
+        <g key={d.mes}><title>{d.mes}: Flujo de caja ${fmt(d.flujoCaja)}</title>
+          <rect x={x+w*0.25} y={pos?30-h:30} width={w*0.5} height={h} rx={0.6} fill={pos?"var(--gn)":"var(--rd)"}/>
+        </g>);})}
+    </svg>
+    <div style={{display:"flex",fontSize:9,color:"var(--tx3)"}}>{data.map(d=><div key={d.mes} style={{flex:1,textAlign:"center"}}>{d.mes.slice(5,7)}/{d.mes.slice(2,4)}</div>)}</div>
+  </div>);
+}
+function TopContrapartes({empEntries,tipoDoc,titulo}){
+  const top=useMemo(()=>{
+    const m=new Map();
+    empEntries.forEach(e=>{
+      if(e.tipoDoc!==tipoDoc||!e.rut)return;
+      const key=normRut(e.rut);if(!key)return;
+      if(!m.has(key))m.set(key,{razonSocial:e.razonSocial||e.rut,total:0});
+      m.get(key).total+=e.total||0;
+    });
+    return[...m.values()].sort((a,b)=>b.total-a.total).slice(0,5);
+  },[empEntries,tipoDoc]);
+  const max=Math.max(1,...top.map(t=>t.total));
+  return(<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:18}}>
+    <div style={{fontSize:11,fontWeight:600,marginBottom:14,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:.5}}>{titulo}</div>
+    {top.length===0?<div style={{fontSize:12,color:"var(--tx3)"}}>Sin datos.</div>:
+    <div style={{display:"flex",flexDirection:"column",gap:10}}>{top.map((t,i)=>
+      <div key={i}>
+        <div style={{display:"flex",justifyContent:"space-between",gap:8,fontSize:12,marginBottom:3}}><span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.razonSocial}</span><span style={{fontFamily:"monospace",fontWeight:600,whiteSpace:"nowrap"}}>${fmt(t.total)}</span></div>
+        <div style={{height:5,background:"var(--sf2)",borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",width:(t.total/max*100)+"%",background:tipoDoc==="venta"?"var(--gn)":"var(--am)",borderRadius:3}}/></div>
+      </div>
+    )}</div>}
+  </div>);
+}
+function DashboardFin({empEntries,leafAccts,eObj}){
+  const mesesData=useMemo(()=>{
+    const map=new Map();
+    const bancoAccts=new Set(leafAccts.filter(a=>a.cd.startsWith("1.1.01.")).map(a=>a.cd));
+    const incomeAccts=new Set(leafAccts.filter(a=>a.tp==="income").map(a=>a.cd));
+    const expenseAccts=new Set(leafAccts.filter(a=>a.tp==="expense").map(a=>a.cd));
+    empEntries.forEach(e=>{
+      const mes=e.date?.slice(0,7);if(!mes)return;
+      if(!map.has(mes))map.set(mes,{ingresos:0,gastos:0,flujoCaja:0});
+      const m=map.get(mes);
+      e.lines.forEach(l=>{
+        if(incomeAccts.has(l.ac))m.ingresos+=(l.cr||0)-(l.db||0);
+        if(expenseAccts.has(l.ac))m.gastos+=(l.db||0)-(l.cr||0);
+        if(bancoAccts.has(l.ac))m.flujoCaja+=(l.db||0)-(l.cr||0);
+      });
+    });
+    return[...map.entries()].sort((a,b)=>a[0].localeCompare(b[0])).slice(-12).map(([mes,v])=>({mes,...v}));
+  },[empEntries,leafAccts]);
+  const tIngresos=mesesData.reduce((s,d)=>s+d.ingresos,0);
+  const tGastos=mesesData.reduce((s,d)=>s+d.gastos,0);
+  const tFlujo=mesesData.reduce((s,d)=>s+d.flujoCaja,0);
+
+  if(!empEntries.length)return<Ey i="📊" t="Sin datos todavia" d="Registra asientos para ver el dashboard financiero."/>;
+  return(<div>
+    <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Dashboard Financiero</div>
+    <div style={{fontSize:12,color:"var(--tx3)",marginBottom:20}}>Ultimos {mesesData.length} meses con movimientos — {eObj?.name}.</div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:20}}>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:6}}>Ingresos</div><div style={{fontSize:20,fontWeight:700,color:"var(--gn)"}}>${fmt(tIngresos)}</div></div>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:6}}>Gastos</div><div style={{fontSize:20,fontWeight:700,color:"var(--am)"}}>${fmt(tGastos)}</div></div>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:6}}>Resultado</div><div style={{fontSize:20,fontWeight:700,color:tIngresos-tGastos>=0?"var(--gn)":"var(--rd)"}}>${fmt(tIngresos-tGastos)}</div></div>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:6}}>Flujo de caja neto</div><div style={{fontSize:20,fontWeight:700,color:tFlujo>=0?"var(--gn)":"var(--rd)"}}>${fmt(tFlujo)}</div></div>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(320px,1fr))",gap:16,marginBottom:16}}>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:18}}>
+        <div style={{fontSize:11,fontWeight:600,marginBottom:14,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:.5}}>Ingresos vs Gastos por mes</div>
+        {mesesData.length===0?<div style={{fontSize:12,color:"var(--tx3)"}}>Sin datos.</div>:<ChartIngresosGastos data={mesesData}/>}
+      </div>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:18}}>
+        <div style={{fontSize:11,fontWeight:600,marginBottom:14,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:.5}}>Flujo de caja mensual (bancos)</div>
+        {mesesData.length===0?<div style={{fontSize:12,color:"var(--tx3)"}}>Sin datos.</div>:<ChartFlujoCaja data={mesesData}/>}
+      </div>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:16}}>
+      <TopContrapartes empEntries={empEntries} tipoDoc="venta" titulo="Top 5 Clientes"/>
+      <TopContrapartes empEntries={empEntries} tipoDoc="compra" titulo="Top 5 Proveedores"/>
+    </div>
   </div>);
 }
 
