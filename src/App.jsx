@@ -589,7 +589,7 @@ function ContabP({eObj,accts,setAccts,entries,setEntries,empEntries,leafAccts,aL
   const [tab,setTab]=useState("plan");
   if(!eObj)return<Ey i="🏢" t="Selecciona una empresa" d="Activa una empresa primero."><Bt onClick={()=>go("empresas")} p={true}>Ir a Empresas</Bt></Ey>;
   const porClasificarN=empEntries.filter(e=>e.lines.some(l=>l.ac==="1.1.05.001")).length;
-  const tabs=[{id:"plan",l:"Plan de Cuentas"},{id:"asientos",l:"Asientos"},{id:"csv",l:"Compras/Ventas SII"},{id:"lcompras",l:"Libro de Compras"},{id:"lventas",l:"Libro de Ventas"},{id:"porclasificar",l:"Por Clasificar"+(porClasificarN>0?" ("+porClasificarN+")":"")},{id:"conciliacion",l:"Conciliacion Bancaria"},{id:"diario",l:"Libro Diario"},{id:"mayor",l:"Libro Mayor"},{id:"balance",l:"Balance"},{id:"eerr",l:"Estado Resultados"},{id:"b8",l:"8 Columnas"}];
+  const tabs=[{id:"plan",l:"Plan de Cuentas"},{id:"asientos",l:"Asientos"},{id:"csv",l:"Compras/Ventas SII"},{id:"lcompras",l:"Libro de Compras"},{id:"lventas",l:"Libro de Ventas"},{id:"porclasificar",l:"Por Clasificar"+(porClasificarN>0?" ("+porClasificarN+")":"")},{id:"conciliacion",l:"Conciliacion Bancaria"},{id:"diario",l:"Libro Diario"},{id:"mayor",l:"Libro Mayor"},{id:"auxiliar",l:"Auxiliares"},{id:"balance",l:"Balance"},{id:"eerr",l:"Estado Resultados"},{id:"b8",l:"8 Columnas"}];
   return(<div style={{maxWidth:960,margin:"0 auto"}}>
     <div style={{display:"flex",gap:6,marginBottom:20,flexWrap:"wrap"}}>{tabs.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{padding:"10px 18px",borderRadius:"var(--rs)",border:"none",fontSize:13,fontWeight:tab===t.id?700:500,background:tab===t.id?"var(--cyg)":"var(--sf)",color:tab===t.id?"var(--cy)":"var(--tx2)"}}>{t.l}</button>)}</div>
     {tab==="plan"&&<PlanCtas accts={accts} setAccts={setAccts} aLog={aLog}/>}
@@ -601,6 +601,7 @@ function ContabP({eObj,accts,setAccts,entries,setEntries,empEntries,leafAccts,aL
     {tab==="conciliacion"&&<ConciliacionP entries={entries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} empEntries={empEntries} aLog={aLog} reglas={reglas} setReglas={setReglas}/>}
     {tab==="diario"&&<LDiario empEntries={empEntries} accts={accts} eObj={eObj}/>}
     {tab==="mayor"&&<LMayor empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj}/>}
+    {tab==="auxiliar"&&<LibroAuxiliar empEntries={empEntries} eObj={eObj}/>}
     {tab==="balance"&&<Balance empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj}/>}
     {tab==="eerr"&&<EERR empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj}/>}
     {tab==="b8"&&<B8Col empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj}/>}
@@ -812,6 +813,86 @@ function LMayor({empEntries,accts,leafAccts,eObj}){
       {movesWithBal.length===0?<div style={{padding:24,textAlign:"center",color:"var(--tx3)",fontSize:13}}>Sin movimientos.</div>
       :<div style={{overflowX:"auto"}}><table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}><thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:10,color:"var(--tx3)",background:"var(--sf2)"}}><th style={{textAlign:"left",padding:"8px 12px",fontWeight:500}}>Fecha</th><th style={{textAlign:"left",padding:"8px 4px",fontWeight:500}}>N</th><th style={{textAlign:"left",padding:"8px 4px",fontWeight:500}}>Glosa</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Debe</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Haber</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Saldo</th></tr></thead>
         <tbody>{movesWithBal.map((m,i)=><tr key={i} style={{borderBottom:"1px solid var(--bd)"}}><td style={{padding:"6px 12px",fontSize:11}}>{fD(m.date)}</td><td style={{padding:"6px 4px",fontFamily:"monospace",fontSize:10}}>{m.num}</td><td style={{padding:"6px 4px"}}>{m.desc}</td><td style={{padding:"6px 12px",textAlign:"right",fontFamily:"monospace"}}>{m.db>0?"$"+fmt(m.db):""}</td><td style={{padding:"6px 12px",textAlign:"right",fontFamily:"monospace"}}>{m.cr>0?"$"+fmt(m.cr):""}</td><td style={{padding:"6px 12px",textAlign:"right",fontFamily:"monospace",fontWeight:600,color:m.bal<0?"var(--rd)":"var(--tx)"}}>${fmt(m.bal)}</td></tr>)}</tbody></table></div>}
+    </div>}
+  </div>);
+}
+
+// ═══ LIBRO AUXILIAR POR CONTRAPARTE (RUT) ═══
+// Como el Libro Mayor pero en vez de agrupar por cuenta, agrupa por RUT:
+// todo lo comprado/vendido a una misma contraparte, cruzando los datos
+// que ya trae cada documento importado del SII (rut, razonSocial).
+function LibroAuxiliar({empEntries,eObj}){
+  const [busqueda,setBusqueda]=useState("");
+  const [rutSel,setRutSel]=useState("");
+
+  const contrapartes=useMemo(()=>{
+    const m=new Map();
+    empEntries.forEach(e=>{
+      if(!e.rut)return;
+      const key=normRut(e.rut);
+      if(!key)return;
+      if(!m.has(key))m.set(key,{rut:e.rut,razonSocial:e.razonSocial||"",compras:0,ventas:0,docs:0});
+      const c=m.get(key);
+      if(!c.razonSocial&&e.razonSocial)c.razonSocial=e.razonSocial;
+      if(e.tipoDoc==="compra")c.compras+=e.total||0;
+      else if(e.tipoDoc==="venta")c.ventas+=e.total||0;
+      c.docs++;
+    });
+    return[...m.values()].sort((a,b)=>(b.compras+b.ventas)-(a.compras+a.ventas));
+  },[empEntries]);
+
+  const filtradas=useMemo(()=>{
+    if(!busqueda)return contrapartes;
+    const b=busqueda.toLowerCase();
+    return contrapartes.filter(c=>c.rut.toLowerCase().includes(b)||c.razonSocial.toLowerCase().includes(b));
+  },[contrapartes,busqueda]);
+
+  const seleccionada=contrapartes.find(c=>normRut(c.rut)===rutSel);
+  const movsSel=useMemo(()=>{
+    if(!rutSel)return[];
+    return empEntries.filter(e=>e.rut&&normRut(e.rut)===rutSel).sort((a,b)=>a.date.localeCompare(b.date)||(parseInt(a.folio)||0)-(parseInt(b.folio)||0));
+  },[empEntries,rutSel]);
+
+  return(<div>
+    <div className="no-print" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:16,marginBottom:16}}>
+      <label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:8,fontWeight:500}}>Buscar contraparte (RUT o razon social)</label>
+      <input value={busqueda} onChange={e=>setBusqueda(e.target.value)} placeholder="Ej: 76282386 o Inmobiliaria" style={{maxWidth:400,marginBottom:10}}/>
+      {contrapartes.length===0?<div style={{fontSize:12,color:"var(--tx3)"}}>Sin documentos con RUT importados todavia.</div>:
+      <div style={{display:"flex",flexDirection:"column",gap:4,maxHeight:260,overflowY:"auto"}}>
+        {filtradas.map(c=>{const key=normRut(c.rut);return(
+        <button key={key} onClick={()=>setRutSel(key)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,padding:"8px 12px",borderRadius:"var(--rs)",border:"1px solid "+(rutSel===key?"var(--cy)":"var(--bd)"),background:rutSel===key?"var(--cyg)":"var(--sf2)",color:rutSel===key?"var(--cy)":"var(--tx2)",fontSize:12,textAlign:"left",cursor:"pointer"}}>
+          <span>{c.razonSocial||"(sin razon social)"} <span style={{fontFamily:"monospace",opacity:.7}}>{c.rut}</span></span>
+          <span style={{fontFamily:"monospace",fontSize:11,whiteSpace:"nowrap"}}>{c.docs} doc. · ${fmt(c.compras+c.ventas)}</span>
+        </button>);})}
+      </div>}
+    </div>
+    {rutSel&&<div className="report" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",overflow:"hidden"}}>
+      <ReportHeader eObj={eObj} title="Libro Auxiliar por Contraparte" subtitle={(seleccionada?.razonSocial||"")+" — RUT "+(seleccionada?.rut||"")}/>
+      <div className="no-print" style={{padding:"12px 20px",borderBottom:"1px solid var(--bd)",background:"var(--sf2)",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+        <div><div style={{fontSize:13,fontWeight:600}}>{seleccionada?.razonSocial||"(sin razon social)"}</div><div style={{fontSize:11,color:"var(--tx3)"}}>RUT {seleccionada?.rut} · Compras ${fmt(seleccionada?.compras||0)} · Ventas ${fmt(seleccionada?.ventas||0)}</div></div>
+        <button onClick={()=>window.print()} style={{padding:"6px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf)",color:"var(--tx2)",fontSize:11,fontWeight:600,cursor:"pointer"}}>Exportar PDF</button>
+      </div>
+      {movsSel.length===0?<div style={{padding:24,textAlign:"center",color:"var(--tx3)",fontSize:13}}>Sin movimientos.</div>
+      :<div style={{overflowX:"auto"}}><table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
+        <thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:10,color:"var(--tx3)",background:"var(--sf2)"}}>
+          <th style={{textAlign:"left",padding:"8px 12px",fontWeight:500}}>Fecha</th>
+          <th style={{textAlign:"left",padding:"8px 8px",fontWeight:500}}>Tipo</th>
+          <th style={{textAlign:"left",padding:"8px 8px",fontWeight:500}}>Folio</th>
+          <th style={{textAlign:"left",padding:"8px 8px",fontWeight:500}}>Glosa</th>
+          <th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Total</th>
+        </tr></thead>
+        <tbody>{movsSel.map(e=><tr key={e.id} style={{borderBottom:"1px solid var(--bd)"}}>
+          <td style={{padding:"6px 12px",fontSize:11}}>{fD(e.date)}</td>
+          <td style={{padding:"6px 8px",fontSize:11}}>{e.tipoDoc==="compra"?"Compra":e.tipoDoc==="venta"?"Venta":"—"}</td>
+          <td style={{padding:"6px 8px",fontFamily:"monospace",fontSize:11}}>{e.folio||"—"}</td>
+          <td style={{padding:"6px 8px"}}>{e.desc}</td>
+          <td style={{padding:"6px 12px",textAlign:"right",fontFamily:"monospace",fontWeight:600}}>${fmt(e.total||0)}</td>
+        </tr>)}</tbody>
+        <tfoot><tr style={{borderTop:"2px solid var(--bd2)",fontWeight:700}}>
+          <td colSpan={4} style={{padding:"8px 12px",textAlign:"right",fontSize:11,textTransform:"uppercase",letterSpacing:1}}>Total</td>
+          <td style={{padding:"8px 12px",textAlign:"right",fontFamily:"monospace"}}>${fmt(movsSel.reduce((s,e)=>s+(e.total||0),0))}</td>
+        </tr></tfoot>
+      </table></div>}
     </div>}
   </div>);
 }
