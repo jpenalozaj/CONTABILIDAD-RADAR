@@ -213,10 +213,11 @@ function Dashboard({session}){
   const [docs,setDocs]=useState([]);
   const [tareas,setTareas]=useState([]);
   const [reglas,setReglas]=useState([]);
+  const [ccostos,setCcostos]=useState([]);
   const [sb,setSb]=useState(false);
-  const prevIds=useRef({e:new Set(),v:new Set(),l:new Set(),a:new Set(),en:new Set(),rm:new Set(),dc:new Set(),ta:new Set(),rg:new Set()});
+  const prevIds=useRef({e:new Set(),v:new Set(),l:new Set(),a:new Set(),en:new Set(),rm:new Set(),dc:new Set(),ta:new Set(),rg:new Set(),cc:new Set()});
   useEffect(()=>{let cancelled=false;(async()=>{
-    const[e,v,l,a,en,rm,dc,ta,rg]=await Promise.all([
+    const[e,v,l,a,en,rm,dc,ta,rg,cc]=await Promise.all([
       loadCollection(userId,"empresas",[]),
       loadCollection(userId,"evaluaciones",[]),
       loadCollection(userId,"log",[]),
@@ -226,14 +227,15 @@ function Dashboard({session}){
       loadCollection(userId,"documentos",[]),
       loadCollection(userId,"tareas",[]),
       loadCollection(userId,"reglas_categorizacion",[]),
+      loadCollection(userId,"centros_costo",[]),
     ]);
     if(cancelled)return;
     prevIds.current={
       e:new Set(e.map(x=>String(x.id))),v:new Set(v.map(x=>String(x.id))),l:new Set(l.map(x=>String(x.id))),
       a:new Set(a.map(x=>String(x.cd))),en:new Set(en.map(x=>String(x.id))),rm:new Set(rm.map(x=>String(x.id))),
-      dc:new Set(dc.map(x=>String(x.id))),ta:new Set(ta.map(x=>String(x.id))),rg:new Set(rg.map(x=>String(x.id))),
+      dc:new Set(dc.map(x=>String(x.id))),ta:new Set(ta.map(x=>String(x.id))),rg:new Set(rg.map(x=>String(x.id))),cc:new Set(cc.map(x=>String(x.id))),
     };
-    setEmps(e);setEvs(v);setLog(l);setAccts(a);setEntries(en);setRems(rm);setDocs(dc);setTareas(ta);setReglas(rg);
+    setEmps(e);setEvs(v);setLog(l);setAccts(a);setEntries(en);setRems(rm);setDocs(dc);setTareas(ta);setReglas(rg);setCcostos(cc);
     if(e.length>0)setAEmp(e[0].id);setRdy(true);
   })();return()=>{cancelled=true}},[userId]);
   useEffect(()=>{if(rdy)saveCollection(userId,"empresas",emps,prevIds.current.e).then(s=>prevIds.current.e=s)},[emps,rdy]);
@@ -245,11 +247,13 @@ function Dashboard({session}){
   useEffect(()=>{if(rdy)saveCollection(userId,"documentos",docs,prevIds.current.dc).then(s=>prevIds.current.dc=s)},[docs,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"tareas",tareas,prevIds.current.ta).then(s=>prevIds.current.ta=s)},[tareas,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"reglas_categorizacion",reglas,prevIds.current.rg).then(s=>prevIds.current.rg=s)},[reglas,rdy]);
+  useEffect(()=>{if(rdy)saveCollection(userId,"centros_costo",ccostos,prevIds.current.cc).then(s=>prevIds.current.cc=s)},[ccostos,rdy]);
   const aLog=(a,d)=>setLog(p=>[{id:uid(),time:new Date().toISOString(),action:a,detail:d},...p].slice(0,50));
   const eObj=useMemo(()=>emps.find(e=>e.id===aEmp),[emps,aEmp]);
   const eEvs=useMemo(()=>evs.filter(e=>e.empresaId===aEmp),[evs,aEmp]);
   const empEntries=useMemo(()=>entries.filter(e=>e.empresaId===aEmp),[entries,aEmp]);
   const empReglas=useMemo(()=>reglas.filter(r=>r.empresaId===aEmp),[reglas,aEmp]);
+  const empCcostos=useMemo(()=>ccostos.filter(c=>c.empresaId===aEmp),[ccostos,aEmp]);
   const empRems=useMemo(()=>rems.filter(r=>r.empresaId===aEmp),[rems,aEmp]);
   const empDocs=useMemo(()=>docs.filter(d=>d.empresaId===aEmp),[docs,aEmp]);
   const empTareas=useMemo(()=>tareas.filter(t=>t.empresaId===aEmp),[tareas,aEmp]);
@@ -278,7 +282,7 @@ function Dashboard({session}){
         {pg==="inicio"&&<HomeP emps={emps} eObj={eObj} evs={evs} log={log}/>}
         {pg==="empresas"&&<EmpP emps={emps} setEmps={setEmps} aEmp={aEmp} setAEmp={setAEmp} aLog={aLog}/>}
         {pg==="radar"&&<RadP eObj={eObj} evs={evs} setEvs={setEvs} eEvs={eEvs} aLog={aLog} go={go}/>}
-        {pg==="contabilidad"&&<ContabP eObj={eObj} accts={accts} setAccts={setAccts} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go} reglas={empReglas} setReglas={setReglas}/>}
+        {pg==="contabilidad"&&<ContabP eObj={eObj} accts={accts} setAccts={setAccts} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go} reglas={empReglas} setReglas={setReglas} ccostos={empCcostos} setCcostos={setCcostos}/>}
         {pg==="remuneraciones"&&<RemP eObj={eObj} rems={rems} setRems={setRems} empRems={empRems} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go}/>}
         {pg==="documentos"&&<DocsP eObj={eObj} docs={docs} setDocs={setDocs} empDocs={empDocs} aLog={aLog} go={go}/>}
         {pg==="planificacion"&&<PlanP eObj={eObj} tareas={tareas} setTareas={setTareas} empTareas={empTareas} aLog={aLog} go={go}/>}
@@ -585,26 +589,56 @@ function ReportHeader({eObj,title,subtitle}){
 const tpL={asset:"Activo",liability:"Pasivo",equity:"Patrimonio",income:"Ingreso",expense:"Gasto"};
 const tpC={asset:"#06B6D4",liability:"#EF4444",equity:"#8B5CF6",income:"#10B981",expense:"#F59E0B"};
 
-function ContabP({eObj,accts,setAccts,entries,setEntries,empEntries,leafAccts,aLog,go,reglas,setReglas}){
+function ContabP({eObj,accts,setAccts,entries,setEntries,empEntries,leafAccts,aLog,go,reglas,setReglas,ccostos,setCcostos}){
   const [tab,setTab]=useState("plan");
   if(!eObj)return<Ey i="🏢" t="Selecciona una empresa" d="Activa una empresa primero."><Bt onClick={()=>go("empresas")} p={true}>Ir a Empresas</Bt></Ey>;
   const porClasificarN=empEntries.filter(e=>e.lines.some(l=>l.ac==="1.1.05.001")).length;
-  const tabs=[{id:"plan",l:"Plan de Cuentas"},{id:"asientos",l:"Asientos"},{id:"csv",l:"Compras/Ventas SII"},{id:"lcompras",l:"Libro de Compras"},{id:"lventas",l:"Libro de Ventas"},{id:"porclasificar",l:"Por Clasificar"+(porClasificarN>0?" ("+porClasificarN+")":"")},{id:"conciliacion",l:"Conciliacion Bancaria"},{id:"diario",l:"Libro Diario"},{id:"mayor",l:"Libro Mayor"},{id:"auxiliar",l:"Auxiliares"},{id:"balance",l:"Balance"},{id:"eerr",l:"Estado Resultados"},{id:"b8",l:"8 Columnas"}];
+  const tabs=[{id:"plan",l:"Plan de Cuentas"},{id:"asientos",l:"Asientos"},{id:"csv",l:"Compras/Ventas SII"},{id:"lcompras",l:"Libro de Compras"},{id:"lventas",l:"Libro de Ventas"},{id:"porclasificar",l:"Por Clasificar"+(porClasificarN>0?" ("+porClasificarN+")":"")},{id:"conciliacion",l:"Conciliacion Bancaria"},{id:"diario",l:"Libro Diario"},{id:"mayor",l:"Libro Mayor"},{id:"auxiliar",l:"Auxiliares"},{id:"ccostos",l:"Centros de Costo"},{id:"balance",l:"Balance"},{id:"eerr",l:"Estado Resultados"},{id:"b8",l:"8 Columnas"}];
   return(<div style={{maxWidth:960,margin:"0 auto"}}>
     <div style={{display:"flex",gap:6,marginBottom:20,flexWrap:"wrap"}}>{tabs.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{padding:"10px 18px",borderRadius:"var(--rs)",border:"none",fontSize:13,fontWeight:tab===t.id?700:500,background:tab===t.id?"var(--cyg)":"var(--sf)",color:tab===t.id?"var(--cy)":"var(--tx2)"}}>{t.l}</button>)}</div>
     {tab==="plan"&&<PlanCtas accts={accts} setAccts={setAccts} aLog={aLog}/>}
-    {tab==="asientos"&&<Asientos entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} eObj={eObj} aLog={aLog}/>}
+    {tab==="asientos"&&<Asientos entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} eObj={eObj} aLog={aLog} ccostos={ccostos}/>}
     {tab==="csv"&&<CSVSII entries={entries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} empEntries={empEntries} aLog={aLog} reglas={reglas}/>}
     {tab==="lcompras"&&<LibroCV empEntries={empEntries} tipo="compra" eObj={eObj}/>}
     {tab==="lventas"&&<LibroCV empEntries={empEntries} tipo="venta" eObj={eObj}/>}
     {tab==="porclasificar"&&<PorClasificar empEntries={empEntries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} aLog={aLog} reglas={reglas} setReglas={setReglas}/>}
     {tab==="conciliacion"&&<ConciliacionP entries={entries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} empEntries={empEntries} aLog={aLog} reglas={reglas} setReglas={setReglas}/>}
-    {tab==="diario"&&<LDiario empEntries={empEntries} accts={accts} eObj={eObj}/>}
+    {tab==="diario"&&<LDiario empEntries={empEntries} accts={accts} eObj={eObj} ccostos={ccostos}/>}
     {tab==="mayor"&&<LMayor empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj}/>}
     {tab==="auxiliar"&&<LibroAuxiliar empEntries={empEntries} eObj={eObj}/>}
+    {tab==="ccostos"&&<CentrosCosto ccostos={ccostos} setCcostos={setCcostos} eObj={eObj} aLog={aLog}/>}
     {tab==="balance"&&<Balance empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj}/>}
-    {tab==="eerr"&&<EERR empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj}/>}
+    {tab==="eerr"&&<EERR empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj} ccostos={ccostos}/>}
     {tab==="b8"&&<B8Col empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj}/>}
+  </div>);
+}
+
+function CentrosCosto({ccostos,setCcostos,eObj,aLog}){
+  const [nombre,setNombre]=useState("");
+  const agregar=()=>{
+    if(!nombre.trim())return;
+    setCcostos(p=>[...p,{id:uid(),empresaId:eObj.id,nombre:nombre.trim()}]);
+    aLog("Centro de costo creado",nombre.trim());
+    setNombre("");
+  };
+  const eliminar=(id,nom)=>{
+    if(!confirm('Eliminar "'+nom+'"? Los asientos que lo usaban quedaran sin centro de costo asignado.'))return;
+    setCcostos(p=>p.filter(c=>c.id!==id));
+  };
+  return(<div>
+    <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Centros de Costo</div>
+    <div style={{fontSize:12,color:"var(--tx3)",marginBottom:16}}>Agrupa asientos por proyecto o area (ej. "Obra Maipu", "Administracion") para filtrar el Libro Diario y el Estado de Resultados por separado.</div>
+    <div style={{display:"flex",gap:8,marginBottom:16}}>
+      <input value={nombre} onChange={e=>setNombre(e.target.value)} onKeyDown={e=>e.key==="Enter"&&agregar()} placeholder="Nombre del centro de costo" style={{maxWidth:300}}/>
+      <button onClick={agregar} disabled={!nombre.trim()} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--cy)",color:"#fff",fontSize:12,fontWeight:600,cursor:nombre.trim()?"pointer":"default",opacity:nombre.trim()?1:.5}}>Agregar</button>
+    </div>
+    {ccostos.length===0?<Ey i="🏷️" t="Sin centros de costo" d="Agrega uno para poder asignarlo a tus asientos."/>:
+    <div style={{display:"flex",flexDirection:"column",gap:6}}>{ccostos.map(c=>
+      <div key={c.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:"10px 16px",fontSize:13}}>
+        <span>{c.nombre}</span>
+        <button onClick={()=>eliminar(c.id,c.nombre)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.6,fontSize:11}}>eliminar</button>
+      </div>
+    )}</div>}
   </div>);
 }
 
@@ -653,12 +687,13 @@ function PlanCtas({accts,setAccts,aLog}){
   </div>);
 }
 
-function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog}){
+function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog,ccostos}){
   const [showF,setShowF]=useState(false);
   const [editId,setEditId]=useState(null);
-  const blankFm=()=>({date:new Date().toISOString().slice(0,10),desc:"",lines:[{ac:"",db:0,cr:0},{ac:"",db:0,cr:0}]});
+  const blankFm=()=>({date:new Date().toISOString().slice(0,10),desc:"",centroCosto:"",lines:[{ac:"",db:0,cr:0},{ac:"",db:0,cr:0}]});
   const [fm,setFm]=useState(blankFm());
   const nxt=useMemo(()=>{const ns=empEntries.map(e=>parseInt(e.num)||0);return String(Math.max(0,...ns)+1).padStart(4,"0")},[empEntries]);
+  const ccNombre=useMemo(()=>Object.fromEntries((ccostos||[]).map(c=>[c.id,c.nombre])),[ccostos]);
   const uLine=(i,f,v)=>setFm(p=>{const ls=[...p.lines];ls[i]={...ls[i],[f]:f==="ac"?v:Math.max(0,parseFloat(v)||0)};return{...p,lines:ls}});
   const addL=()=>setFm(p=>({...p,lines:[...p.lines,{ac:"",db:0,cr:0}]}));
   const rmL=i=>{if(fm.lines.length>2)setFm(p=>({...p,lines:p.lines.filter((_,j)=>j!==i)}))};
@@ -666,13 +701,13 @@ function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog}){
   const tC=fm.lines.reduce((s,l)=>s+(l.cr||0),0);
   const bal=Math.abs(tD-tC)<0.01&&tD>0;
   const openNew=()=>{setFm(blankFm());setEditId(null);setShowF(true)};
-  const openEdit=e=>{setFm({date:e.date,desc:e.desc,lines:e.lines.map(l=>({ac:l.ac,db:l.db||0,cr:l.cr||0}))});setEditId(e.id);setShowF(true)};
+  const openEdit=e=>{setFm({date:e.date,desc:e.desc,centroCosto:e.centroCosto||"",lines:e.lines.map(l=>({ac:l.ac,db:l.db||0,cr:l.cr||0}))});setEditId(e.id);setShowF(true)};
   const doSave=()=>{
     if(!fm.desc||!bal)return;
     if(fm.lines.some(l=>!l.ac)){alert("Selecciona cuenta en todas las lineas");return}
     const lines=fm.lines.filter(l=>l.db>0||l.cr>0);
-    if(editId){setEntries(p=>p.map(e=>e.id===editId?{...e,date:fm.date,desc:fm.desc,lines}:e));aLog("Asiento editado",fm.desc)}
-    else{const e={id:uid(),empresaId:eObj.id,num:nxt,date:fm.date,desc:fm.desc,lines};setEntries(p=>[...p,e]);aLog("Asiento "+nxt,fm.desc)}
+    if(editId){setEntries(p=>p.map(e=>e.id===editId?{...e,date:fm.date,desc:fm.desc,centroCosto:fm.centroCosto||null,lines}:e));aLog("Asiento editado",fm.desc)}
+    else{const e={id:uid(),empresaId:eObj.id,num:nxt,date:fm.date,desc:fm.desc,centroCosto:fm.centroCosto||null,lines};setEntries(p=>[...p,e]);aLog("Asiento "+nxt,fm.desc)}
     setFm(blankFm());setEditId(null);setShowF(false);
   };
   const delE=id=>setEntries(p=>p.filter(e=>e.id!==id));
@@ -683,7 +718,8 @@ function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog}){
     <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:12,marginBottom:16,fontSize:11,color:"var(--tx3)"}}><b>CSV:</b> Fecha, Glosa, CodigoCuenta, Debe, Haber</div>
     {showF&&<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:20,marginBottom:16}}>
       <div style={{fontSize:13,fontWeight:600,marginBottom:12}}>{editId?"Editar Asiento N "+(empEntries.find(e=>e.id===editId)?.num||""):"Asiento N "+nxt}</div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}><input type="date" value={fm.date} onChange={e=>setFm(p=>({...p,date:e.target.value}))}/><input placeholder="Glosa / Descripcion" value={fm.desc} onChange={e=>setFm(p=>({...p,desc:e.target.value}))}/></div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}><input type="date" value={fm.date} onChange={e=>setFm(p=>({...p,date:e.target.value}))}/><input placeholder="Glosa / Descripcion" value={fm.desc} onChange={e=>setFm(p=>({...p,desc:e.target.value}))}/></div>
+      {ccostos?.length>0&&<div style={{marginBottom:16}}><select value={fm.centroCosto} onChange={e=>setFm(p=>({...p,centroCosto:e.target.value}))} style={{maxWidth:300}}><option value="">Sin centro de costo</option>{ccostos.map(c=><option key={c.id} value={c.id}>{c.nombre}</option>)}</select></div>}
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         <div style={{display:"grid",gridTemplateColumns:"1fr 90px 90px 32px",gap:8,fontSize:10,color:"var(--tx3)",fontWeight:500,padding:"0 4px"}}><span>Cuenta</span><span style={{textAlign:"right"}}>Debe</span><span style={{textAlign:"right"}}>Haber</span><span></span></div>
         {fm.lines.map((ln,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 90px 90px 32px",gap:8}}>
@@ -703,23 +739,29 @@ function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog}){
       <div style={{display:"flex",gap:8,marginTop:12}}><Bt onClick={doSave} p={bal}>{bal?(editId?"Guardar cambios":"Guardar"):"Descuadrado"}</Bt><Bt onClick={()=>{setShowF(false);setEditId(null)}}>Cancelar</Bt></div>
     </div>}
     <div style={{display:"flex",flexDirection:"column",gap:8}}>{[...empEntries].sort((a,b)=>b.date.localeCompare(a.date)).map(e=><div key={e.id} style={{background:"var(--sf)",border:"1px solid "+(editId===e.id?"var(--cy)":"var(--bd)"),borderRadius:"var(--r)",padding:16}}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:10,fontFamily:"monospace",background:"var(--sf2)",padding:"2px 8px",borderRadius:4}}>N {e.num}</span><span style={{fontSize:13,fontWeight:500}}>{e.desc}</span></div><div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:11,color:"var(--tx3)"}}>{fD(e.date)}</span><button onClick={()=>openEdit(e)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.6,fontSize:11}}>editar</button><button onClick={()=>{if(confirm("Eliminar este asiento?"))delE(e.id)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5}}>x</button></div></div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:10,fontFamily:"monospace",background:"var(--sf2)",padding:"2px 8px",borderRadius:4}}>N {e.num}</span><span style={{fontSize:13,fontWeight:500}}>{e.desc}</span>{e.centroCosto&&ccNombre[e.centroCosto]&&<span style={{fontSize:10,background:"var(--cyg)",color:"var(--cy)",padding:"2px 8px",borderRadius:4}}>{ccNombre[e.centroCosto]}</span>}</div><div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:11,color:"var(--tx3)"}}>{fD(e.date)}</span><button onClick={()=>openEdit(e)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.6,fontSize:11}}>editar</button><button onClick={()=>{if(confirm("Eliminar este asiento?"))delE(e.id)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5}}>x</button></div></div>
       <div style={{fontSize:11}}>{e.lines.map((l,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 80px 80px",gap:8,padding:"2px 0"}}><span style={{color:"var(--tx2)",paddingLeft:l.cr>0?20:0}}>{l.ac} {leafAccts.find(a=>a.cd===l.ac)?.nm||""}</span><span style={{textAlign:"right",fontFamily:"monospace"}}>{l.db>0?"$"+fmt(l.db):""}</span><span style={{textAlign:"right",fontFamily:"monospace"}}>{l.cr>0?"$"+fmt(l.cr):""}</span></div>)}</div>
     </div>)}</div>
   </div>);
 }
 
-function LDiario({empEntries,accts,eObj}){
-  const sorted=useMemo(()=>[...empEntries].sort((a,b)=>a.date.localeCompare(b.date)||a.num.localeCompare(b.num)),[empEntries]);
+function LDiario({empEntries,accts,eObj,ccostos}){
+  const [filtroCC,setFiltroCC]=useState("todos");
+  const filtradas=useMemo(()=>filtroCC==="todos"?empEntries:empEntries.filter(e=>e.centroCosto===filtroCC),[empEntries,filtroCC]);
+  const sorted=useMemo(()=>[...filtradas].sort((a,b)=>a.date.localeCompare(b.date)||a.num.localeCompare(b.num)),[filtradas]);
   const am=useMemo(()=>Object.fromEntries(accts.map(a=>[a.cd,a.nm])),[accts]);
-  if(!sorted.length)return<Ey i="📖" t="Sin asientos" d="Registra asientos para ver el Libro Diario."/>;
+  const ccNombre=ccostos?.find(c=>c.id===filtroCC)?.nombre;
+  if(!empEntries.length)return<Ey i="📖" t="Sin asientos" d="Registra asientos para ver el Libro Diario."/>;
   const tD=sorted.reduce((s,e)=>s+e.lines.reduce((ss,l)=>ss+(l.db||0),0),0);
   const tC=sorted.reduce((s,e)=>s+e.lines.reduce((ss,l)=>ss+(l.cr||0),0),0);
   return(<div className="report" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",overflow:"hidden"}}>
-    <ReportHeader eObj={eObj} title="Libro Diario" subtitle={"Al "+new Date().toLocaleDateString("es-CL")}/>
-    <div className="no-print" style={{padding:"16px 20px",borderBottom:"1px solid var(--bd)",background:"var(--sf2)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+    <ReportHeader eObj={eObj} title="Libro Diario" subtitle={(ccNombre?"Centro de costo: "+ccNombre+" — ":"")+"Al "+new Date().toLocaleDateString("es-CL")}/>
+    <div className="no-print" style={{padding:"16px 20px",borderBottom:"1px solid var(--bd)",background:"var(--sf2)",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
       <span style={{fontSize:13,fontWeight:600}}>Libro Diario</span>
-      <button onClick={()=>window.print()} style={{padding:"6px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf)",color:"var(--tx2)",fontSize:11,fontWeight:600,cursor:"pointer"}}>Exportar PDF</button>
+      <div style={{display:"flex",gap:8,alignItems:"center"}}>
+        {ccostos?.length>0&&<select value={filtroCC} onChange={e=>setFiltroCC(e.target.value)} style={{fontSize:11,padding:"6px 10px"}}><option value="todos">Todos los centros de costo</option>{ccostos.map(c=><option key={c.id} value={c.id}>{c.nombre}</option>)}</select>}
+        <button onClick={()=>window.print()} style={{padding:"6px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf)",color:"var(--tx2)",fontSize:11,fontWeight:600,cursor:"pointer"}}>Exportar PDF</button>
+      </div>
     </div>
     <div style={{overflowX:"auto"}}><table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}><thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:10,color:"var(--tx3)",background:"var(--sf2)"}}><th style={{textAlign:"left",padding:"8px 12px",fontWeight:500}}>Fecha</th><th style={{textAlign:"left",padding:"8px 4px",fontWeight:500}}>N</th><th style={{textAlign:"left",padding:"8px 4px",fontWeight:500}}>Cod</th><th style={{textAlign:"left",padding:"8px 4px",fontWeight:500}}>Cuenta / Glosa</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Debe</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Haber</th></tr></thead>
       <tbody>{sorted.map(e=>e.lines.map((l,i)=><tr key={e.id+"-"+i} style={{borderBottom:"1px solid var(--bd)"}}>
@@ -766,17 +808,23 @@ function Balance({empEntries,accts,leafAccts,eObj}){
 }
 
 // ═══ ESTADO DE RESULTADOS ═══
-function EERR({empEntries,accts,leafAccts,eObj}){
+function EERR({empEntries,accts,leafAccts,eObj,ccostos}){
+  const [filtroCC,setFiltroCC]=useState("todos");
   if(!empEntries.length)return<Ey i="📈" t="Sin datos" d="Registra asientos para generar el Estado de Resultados."/>;
-  const bals=useMemo(()=>{const b={};leafAccts.forEach(a=>{b[a.cd]={db:0,cr:0}});empEntries.forEach(e=>e.lines.forEach(l=>{if(!b[l.ac])b[l.ac]={db:0,cr:0};b[l.ac].db+=(l.db||0);b[l.ac].cr+=(l.cr||0)}));return b},[empEntries,leafAccts]);
+  const filtradas=filtroCC==="todos"?empEntries:empEntries.filter(e=>e.centroCosto===filtroCC);
+  const ccNombre=ccostos?.find(c=>c.id===filtroCC)?.nombre;
+  const bals=useMemo(()=>{const b={};leafAccts.forEach(a=>{b[a.cd]={db:0,cr:0}});filtradas.forEach(e=>e.lines.forEach(l=>{if(!b[l.ac])b[l.ac]={db:0,cr:0};b[l.ac].db+=(l.db||0);b[l.ac].cr+=(l.cr||0)}));return b},[filtradas,leafAccts]);
   const getB=(cd,tp)=>{const b=bals[cd]||{db:0,cr:0};return tp==="income"?b.cr-b.db:b.db-b.cr};
   const mkSec=tp=>{const l2=accts.filter(a=>a.tp===tp&&a.lv===2);return l2.map(g=>{const ch=leafAccts.filter(a=>a.tp===tp&&a.cd.startsWith(g.cd+"."));const items=ch.map(c=>({cd:c.cd,nm:c.nm,bal:getB(c.cd,tp)})).filter(c=>c.bal!==0);return{grp:g.nm,items,sub:items.reduce((s,c)=>s+c.bal,0)}}).filter(g=>g.items.length>0)};
   const inc=mkSec("income");const exp=mkSec("expense");
   const tI=inc.reduce((s,g)=>s+g.sub,0);const tE=exp.reduce((s,g)=>s+g.sub,0);const net=tI-tE;
   return(<div className="report" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:28,maxWidth:700}}>
-    <ReportHeader eObj={eObj} title="Estado de Resultados" subtitle={"Al "+new Date().toLocaleDateString("es-CL")}/>
-    <div className="no-print" style={{display:"flex",justifyContent:"flex-end",marginBottom:8}}><button onClick={()=>window.print()} style={{padding:"6px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx2)",fontSize:11,fontWeight:600,cursor:"pointer"}}>Exportar PDF</button></div>
-    <div className="no-print" style={{textAlign:"center",marginBottom:24}}><div style={{fontSize:18,fontWeight:700}}>{eObj?.name}</div><div style={{fontSize:13,color:"var(--tx3)"}}>Estado de Resultados</div><div style={{fontSize:11,color:"var(--tx3)"}}>Al {new Date().toLocaleDateString("es-CL")}</div></div>
+    <ReportHeader eObj={eObj} title="Estado de Resultados" subtitle={(ccNombre?"Centro de costo: "+ccNombre+" — ":"")+"Al "+new Date().toLocaleDateString("es-CL")}/>
+    <div className="no-print" style={{display:"flex",justifyContent:"flex-end",gap:8,marginBottom:8}}>
+      {ccostos?.length>0&&<select value={filtroCC} onChange={e=>setFiltroCC(e.target.value)} style={{fontSize:11,padding:"6px 10px",maxWidth:220}}><option value="todos">Todos los centros de costo</option>{ccostos.map(c=><option key={c.id} value={c.id}>{c.nombre}</option>)}</select>}
+      <button onClick={()=>window.print()} style={{padding:"6px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx2)",fontSize:11,fontWeight:600,cursor:"pointer"}}>Exportar PDF</button>
+    </div>
+    <div className="no-print" style={{textAlign:"center",marginBottom:24}}><div style={{fontSize:18,fontWeight:700}}>{eObj?.name}</div><div style={{fontSize:13,color:"var(--tx3)"}}>Estado de Resultados{ccNombre?" — "+ccNombre:""}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Al {new Date().toLocaleDateString("es-CL")}</div></div>
     <div><div style={{fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:12,color:"var(--gn)"}}>Ingresos</div>
       {inc.map((g,i)=><div key={i} style={{marginBottom:8}}><div style={{fontSize:11,fontWeight:600,color:"var(--tx2)",paddingLeft:8,marginBottom:4}}>{g.grp}</div>
         {g.items.map((it,j)=><div key={j} style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:12,padding:"3px 0 3px 24px"}}><span style={{color:"var(--tx2)"}}>{it.nm}</span><span style={{textAlign:"right",fontFamily:"monospace"}}>${fmt(it.bal)}</span></div>)}</div>)}
