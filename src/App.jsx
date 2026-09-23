@@ -353,9 +353,61 @@ export default function App(){
   return<Dashboard key={session.user.id} session={session}/>;
 }
 
+// ═══ RECORDATORIOS TRIBUTARIOS ═══
+// F29 (IVA + PPM): vence el 20 del mes siguiente para quienes declaran
+// por Internet -- practicamente todos hoy, gracias a la factura
+// electronica -- si tu caso es distinto (dia 12), avisa para ajustarlo.
+// F22 (Renta): vence el 30 de abril. No considera feriados/fines de
+// semana (el SII corre la fecha al dia habil siguiente en esos casos).
+const MESES_L=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+function proximoF29(){
+  const hoy=new Date();hoy.setHours(0,0,0,0);
+  let due=new Date(hoy.getFullYear(),hoy.getMonth(),20);
+  if(hoy.getDate()>20)due=new Date(hoy.getFullYear(),hoy.getMonth()+1,20);
+  const periodo=new Date(due.getFullYear(),due.getMonth()-1,1);
+  return{due,periodo};
+}
+function proximoF22(){
+  const hoy=new Date();hoy.setHours(0,0,0,0);
+  let due=new Date(hoy.getFullYear(),3,30);
+  if(hoy>due)due=new Date(hoy.getFullYear()+1,3,30);
+  return{due};
+}
+const diasHasta=fecha=>{const hoy=new Date();hoy.setHours(0,0,0,0);return Math.round((fecha-hoy)/86400000)};
+
+function RecordatoriosTrib(){
+  const [vistos,setVistos]=useState(()=>ld("radar_recordatorios_vistos",{}));
+  useEffect(()=>{sv("radar_recordatorios_vistos",vistos)},[vistos]);
+  const f29=useMemo(proximoF29,[]);
+  const f22=useMemo(proximoF22,[]);
+  const items=useMemo(()=>{
+    const claveF29="f29-"+f29.due.toISOString().slice(0,10);
+    const claveF22="f22-"+f22.due.getFullYear();
+    return[
+      {clave:claveF29,titulo:"F29 — IVA y PPM de "+MESES_L[f29.periodo.getMonth()],due:f29.due,dias:diasHasta(f29.due)},
+      {clave:claveF22,titulo:"F22 — Declaracion de Renta "+f22.due.getFullYear(),due:f22.due,dias:diasHasta(f22.due)},
+    ].filter(it=>!vistos[it.clave]&&it.dias>=-2);
+  },[f29,f22,vistos]);
+  if(items.length===0)return null;
+  return(<div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:24}}>
+    {items.map(it=>{
+      const color=it.dias<=5?"var(--rd)":it.dias<=15?"var(--am)":"var(--cy)";
+      return(<div key={it.clave} style={{display:"flex",alignItems:"center",gap:14,background:"var(--sf)",border:"1px solid var(--bd)",borderLeft:"3px solid "+color,borderRadius:"var(--r)",padding:"14px 18px",flexWrap:"wrap"}}>
+        <div style={{fontSize:22}}>⏰</div>
+        <div style={{flex:1,minWidth:200}}>
+          <div style={{fontSize:13,fontWeight:600}}>{it.titulo}</div>
+          <div style={{fontSize:11,color:"var(--tx3)",marginTop:2}}>Vence el {it.due.toLocaleDateString("es-CL")} · {it.dias<0?"Vencido":it.dias===0?"Vence hoy":it.dias===1?"Vence mañana":"Faltan "+it.dias+" dias"}</div>
+        </div>
+        <button onClick={()=>setVistos(p=>({...p,[it.clave]:true}))} style={{padding:"6px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx2)",fontSize:11,cursor:"pointer",whiteSpace:"nowrap"}}>Ya lo declare</button>
+      </div>);
+    })}
+  </div>);
+}
+
 function HomeP({emps,eObj,evs,log}){
   return(<div style={{maxWidth:900,margin:"0 auto"}}>
     <div style={{background:"linear-gradient(135deg,var(--sf2),var(--sf))",borderRadius:"var(--r)",border:"1px solid var(--bd)",padding:"32px 28px",marginBottom:24,position:"relative",overflow:"hidden"}}><div style={{fontSize:12,color:"var(--tx3)",marginBottom:4}}>Bienvenido a</div><div style={{fontSize:28,fontWeight:800,letterSpacing:3,color:"var(--cy)",marginBottom:8}}>RADAR</div><div style={{fontSize:13,color:"var(--tx2)",maxWidth:500}}>Plataforma de Inteligencia Empresarial</div></div>
+    <RecordatoriosTrib/>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:24}}>
       {[{l:"Empresas",v:emps.length,c:"var(--cy)"},{l:"Evaluaciones",v:evs.length,c:"var(--pu)"},{l:"Contabilidad",v:emps.filter(e=>e.services?.includes("contabilidad")).length,c:"var(--gn)"}].map((s,i)=><div key={i} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:"20px 18px"}}><div style={{fontSize:10,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:8}}>{s.l}</div><div style={{fontSize:28,fontWeight:700,color:s.c}}>{s.v}</div></div>)}
     </div>
