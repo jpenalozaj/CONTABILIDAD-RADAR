@@ -1261,6 +1261,28 @@ function LibroCV({empEntries,tipo,eObj}){
   const docsBase=useMemo(()=>empEntries.filter(e=>e.tipoDoc===tipo),[empEntries,tipo]);
   const tiposPresentes=useMemo(()=>[...new Set(docsBase.map(d=>d.tipoDocCod).filter(Boolean))].sort(),[docsBase]);
 
+  // Notas de Credito/Debito (56/61) no traen el folio de la factura que
+  // corrigen -- se cruzan por RUT + la factura (33/34) mas reciente antes
+  // de esa fecha, como mejor estimacion posible sin ese dato del SII.
+  const facturaRelacionada=useMemo(()=>{
+    const porRut=new Map();
+    docsBase.forEach(d=>{
+      if(!d.rut||!["33","34"].includes(d.tipoDocCod))return;
+      const key=normRut(d.rut);if(!key)return;
+      if(!porRut.has(key))porRut.set(key,[]);
+      porRut.get(key).push(d);
+    });
+    porRut.forEach(list=>list.sort((a,b)=>a.date.localeCompare(b.date)));
+    const map=new Map();
+    docsBase.forEach(d=>{
+      if(!d.rut||!["56","61"].includes(d.tipoDocCod))return;
+      const key=normRut(d.rut);
+      const candidatas=(porRut.get(key)||[]).filter(f=>f.date<=d.date);
+      if(candidatas.length>0)map.set(d.id,candidatas[candidatas.length-1]);
+    });
+    return map;
+  },[docsBase]);
+
   const hayFiltroTexto=fFolio||fRut||fRazon||fTipoDoc!=="todos"||fNetoMin||fNetoMax||fIvaMin||fIvaMax||fTotalMin||fTotalMax;
   const docsFiltrados=useMemo(()=>docsBase.filter(d=>{
     if(fFolio&&!String(d.folio||"").toLowerCase().includes(fFolio.toLowerCase()))return false;
@@ -1348,7 +1370,7 @@ function LibroCV({empEntries,tipo,eObj}){
     <div className="no-print" style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,flexWrap:"wrap"}}>
       <div>
         <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>{tipo==="compra"?"Libro de Compras":"Libro de Ventas"}</div>
-        <div style={{fontSize:12,color:"var(--tx3)",marginBottom:16}}>Agrupado por periodo tributario (mes ante el SII), que puede ser distinto al mes de la fecha de emision de cada documento.</div>
+        <div style={{fontSize:12,color:"var(--tx3)",marginBottom:16}}>Agrupado por periodo tributario (mes ante el SII), que puede ser distinto al mes de la fecha de emision de cada documento. Las Notas de Credito/Debito muestran la factura mas probable a la que corrigen (cruzada por RUT y fecha — el SII no entrega el folio exacto de referencia).</div>
       </div>
       <button onClick={()=>window.print()} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx2)",fontSize:12,fontWeight:600,cursor:"pointer"}}>Exportar PDF</button>
     </div>
@@ -1446,7 +1468,7 @@ function LibroCV({empEntries,tipo,eObj}){
           <td style={{padding:"6px 8px",fontFamily:"monospace"}}>{r.folio}</td>
           <td style={{padding:"6px 8px",fontSize:11,fontFamily:"monospace"}} title={r.tipoDocCod?fmtTipoDoc(r.tipoDocCod):""}>{r.tipoDocCod||"—"}</td>
           <td style={{padding:"6px 8px",fontFamily:"monospace"}}>{r.rut}</td>
-          <td style={{padding:"6px 8px"}}>{r.razonSocial}</td>
+          <td style={{padding:"6px 8px"}}>{r.razonSocial}{facturaRelacionada.has(r.id)&&<div style={{fontSize:10,color:"var(--tx3)",marginTop:2}}>↳ posible factura relacionada: F{facturaRelacionada.get(r.id).folio}</div>}</td>
           <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(r.exento||0)}</td>
           <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(r.neto||0)}</td>
           <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(r.iva||0)}</td>
