@@ -800,7 +800,7 @@ function PlanCtas({accts,setAccts,aLog}){
 function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog,ccostos}){
   const [showF,setShowF]=useState(false);
   const [editId,setEditId]=useState(null);
-  const blankFm=()=>({date:new Date().toISOString().slice(0,10),desc:"",centroCosto:"",lines:[{ac:"",db:0,cr:0},{ac:"",db:0,cr:0}]});
+  const blankFm=()=>({date:new Date().toISOString().slice(0,10),desc:"",centroCosto:"",recurrente:false,lines:[{ac:"",db:0,cr:0},{ac:"",db:0,cr:0}]});
   const [fm,setFm]=useState(blankFm());
   const nxt=useMemo(()=>{const ns=empEntries.map(e=>parseInt(e.num)||0);return String(Math.max(0,...ns)+1).padStart(4,"0")},[empEntries]);
   const ccNombre=useMemo(()=>Object.fromEntries((ccostos||[]).map(c=>[c.id,c.nombre])),[ccostos]);
@@ -811,16 +811,31 @@ function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog,ccostos}){
   const tC=fm.lines.reduce((s,l)=>s+(l.cr||0),0);
   const bal=Math.abs(tD-tC)<0.01&&tD>0;
   const openNew=()=>{setFm(blankFm());setEditId(null);setShowF(true)};
-  const openEdit=e=>{setFm({date:e.date,desc:e.desc,centroCosto:e.centroCosto||"",lines:e.lines.map(l=>({ac:l.ac,db:l.db||0,cr:l.cr||0}))});setEditId(e.id);setShowF(true)};
+  const openEdit=e=>{setFm({date:e.date,desc:e.desc,centroCosto:e.centroCosto||"",recurrente:!!e.recurrente,lines:e.lines.map(l=>({ac:l.ac,db:l.db||0,cr:l.cr||0}))});setEditId(e.id);setShowF(true)};
   const doSave=()=>{
     if(!fm.desc||!bal)return;
     if(fm.lines.some(l=>!l.ac)){alert("Selecciona cuenta en todas las lineas");return}
     const lines=fm.lines.filter(l=>l.db>0||l.cr>0);
-    if(editId){setEntries(p=>p.map(e=>e.id===editId?{...e,date:fm.date,desc:fm.desc,centroCosto:fm.centroCosto||null,lines}:e));aLog("Asiento editado",fm.desc)}
-    else{const e={id:uid(),empresaId:eObj.id,num:nxt,date:fm.date,desc:fm.desc,centroCosto:fm.centroCosto||null,lines};setEntries(p=>[...p,e]);aLog("Asiento "+nxt,fm.desc)}
+    if(editId){setEntries(p=>p.map(e=>e.id===editId?{...e,date:fm.date,desc:fm.desc,centroCosto:fm.centroCosto||null,recurrente:fm.recurrente,lines}:e));aLog("Asiento editado",fm.desc)}
+    else{const e={id:uid(),empresaId:eObj.id,num:nxt,date:fm.date,desc:fm.desc,centroCosto:fm.centroCosto||null,recurrente:fm.recurrente,lines};setEntries(p=>[...p,e]);aLog("Asiento "+nxt,fm.desc)}
     setFm(blankFm());setEditId(null);setShowF(false);
   };
   const delE=id=>setEntries(p=>p.filter(e=>e.id!==id));
+  const generarRecurrente=(t)=>{
+    const ns=empEntries.map(e=>parseInt(e.num)||0);const n=String(Math.max(0,...ns)+1).padStart(4,"0");
+    const hoy=new Date();const dia=Math.min(parseInt(t.date.slice(8,10)),new Date(hoy.getFullYear(),hoy.getMonth()+1,0).getDate());
+    const fecha=hoy.getFullYear()+"-"+String(hoy.getMonth()+1).padStart(2,"0")+"-"+String(dia).padStart(2,"0");
+    const nuevo={id:uid(),empresaId:eObj.id,num:n,date:fecha,desc:t.desc,centroCosto:t.centroCosto||null,recurrenteOrigenId:t.id,lines:t.lines.map(l=>({...l}))};
+    setEntries(p=>[...p,nuevo]);
+    aLog("Asiento recurrente generado",t.desc+" - "+fD(fecha));
+  };
+  const mesActual=new Date().toISOString().slice(0,7);
+  const recurrentes=useMemo(()=>empEntries.filter(e=>e.recurrente),[empEntries]);
+  const yaGeneradoEsteMes=useMemo(()=>{
+    const set=new Set();
+    empEntries.forEach(e=>{if(e.recurrenteOrigenId&&e.date.slice(0,7)===mesActual)set.add(e.recurrenteOrigenId)});
+    return set;
+  },[empEntries,mesActual]);
   const handleCSV=ev=>{const f=ev.target.files?.[0];if(!f)return;const rd=new FileReader();rd.onload=e=>{try{const rows=e.target.result.split("\n").filter(r=>r.trim()).slice(1);const imp=[];let cur=null;let n=parseInt(nxt);rows.forEach(row=>{const c=row.split(/[,;\t]/).map(x=>x.trim().replace(/^"|"$/g,""));if(c.length>=5){const[dt,gl,ct,dStr,hStr]=c;const db=parseFloat(dStr)||0;const cr=parseFloat(hStr)||0;const ac=leafAccts.find(a=>a.cd===ct||a.nm.toLowerCase().includes(ct.toLowerCase()));if(!cur||cur.desc!==gl||cur.date!==dt){if(cur&&cur.lines.length>0)imp.push(cur);cur={id:uid(),empresaId:eObj.id,num:String(n++).padStart(4,"0"),date:dt||new Date().toISOString().slice(0,10),desc:gl,lines:[]}}if(ac)cur.lines.push({ac:ac.cd,db,cr})}});if(cur&&cur.lines.length>0)imp.push(cur);if(imp.length>0){setEntries(p=>[...p,...imp]);aLog("CSV importado",imp.length+" asientos");alert(imp.length+" asiento(s) importado(s)")}else alert("No se importaron asientos. Verifica formato: Fecha,Glosa,Cuenta,Debe,Haber")}catch(err){alert("Error: "+err.message)}};rd.readAsText(f);ev.target.value=""};
 
   return(<div>
@@ -830,6 +845,7 @@ function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog,ccostos}){
       <div style={{fontSize:13,fontWeight:600,marginBottom:12}}>{editId?"Editar Asiento N "+(empEntries.find(e=>e.id===editId)?.num||""):"Asiento N "+nxt}</div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}><input type="date" value={fm.date} onChange={e=>setFm(p=>({...p,date:e.target.value}))}/><input placeholder="Glosa / Descripcion" value={fm.desc} onChange={e=>setFm(p=>({...p,desc:e.target.value}))}/></div>
       {ccostos?.length>0&&<div style={{marginBottom:16}}><select value={fm.centroCosto} onChange={e=>setFm(p=>({...p,centroCosto:e.target.value}))} style={{maxWidth:300}}><option value="">Sin centro de costo</option>{ccostos.map(c=><option key={c.id} value={c.id}>{c.nombre}</option>)}</select></div>}
+      <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:16,fontSize:12,color:"var(--tx2)",cursor:"pointer"}}><input type="checkbox" checked={fm.recurrente} onChange={e=>setFm(p=>({...p,recurrente:e.target.checked}))}/>Repetir este asiento cada mes (arriendo, sueldos base, etc.)</label>
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         <div style={{display:"grid",gridTemplateColumns:"1fr 90px 90px 32px",gap:8,fontSize:10,color:"var(--tx3)",fontWeight:500,padding:"0 4px"}}><span>Cuenta</span><span style={{textAlign:"right"}}>Debe</span><span style={{textAlign:"right"}}>Haber</span><span></span></div>
         {fm.lines.map((ln,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 90px 90px 32px",gap:8}}>
@@ -848,8 +864,16 @@ function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog,ccostos}){
       </div>
       <div style={{display:"flex",gap:8,marginTop:12}}><Bt onClick={doSave} p={bal}>{bal?(editId?"Guardar cambios":"Guardar"):"Descuadrado"}</Bt><Bt onClick={()=>{setShowF(false);setEditId(null)}}>Cancelar</Bt></div>
     </div>}
+    {recurrentes.length>0&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:16,marginBottom:16}}>
+      <div style={{fontSize:12,fontWeight:600,marginBottom:10,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:.5}}>Asientos recurrentes</div>
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>{recurrentes.map(t=>{const generado=yaGeneradoEsteMes.has(t.id);return(
+        <div key={t.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:"10px 14px",flexWrap:"wrap"}}>
+          <div style={{fontSize:12}}>{t.desc} <span style={{color:"var(--tx3)"}}>· ${fmt(t.lines.reduce((s,l)=>s+(l.db||0),0))} · dia {t.date.slice(8,10)} de cada mes</span></div>
+          <button onClick={()=>generarRecurrente(t)} disabled={generado} style={{padding:"6px 14px",borderRadius:"var(--rs)",border:"none",background:generado?"var(--sf2)":"var(--cy)",color:generado?"var(--tx3)":"#fff",fontSize:11,fontWeight:600,cursor:generado?"default":"pointer"}}>{generado?"Ya generado este mes":"Generar para "+mesActual}</button>
+        </div>);})}</div>
+    </div>}
     <div style={{display:"flex",flexDirection:"column",gap:8}}>{[...empEntries].sort((a,b)=>b.date.localeCompare(a.date)).map(e=><div key={e.id} style={{background:"var(--sf)",border:"1px solid "+(editId===e.id?"var(--cy)":"var(--bd)"),borderRadius:"var(--r)",padding:16}}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:10,fontFamily:"monospace",background:"var(--sf2)",padding:"2px 8px",borderRadius:4}}>N {e.num}</span><span style={{fontSize:13,fontWeight:500}}>{e.desc}</span>{e.centroCosto&&ccNombre[e.centroCosto]&&<span style={{fontSize:10,background:"var(--cyg)",color:"var(--cy)",padding:"2px 8px",borderRadius:4}}>{ccNombre[e.centroCosto]}</span>}</div><div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:11,color:"var(--tx3)"}}>{fD(e.date)}</span><button onClick={()=>openEdit(e)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.6,fontSize:11}}>editar</button><button onClick={()=>{if(confirm("Eliminar este asiento?"))delE(e.id)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5}}>x</button></div></div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:10,fontFamily:"monospace",background:"var(--sf2)",padding:"2px 8px",borderRadius:4}}>N {e.num}</span><span style={{fontSize:13,fontWeight:500}}>{e.desc}</span>{e.centroCosto&&ccNombre[e.centroCosto]&&<span style={{fontSize:10,background:"var(--cyg)",color:"var(--cy)",padding:"2px 8px",borderRadius:4}}>{ccNombre[e.centroCosto]}</span>}{e.recurrente&&<span style={{fontSize:10,background:"rgba(139,92,246,.15)",color:"var(--pu)",padding:"2px 8px",borderRadius:4}}>↻ Recurrente</span>}</div><div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:11,color:"var(--tx3)"}}>{fD(e.date)}</span><button onClick={()=>openEdit(e)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.6,fontSize:11}}>editar</button><button onClick={()=>{if(confirm("Eliminar este asiento?"))delE(e.id)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5}}>x</button></div></div>
       <div style={{fontSize:11}}>{e.lines.map((l,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 80px 80px",gap:8,padding:"2px 0"}}><span style={{color:"var(--tx2)",paddingLeft:l.cr>0?20:0}}>{l.ac} {leafAccts.find(a=>a.cd===l.ac)?.nm||""}</span><span style={{textAlign:"right",fontFamily:"monospace"}}>{l.db>0?"$"+fmt(l.db):""}</span><span style={{textAlign:"right",fontFamily:"monospace"}}>{l.cr>0?"$"+fmt(l.cr):""}</span></div>)}</div>
     </div>)}</div>
   </div>);
