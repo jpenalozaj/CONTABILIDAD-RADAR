@@ -579,6 +579,20 @@ function F22V({ev,upd,del,emp,back}){
 const fmt=n=>n.toLocaleString("es-CL",{minimumFractionDigits:0,maximumFractionDigits:0});
 const fD=d=>{try{return new Date(d+"T12:00:00").toLocaleDateString("es-CL")}catch{return d}};
 
+// Exportar a CSV (se abre directo en Excel) sin depender de ninguna
+// libreria -- Blob + descarga nativa del navegador. BOM al inicio para
+// que Excel muestre bien las tildes.
+function descargarCSV(filename,rows){
+  const csvField=v=>{const s=String(v??"");return/[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
+  const csv=rows.map(r=>r.map(csvField).join(";")).join("\n");
+  const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8;"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+const BtnCSV=({onClick})=><button onClick={onClick} className="no-print" style={{padding:"6px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf)",color:"var(--tx2)",fontSize:11,fontWeight:600,cursor:"pointer"}}>Exportar CSV</button>;
+
 // Encabezado formal tipo carta -- solo aparece al exportar a PDF
 // (".rpt-print-head" esta oculto en pantalla); en pantalla los reportes
 // se quedan con su header normal de siempre, sin tocar nada.
@@ -983,6 +997,12 @@ function LDiario({empEntries,accts,eObj,ccostos}){
       <span style={{fontSize:13,fontWeight:600}}>Libro Diario</span>
       <div style={{display:"flex",gap:8,alignItems:"center"}}>
         {ccostos?.length>0&&<select value={filtroCC} onChange={e=>setFiltroCC(e.target.value)} style={{fontSize:11,padding:"6px 10px"}}><option value="todos">Todos los centros de costo</option>{ccostos.map(c=><option key={c.id} value={c.id}>{c.nombre}</option>)}</select>}
+        <BtnCSV onClick={()=>{
+          const rows=[["Fecha","N","Codigo Cuenta","Cuenta","Debe","Haber"]];
+          sorted.forEach(e=>e.lines.forEach(l=>rows.push([fD(e.date),e.num,l.ac,(am[l.ac]||"?")+(l.cr>0?" ("+e.desc+")":""),l.db||0,l.cr||0])));
+          rows.push(["","","","Totales",tD,tC]);
+          descargarCSV("libro_diario.csv",rows);
+        }}/>
         <button onClick={()=>window.print()} style={{padding:"6px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf)",color:"var(--tx2)",fontSize:11,fontWeight:600,cursor:"pointer"}}>Exportar PDF</button>
       </div>
     </div>
@@ -1023,6 +1043,13 @@ function Balance({empEntries,accts,leafAccts,eObj}){
     <div className="no-print" style={{display:"flex",justifyContent:"flex-end",gap:8,marginBottom:8,alignItems:"center"}}>
       <label style={{fontSize:11,color:"var(--tx3)"}}>Fecha de corte</label>
       <input type="date" value={fechaCorte} onChange={e=>setFechaCorte(e.target.value)} style={{maxWidth:160,fontSize:11,padding:"6px 10px"}}/>
+      <BtnCSV onClick={()=>{
+        const rows=[["Seccion","Grupo","Cuenta","Monto"]];
+        const volcar=(sec,groups)=>groups.forEach(g=>{g.items.forEach(it=>rows.push([sec,g.grp,it.nm,it.bal]));rows.push([sec,g.grp,"Subtotal "+g.grp,g.sub])});
+        volcar("Activos",assets);volcar("Pasivos",liabs);volcar("Patrimonio",eq);
+        rows.push(["","","TOTAL ACTIVOS",tA]);rows.push(["","","TOTAL PASIVOS + PATRIMONIO",tPE]);
+        descargarCSV("balance_general.csv",rows);
+      }}/>
       <button onClick={()=>window.print()} style={{padding:"6px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx2)",fontSize:11,fontWeight:600,cursor:"pointer"}}>Exportar PDF</button>
     </div>
     <div className="no-print" style={{textAlign:"center",marginBottom:24}}><div style={{fontSize:18,fontWeight:700}}>{eObj?.name}</div><div style={{fontSize:13,color:"var(--tx3)"}}>Balance General</div><div style={{fontSize:11,color:"var(--tx3)"}}>Al {fD(fechaCorte)}</div></div>
@@ -1069,6 +1096,15 @@ function EERR({empEntries,accts,leafAccts,eObj,ccostos}){
       <select value={anio} onChange={e=>setAnio(e.target.value)} style={{fontSize:11,padding:"6px 10px",maxWidth:160}}><option value="todos">Todo el historial</option>{anios.map(a=><option key={a} value={a}>{a}</option>)}</select>
       {anio!=="todos"&&<label style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:"var(--tx3)"}}><input type="checkbox" checked={comparar} onChange={e=>setComparar(e.target.checked)}/>Comparar con {anioAnterior}</label>}
       {ccostos?.length>0&&<select value={filtroCC} onChange={e=>setFiltroCC(e.target.value)} style={{fontSize:11,padding:"6px 10px",maxWidth:220}}><option value="todos">Todos los centros de costo</option>{ccostos.map(c=><option key={c.id} value={c.id}>{c.nombre}</option>)}</select>}
+      <BtnCSV onClick={()=>{
+        const rows=[["Seccion","Grupo","Cuenta","Monto"]];
+        inc.forEach(g=>{g.items.forEach(it=>rows.push(["Ingresos",g.grp,it.nm,it.bal]));});
+        rows.push(["","","TOTAL INGRESOS",tI]);
+        exp.forEach(g=>{g.items.forEach(it=>rows.push(["Costos y Gastos",g.grp,it.nm,it.bal]));});
+        rows.push(["","","TOTAL COSTOS Y GASTOS",tE]);
+        rows.push(["","",net>=0?"UTILIDAD":"PERDIDA",net]);
+        descargarCSV("estado_resultados.csv",rows);
+      }}/>
       <button onClick={()=>window.print()} style={{padding:"6px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx2)",fontSize:11,fontWeight:600,cursor:"pointer"}}>Exportar PDF</button>
     </div>
     <div className="no-print" style={{textAlign:"center",marginBottom:24}}><div style={{fontSize:18,fontWeight:700}}>{eObj?.name}</div><div style={{fontSize:13,color:"var(--tx3)"}}>Estado de Resultados{ccNombre?" — "+ccNombre:""}</div><div style={{fontSize:11,color:"var(--tx3)"}}>{anio==="todos"?"Todo el historial":"Año "+anio}</div></div>
@@ -1114,7 +1150,14 @@ function LMayor({empEntries,accts,leafAccts,eObj}){
       <ReportHeader eObj={eObj} title="Libro Mayor" subtitle={sel+" — "+am[sel]+" · Naturaleza "+(isDeb?"Deudora":"Acreedora")}/>
       <div className="no-print" style={{padding:"12px 20px",borderBottom:"1px solid var(--bd)",background:"var(--sf2)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div><div style={{fontSize:13,fontWeight:600}}>{sel} — {am[sel]}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Naturaleza: {isDeb?"Deudora":"Acreedora"}</div></div>
-        <button onClick={()=>window.print()} style={{padding:"6px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf)",color:"var(--tx2)",fontSize:11,fontWeight:600,cursor:"pointer"}}>Exportar PDF</button>
+        <div style={{display:"flex",gap:8}}>
+          <BtnCSV onClick={()=>{
+            const rows=[["Fecha","N","Glosa","Debe","Haber","Saldo"]];
+            movesWithBal.forEach(m=>rows.push([fD(m.date),m.num,m.desc,m.db||0,m.cr||0,m.bal]));
+            descargarCSV("libro_mayor_"+sel+".csv",rows);
+          }}/>
+          <button onClick={()=>window.print()} style={{padding:"6px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf)",color:"var(--tx2)",fontSize:11,fontWeight:600,cursor:"pointer"}}>Exportar PDF</button>
+        </div>
       </div>
       {movesWithBal.length===0?<div style={{padding:24,textAlign:"center",color:"var(--tx3)",fontSize:13}}>Sin movimientos.</div>
       :<div style={{overflowX:"auto"}}><table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}><thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:10,color:"var(--tx3)",background:"var(--sf2)"}}><th style={{textAlign:"left",padding:"8px 12px",fontWeight:500}}>Fecha</th><th style={{textAlign:"left",padding:"8px 4px",fontWeight:500}}>N</th><th style={{textAlign:"left",padding:"8px 4px",fontWeight:500}}>Glosa</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Debe</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Haber</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Saldo</th></tr></thead>
@@ -1176,7 +1219,14 @@ function LibroAuxiliar({empEntries,eObj}){
       <ReportHeader eObj={eObj} title="Libro Auxiliar por Contraparte" subtitle={(seleccionada?.razonSocial||"")+" — RUT "+(seleccionada?.rut||"")}/>
       <div className="no-print" style={{padding:"12px 20px",borderBottom:"1px solid var(--bd)",background:"var(--sf2)",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
         <div><div style={{fontSize:13,fontWeight:600}}>{seleccionada?.razonSocial||"(sin razon social)"}</div><div style={{fontSize:11,color:"var(--tx3)"}}>RUT {seleccionada?.rut} · Compras ${fmt(seleccionada?.compras||0)} · Ventas ${fmt(seleccionada?.ventas||0)}</div></div>
-        <button onClick={()=>window.print()} style={{padding:"6px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf)",color:"var(--tx2)",fontSize:11,fontWeight:600,cursor:"pointer"}}>Exportar PDF</button>
+        <div style={{display:"flex",gap:8}}>
+          <BtnCSV onClick={()=>{
+            const rows=[["Fecha","Tipo","Folio","Glosa","Total"]];
+            movsSel.forEach(e=>rows.push([fD(e.date),e.tipoDoc==="compra"?"Compra":e.tipoDoc==="venta"?"Venta":"",e.folio||"",e.desc,e.total||0]));
+            descargarCSV("auxiliar_"+(seleccionada?.rut||"")+".csv",rows);
+          }}/>
+          <button onClick={()=>window.print()} style={{padding:"6px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf)",color:"var(--tx2)",fontSize:11,fontWeight:600,cursor:"pointer"}}>Exportar PDF</button>
+        </div>
       </div>
       {movsSel.length===0?<div style={{padding:24,textAlign:"center",color:"var(--tx3)",fontSize:13}}>Sin movimientos.</div>
       :<div style={{overflowX:"auto"}}><table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
@@ -1485,7 +1535,14 @@ function LibroCV({empEntries,tipo,eObj}){
         <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>{tipo==="compra"?"Libro de Compras":"Libro de Ventas"}</div>
         <div style={{fontSize:12,color:"var(--tx3)",marginBottom:16}}>Agrupado por periodo tributario (mes ante el SII), que puede ser distinto al mes de la fecha de emision de cada documento. Las Notas de Credito/Debito muestran la factura mas probable a la que corrigen (cruzada por RUT y fecha — el SII no entrega el folio exacto de referencia).</div>
       </div>
-      <button onClick={()=>window.print()} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx2)",fontSize:12,fontWeight:600,cursor:"pointer"}}>Exportar PDF</button>
+      <div style={{display:"flex",gap:8}}>
+        <BtnCSV onClick={()=>{
+          const csvRows=[["Periodo","Fecha","Folio","Tipo Doc","RUT","Razon Social","Exento","Neto","IVA","Total"]];
+          grupos.forEach(g=>g.rows.forEach(r=>csvRows.push([fmtPeriodo(g.periodo),fD(r.date),r.folio||"",r.tipoDocCod||"",r.rut||"",r.razonSocial||"",r.exento||0,r.neto||0,r.iva||0,r.total||0])));
+          descargarCSV((tipo==="compra"?"libro_compras":"libro_ventas")+".csv",csvRows);
+        }}/>
+        <button onClick={()=>window.print()} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx2)",fontSize:12,fontWeight:600,cursor:"pointer"}}>Exportar PDF</button>
+      </div>
     </div>
 
     <div className="no-print" style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap",marginBottom:12}}>
@@ -1872,7 +1929,15 @@ function B8Col({empEntries,accts,leafAccts,eObj}){
     <ReportHeader eObj={eObj} title="Balance de 8 Columnas" subtitle={"Al "+new Date().toLocaleDateString("es-CL")}/>
     <div className="no-print" style={{padding:"16px 20px",borderBottom:"1px solid var(--bd)",background:"var(--sf2)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
       <div><div style={{fontSize:14,fontWeight:600}}>{eObj?.name} — Balance de 8 Columnas</div><div style={{fontSize:11,color:"var(--tx3)"}}>Al {new Date().toLocaleDateString("es-CL")}</div></div>
-      <button onClick={()=>window.print()} style={{padding:"6px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf)",color:"var(--tx2)",fontSize:11,fontWeight:600,cursor:"pointer"}}>Exportar PDF</button>
+      <div style={{display:"flex",gap:8}}>
+        <BtnCSV onClick={()=>{
+          const csvRows=[["Cuenta","Nombre","Sumas Debe","Sumas Haber","Saldo Deudor","Saldo Acreedor","Inventario Activo","Inventario Pasivo","Resultado Perdida","Resultado Ganancia"]];
+          rows.forEach(r=>csvRows.push([r.cd,r.nm,r.sumDb,r.sumCr,r.salDb,r.salCr,r.invDb,r.invCre,r.resDb,r.resCre]));
+          csvRows.push(["","TOTALES",tot("sumDb"),tot("sumCr"),tot("salDb"),tot("salCr"),tot("invDb"),tot("invCre"),tot("resDb"),tot("resCre")]);
+          descargarCSV("balance_8_columnas.csv",csvRows);
+        }}/>
+        <button onClick={()=>window.print()} style={{padding:"6px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf)",color:"var(--tx2)",fontSize:11,fontWeight:600,cursor:"pointer"}}>Exportar PDF</button>
+      </div>
     </div>
     <div style={{overflowX:"auto"}}><table style={{width:"100%",fontSize:11,borderCollapse:"collapse",minWidth:800}}>
       <thead><tr style={{background:"var(--sf2)",borderBottom:"1px solid var(--bd)"}}>
