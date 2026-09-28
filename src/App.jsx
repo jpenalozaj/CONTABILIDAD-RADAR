@@ -214,10 +214,11 @@ function Dashboard({session}){
   const [tareas,setTareas]=useState([]);
   const [reglas,setReglas]=useState([]);
   const [ccostos,setCcostos]=useState([]);
+  const [activos,setActivos]=useState([]);
   const [sb,setSb]=useState(false);
-  const prevIds=useRef({e:new Set(),v:new Set(),l:new Set(),a:new Set(),en:new Set(),rm:new Set(),dc:new Set(),ta:new Set(),rg:new Set(),cc:new Set()});
+  const prevIds=useRef({e:new Set(),v:new Set(),l:new Set(),a:new Set(),en:new Set(),rm:new Set(),dc:new Set(),ta:new Set(),rg:new Set(),cc:new Set(),af:new Set()});
   useEffect(()=>{let cancelled=false;(async()=>{
-    const[e,v,l,a,en,rm,dc,ta,rg,cc]=await Promise.all([
+    const[e,v,l,a,en,rm,dc,ta,rg,cc,af]=await Promise.all([
       loadCollection(userId,"empresas",[]),
       loadCollection(userId,"evaluaciones",[]),
       loadCollection(userId,"log",[]),
@@ -228,14 +229,15 @@ function Dashboard({session}){
       loadCollection(userId,"tareas",[]),
       loadCollection(userId,"reglas_categorizacion",[]),
       loadCollection(userId,"centros_costo",[]),
+      loadCollection(userId,"activos_fijos",[]),
     ]);
     if(cancelled)return;
     prevIds.current={
       e:new Set(e.map(x=>String(x.id))),v:new Set(v.map(x=>String(x.id))),l:new Set(l.map(x=>String(x.id))),
       a:new Set(a.map(x=>String(x.cd))),en:new Set(en.map(x=>String(x.id))),rm:new Set(rm.map(x=>String(x.id))),
-      dc:new Set(dc.map(x=>String(x.id))),ta:new Set(ta.map(x=>String(x.id))),rg:new Set(rg.map(x=>String(x.id))),cc:new Set(cc.map(x=>String(x.id))),
+      dc:new Set(dc.map(x=>String(x.id))),ta:new Set(ta.map(x=>String(x.id))),rg:new Set(rg.map(x=>String(x.id))),cc:new Set(cc.map(x=>String(x.id))),af:new Set(af.map(x=>String(x.id))),
     };
-    setEmps(e);setEvs(v);setLog(l);setAccts(a);setEntries(en);setRems(rm);setDocs(dc);setTareas(ta);setReglas(rg);setCcostos(cc);
+    setEmps(e);setEvs(v);setLog(l);setAccts(a);setEntries(en);setRems(rm);setDocs(dc);setTareas(ta);setReglas(rg);setCcostos(cc);setActivos(af);
     if(e.length>0)setAEmp(e[0].id);setRdy(true);
   })();return()=>{cancelled=true}},[userId]);
   useEffect(()=>{if(rdy)saveCollection(userId,"empresas",emps,prevIds.current.e).then(s=>prevIds.current.e=s)},[emps,rdy]);
@@ -248,12 +250,14 @@ function Dashboard({session}){
   useEffect(()=>{if(rdy)saveCollection(userId,"tareas",tareas,prevIds.current.ta).then(s=>prevIds.current.ta=s)},[tareas,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"reglas_categorizacion",reglas,prevIds.current.rg).then(s=>prevIds.current.rg=s)},[reglas,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"centros_costo",ccostos,prevIds.current.cc).then(s=>prevIds.current.cc=s)},[ccostos,rdy]);
+  useEffect(()=>{if(rdy)saveCollection(userId,"activos_fijos",activos,prevIds.current.af).then(s=>prevIds.current.af=s)},[activos,rdy]);
   const aLog=(a,d)=>setLog(p=>[{id:uid(),time:new Date().toISOString(),action:a,detail:d},...p].slice(0,50));
   const eObj=useMemo(()=>emps.find(e=>e.id===aEmp),[emps,aEmp]);
   const eEvs=useMemo(()=>evs.filter(e=>e.empresaId===aEmp),[evs,aEmp]);
   const empEntries=useMemo(()=>entries.filter(e=>e.empresaId===aEmp),[entries,aEmp]);
   const empReglas=useMemo(()=>reglas.filter(r=>r.empresaId===aEmp),[reglas,aEmp]);
   const empCcostos=useMemo(()=>ccostos.filter(c=>c.empresaId===aEmp),[ccostos,aEmp]);
+  const empActivos=useMemo(()=>activos.filter(a=>a.empresaId===aEmp),[activos,aEmp]);
   const empRems=useMemo(()=>rems.filter(r=>r.empresaId===aEmp),[rems,aEmp]);
   const empDocs=useMemo(()=>docs.filter(d=>d.empresaId===aEmp),[docs,aEmp]);
   const empTareas=useMemo(()=>tareas.filter(t=>t.empresaId===aEmp),[tareas,aEmp]);
@@ -282,7 +286,7 @@ function Dashboard({session}){
         {pg==="inicio"&&<HomeP emps={emps} eObj={eObj} evs={evs} log={log}/>}
         {pg==="empresas"&&<EmpP emps={emps} setEmps={setEmps} aEmp={aEmp} setAEmp={setAEmp} aLog={aLog}/>}
         {pg==="radar"&&<RadP eObj={eObj} evs={evs} setEvs={setEvs} eEvs={eEvs} aLog={aLog} go={go}/>}
-        {pg==="contabilidad"&&<ContabP eObj={eObj} accts={accts} setAccts={setAccts} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go} reglas={empReglas} setReglas={setReglas} ccostos={empCcostos} setCcostos={setCcostos}/>}
+        {pg==="contabilidad"&&<ContabP eObj={eObj} accts={accts} setAccts={setAccts} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go} reglas={empReglas} setReglas={setReglas} ccostos={empCcostos} setCcostos={setCcostos} activos={empActivos} setActivos={setActivos}/>}
         {pg==="remuneraciones"&&<RemP eObj={eObj} rems={rems} setRems={setRems} empRems={empRems} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go}/>}
         {pg==="documentos"&&<DocsP eObj={eObj} docs={docs} setDocs={setDocs} empDocs={empDocs} aLog={aLog} go={go}/>}
         {pg==="planificacion"&&<PlanP eObj={eObj} tareas={tareas} setTareas={setTareas} empTareas={empTareas} aLog={aLog} go={go}/>}
@@ -589,11 +593,11 @@ function ReportHeader({eObj,title,subtitle}){
 const tpL={asset:"Activo",liability:"Pasivo",equity:"Patrimonio",income:"Ingreso",expense:"Gasto"};
 const tpC={asset:"#06B6D4",liability:"#EF4444",equity:"#8B5CF6",income:"#10B981",expense:"#F59E0B"};
 
-function ContabP({eObj,accts,setAccts,entries,setEntries,empEntries,leafAccts,aLog,go,reglas,setReglas,ccostos,setCcostos}){
+function ContabP({eObj,accts,setAccts,entries,setEntries,empEntries,leafAccts,aLog,go,reglas,setReglas,ccostos,setCcostos,activos,setActivos}){
   const [tab,setTab]=useState("dashboard");
   if(!eObj)return<Ey i="🏢" t="Selecciona una empresa" d="Activa una empresa primero."><Bt onClick={()=>go("empresas")} p={true}>Ir a Empresas</Bt></Ey>;
   const porClasificarN=empEntries.filter(e=>e.lines.some(l=>l.ac==="1.1.05.001")).length;
-  const tabs=[{id:"dashboard",l:"Dashboard"},{id:"plan",l:"Plan de Cuentas"},{id:"asientos",l:"Asientos"},{id:"csv",l:"Compras/Ventas SII"},{id:"lcompras",l:"Libro de Compras"},{id:"lventas",l:"Libro de Ventas"},{id:"porclasificar",l:"Por Clasificar"+(porClasificarN>0?" ("+porClasificarN+")":"")},{id:"conciliacion",l:"Conciliacion Bancaria"},{id:"diario",l:"Libro Diario"},{id:"mayor",l:"Libro Mayor"},{id:"auxiliar",l:"Auxiliares"},{id:"ccostos",l:"Centros de Costo"},{id:"balance",l:"Balance"},{id:"eerr",l:"Estado Resultados"},{id:"b8",l:"8 Columnas"}];
+  const tabs=[{id:"dashboard",l:"Dashboard"},{id:"plan",l:"Plan de Cuentas"},{id:"asientos",l:"Asientos"},{id:"csv",l:"Compras/Ventas SII"},{id:"lcompras",l:"Libro de Compras"},{id:"lventas",l:"Libro de Ventas"},{id:"porclasificar",l:"Por Clasificar"+(porClasificarN>0?" ("+porClasificarN+")":"")},{id:"conciliacion",l:"Conciliacion Bancaria"},{id:"diario",l:"Libro Diario"},{id:"mayor",l:"Libro Mayor"},{id:"auxiliar",l:"Auxiliares"},{id:"ccostos",l:"Centros de Costo"},{id:"activos",l:"Activos Fijos"},{id:"balance",l:"Balance"},{id:"eerr",l:"Estado Resultados"},{id:"b8",l:"8 Columnas"}];
   return(<div style={{maxWidth:960,margin:"0 auto"}}>
     <div style={{display:"flex",gap:6,marginBottom:20,flexWrap:"wrap"}}>{tabs.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{padding:"10px 18px",borderRadius:"var(--rs)",border:"none",fontSize:13,fontWeight:tab===t.id?700:500,background:tab===t.id?"var(--cyg)":"var(--sf)",color:tab===t.id?"var(--cy)":"var(--tx2)"}}>{t.l}</button>)}</div>
     {tab==="dashboard"&&<DashboardFin empEntries={empEntries} leafAccts={leafAccts} eObj={eObj}/>}
@@ -608,6 +612,7 @@ function ContabP({eObj,accts,setAccts,entries,setEntries,empEntries,leafAccts,aL
     {tab==="mayor"&&<LMayor empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj}/>}
     {tab==="auxiliar"&&<LibroAuxiliar empEntries={empEntries} eObj={eObj}/>}
     {tab==="ccostos"&&<CentrosCosto ccostos={ccostos} setCcostos={setCcostos} eObj={eObj} aLog={aLog}/>}
+    {tab==="activos"&&<ActivosFijos activos={activos} setActivos={setActivos} empEntries={empEntries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} aLog={aLog}/>}
     {tab==="balance"&&<Balance empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj}/>}
     {tab==="eerr"&&<EERR empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj} ccostos={ccostos}/>}
     {tab==="b8"&&<B8Col empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj}/>}
@@ -638,6 +643,90 @@ function CentrosCosto({ccostos,setCcostos,eObj,aLog}){
       <div key={c.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:"10px 16px",fontSize:13}}>
         <span>{c.nombre}</span>
         <button onClick={()=>eliminar(c.id,c.nombre)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.6,fontSize:11}}>eliminar</button>
+      </div>
+    )}</div>}
+  </div>);
+}
+
+// ═══ ACTIVOS FIJOS (depreciacion metodo lineal) ═══
+// Mapa fijo cuenta de activo -> su contracuenta de depreciacion acumulada,
+// segun como ya vienen apareadas en el plan de cuentas por defecto.
+const ACTIVO_DEP_MAP={"1.2.01.002":"1.2.02.001","1.2.01.003":"1.2.02.002","1.2.01.004":"1.2.02.003","1.2.01.005":"1.2.02.004","1.2.01.006":"1.2.02.005"};
+const CUENTA_GASTO_DEP="5.2.05.001";
+
+function ActivosFijos({activos,setActivos,empEntries,setEntries,leafAccts,eObj,aLog}){
+  const [showF,setShowF]=useState(false);
+  const blankFm=()=>({nombre:"",cuentaActivo:"",fechaCompra:new Date().toISOString().slice(0,10),valorCompra:0,valorResidual:0,vidaUtilAnios:5});
+  const [fm,setFm]=useState(blankFm());
+  const cuentasDepreciables=useMemo(()=>leafAccts.filter(a=>ACTIVO_DEP_MAP[a.cd]),[leafAccts]);
+  const mesActual=new Date().toISOString().slice(0,7);
+
+  const agregar=()=>{
+    if(!fm.nombre||!fm.cuentaActivo||!fm.valorCompra||!fm.vidaUtilAnios)return;
+    setActivos(p=>[...p,{id:uid(),empresaId:eObj.id,...fm}]);
+    aLog("Activo fijo creado",fm.nombre);
+    setFm(blankFm());setShowF(false);
+  };
+  const eliminar=(id,nombre)=>{
+    if(!confirm('Eliminar "'+nombre+'"? Esto no elimina los asientos de depreciacion ya generados.'))return;
+    setActivos(p=>p.filter(a=>a.id!==id));
+  };
+
+  const conCalculo=useMemo(()=>activos.map(a=>{
+    const depMensual=(a.valorCompra-(a.valorResidual||0))/(a.vidaUtilAnios*12);
+    const cuentaDep=ACTIVO_DEP_MAP[a.cuentaActivo];
+    const generados=empEntries.filter(e=>e.depreciacionActivoId===a.id);
+    const acumulada=generados.reduce((s,e)=>{const l=e.lines.find(x=>x.ac===cuentaDep);return s+(l?.cr||0)},0);
+    const valorLibro=Math.max(0,a.valorCompra-acumulada);
+    const generadoEsteMes=generados.some(e=>e.date.slice(0,7)===mesActual);
+    return{...a,depMensual,cuentaDep,acumulada,valorLibro,generadoEsteMes};
+  }),[activos,empEntries,mesActual]);
+
+  const generarDepreciacion=(a)=>{
+    if(a.valorLibro<=0)return;
+    const monto=Math.round(Math.min(a.depMensual,a.valorLibro));
+    const ns=empEntries.map(e=>parseInt(e.num)||0);const n=String(Math.max(0,...ns)+1).padStart(4,"0");
+    const nuevo={id:uid(),empresaId:eObj.id,num:n,date:new Date().toISOString().slice(0,10),desc:"Depreciacion "+a.nombre+" - "+mesActual,depreciacionActivoId:a.id,lines:[{ac:CUENTA_GASTO_DEP,db:monto,cr:0},{ac:a.cuentaDep,db:0,cr:monto}]};
+    setEntries(p=>[...p,nuevo]);
+    aLog("Depreciacion generada",a.nombre+" - "+mesActual);
+  };
+
+  return(<div>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:12}}>
+      <div>
+        <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Activos Fijos</div>
+        <div style={{fontSize:12,color:"var(--tx3)"}}>Registra tus activos y genera el asiento de depreciacion mensual (metodo lineal) con un clic.</div>
+      </div>
+      <Bt onClick={()=>showF?setShowF(false):(setFm(blankFm()),setShowF(true))} p={true}>{IC.plus} Nuevo Activo</Bt>
+    </div>
+    {showF&&<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:20,marginBottom:16}}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+        <input placeholder="Nombre del activo" value={fm.nombre} onChange={e=>setFm(p=>({...p,nombre:e.target.value}))}/>
+        <select value={fm.cuentaActivo} onChange={e=>setFm(p=>({...p,cuentaActivo:e.target.value}))}><option value="">Cuenta de activo...</option>{cuentasDepreciables.map(a=><option key={a.cd} value={a.cd}>{a.cd} {a.nm}</option>)}</select>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:16}}>
+        <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6}}>Fecha de compra</label><input type="date" value={fm.fechaCompra} onChange={e=>setFm(p=>({...p,fechaCompra:e.target.value}))}/></div>
+        <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6}}>Valor de compra</label><input type="number" min="0" value={fm.valorCompra||""} onChange={e=>setFm(p=>({...p,valorCompra:parseFloat(e.target.value)||0}))}/></div>
+        <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6}}>Vida util (años)</label><input type="number" min="1" value={fm.vidaUtilAnios||""} onChange={e=>setFm(p=>({...p,vidaUtilAnios:parseInt(e.target.value)||1}))}/></div>
+      </div>
+      <div style={{display:"flex",gap:8}}><Bt onClick={agregar} p={true}>Guardar</Bt><Bt onClick={()=>{setShowF(false);setFm(blankFm())}}>Cancelar</Bt></div>
+    </div>}
+    {conCalculo.length===0?<Ey i="🏗️" t="Sin activos fijos" d="Agrega un activo para calcular su depreciacion mensual."/>:
+    <div style={{display:"flex",flexDirection:"column",gap:10}}>{conCalculo.map(a=>
+      <div key={a.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:16}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
+          <div>
+            <div style={{fontSize:13,fontWeight:600}}>{a.nombre}</div>
+            <div style={{fontSize:11,color:"var(--tx3)",marginTop:2}}>Compra ${fmt(a.valorCompra)} · {fD(a.fechaCompra)} · Vida util {a.vidaUtilAnios} años</div>
+          </div>
+          <button onClick={()=>eliminar(a.id,a.nombre)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.6,fontSize:11}}>eliminar</button>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:10,marginTop:12,marginBottom:12}}>
+          <div><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase"}}>Dep. mensual</div><div style={{fontSize:13,fontFamily:"monospace",fontWeight:600}}>${fmt(Math.round(a.depMensual))}</div></div>
+          <div><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase"}}>Acumulada</div><div style={{fontSize:13,fontFamily:"monospace",fontWeight:600,color:"var(--am)"}}>${fmt(Math.round(a.acumulada))}</div></div>
+          <div><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase"}}>Valor libro</div><div style={{fontSize:13,fontFamily:"monospace",fontWeight:600,color:"var(--gn)"}}>${fmt(Math.round(a.valorLibro))}</div></div>
+        </div>
+        <button onClick={()=>generarDepreciacion(a)} disabled={a.generadoEsteMes||a.valorLibro<=0} style={{padding:"6px 16px",borderRadius:"var(--rs)",border:"none",background:(a.generadoEsteMes||a.valorLibro<=0)?"var(--sf2)":"var(--cy)",color:(a.generadoEsteMes||a.valorLibro<=0)?"var(--tx3)":"#fff",fontSize:11,fontWeight:600,cursor:(a.generadoEsteMes||a.valorLibro<=0)?"default":"pointer"}}>{a.valorLibro<=0?"Totalmente depreciado":a.generadoEsteMes?"Ya generado este mes":"Generar depreciacion de "+mesActual}</button>
       </div>
     )}</div>}
   </div>);
