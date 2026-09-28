@@ -609,27 +609,32 @@ const tpC={asset:"#06B6D4",liability:"#EF4444",equity:"#8B5CF6",income:"#10B981"
 
 function ContabP({eObj,accts,setAccts,entries,setEntries,empEntries,leafAccts,aLog,go,reglas,setReglas,ccostos,setCcostos,activos,setActivos}){
   const [tab,setTab]=useState("dashboard");
+  const [navTarget,setNavTarget]=useState(null);
   if(!eObj)return<Ey i="🏢" t="Selecciona una empresa" d="Activa una empresa primero."><Bt onClick={()=>go("empresas")} p={true}>Ir a Empresas</Bt></Ey>;
   const porClasificarN=empEntries.filter(e=>e.lines.some(l=>l.ac==="1.1.05.001")).length;
   const tabs=[{id:"dashboard",l:"Dashboard"},{id:"plan",l:"Plan de Cuentas"},{id:"asientos",l:"Asientos"},{id:"csv",l:"Compras/Ventas SII"},{id:"lcompras",l:"Libro de Compras"},{id:"lventas",l:"Libro de Ventas"},{id:"porclasificar",l:"Por Clasificar"+(porClasificarN>0?" ("+porClasificarN+")":"")},{id:"conciliacion",l:"Conciliacion Bancaria"},{id:"diario",l:"Libro Diario"},{id:"mayor",l:"Libro Mayor"},{id:"auxiliar",l:"Auxiliares"},{id:"ccostos",l:"Centros de Costo"},{id:"activos",l:"Activos Fijos"},{id:"balance",l:"Balance"},{id:"eerr",l:"Estado Resultados"},{id:"b8",l:"8 Columnas"}];
+  // Trazabilidad: click en una cuenta -> Libro Mayor filtrado en esa cuenta;
+  // click en un movimiento -> Asientos, resaltando ese asiento puntual.
+  const irACuenta=cd=>{setNavTarget({tipo:"cuenta",valor:cd,ts:Date.now()});setTab("mayor")};
+  const irAAsiento=id=>{setNavTarget({tipo:"asiento",valor:id,ts:Date.now()});setTab("asientos")};
   return(<div style={{maxWidth:960,margin:"0 auto"}}>
     <div style={{display:"flex",gap:6,marginBottom:20,flexWrap:"wrap"}}>{tabs.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{padding:"10px 18px",borderRadius:"var(--rs)",border:"none",fontSize:13,fontWeight:tab===t.id?700:500,background:tab===t.id?"var(--cyg)":"var(--sf)",color:tab===t.id?"var(--cy)":"var(--tx2)"}}>{t.l}</button>)}</div>
     {tab==="dashboard"&&<DashboardFin empEntries={empEntries} leafAccts={leafAccts} eObj={eObj}/>}
     {tab==="plan"&&<PlanCtas accts={accts} setAccts={setAccts} aLog={aLog}/>}
-    {tab==="asientos"&&<Asientos entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} eObj={eObj} aLog={aLog} ccostos={ccostos}/>}
+    {tab==="asientos"&&<Asientos entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} eObj={eObj} aLog={aLog} ccostos={ccostos} resaltar={navTarget?.tipo==="asiento"?navTarget:null}/>}
     {tab==="csv"&&<CSVSII entries={entries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} empEntries={empEntries} aLog={aLog} reglas={reglas}/>}
-    {tab==="lcompras"&&<LibroCV empEntries={empEntries} tipo="compra" eObj={eObj}/>}
-    {tab==="lventas"&&<LibroCV empEntries={empEntries} tipo="venta" eObj={eObj}/>}
-    {tab==="porclasificar"&&<PorClasificar empEntries={empEntries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} aLog={aLog} reglas={reglas} setReglas={setReglas}/>}
+    {tab==="lcompras"&&<LibroCV empEntries={empEntries} tipo="compra" eObj={eObj} irAAsiento={irAAsiento}/>}
+    {tab==="lventas"&&<LibroCV empEntries={empEntries} tipo="venta" eObj={eObj} irAAsiento={irAAsiento}/>}
+    {tab==="porclasificar"&&<PorClasificar empEntries={empEntries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} aLog={aLog} reglas={reglas} setReglas={setReglas} irAAsiento={irAAsiento}/>}
     {tab==="conciliacion"&&<ConciliacionP entries={entries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} empEntries={empEntries} aLog={aLog} reglas={reglas} setReglas={setReglas}/>}
-    {tab==="diario"&&<LDiario empEntries={empEntries} accts={accts} eObj={eObj} ccostos={ccostos}/>}
-    {tab==="mayor"&&<LMayor empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj}/>}
-    {tab==="auxiliar"&&<LibroAuxiliar empEntries={empEntries} eObj={eObj}/>}
+    {tab==="diario"&&<LDiario empEntries={empEntries} accts={accts} eObj={eObj} ccostos={ccostos} irAAsiento={irAAsiento}/>}
+    {tab==="mayor"&&<LMayor empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj} irAAsiento={irAAsiento} cuentaInicial={navTarget?.tipo==="cuenta"?navTarget:null}/>}
+    {tab==="auxiliar"&&<LibroAuxiliar empEntries={empEntries} eObj={eObj} irAAsiento={irAAsiento}/>}
     {tab==="ccostos"&&<CentrosCosto ccostos={ccostos} setCcostos={setCcostos} eObj={eObj} aLog={aLog}/>}
     {tab==="activos"&&<ActivosFijos activos={activos} setActivos={setActivos} empEntries={empEntries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} aLog={aLog}/>}
-    {tab==="balance"&&<Balance empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj}/>}
-    {tab==="eerr"&&<EERR empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj} ccostos={ccostos}/>}
-    {tab==="b8"&&<B8Col empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj}/>}
+    {tab==="balance"&&<Balance empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj} irACuenta={irACuenta}/>}
+    {tab==="eerr"&&<EERR empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj} ccostos={ccostos} irACuenta={irACuenta}/>}
+    {tab==="b8"&&<B8Col empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj} irACuenta={irACuenta}/>}
   </div>);
 }
 
@@ -900,9 +905,19 @@ function PlanCtas({accts,setAccts,aLog}){
   </div>);
 }
 
-function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog,ccostos}){
+function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog,ccostos,resaltar}){
   const [showF,setShowF]=useState(false);
   const [editId,setEditId]=useState(null);
+  const [resaltadoId,setResaltadoId]=useState(null);
+  useEffect(()=>{
+    if(!resaltar?.valor)return;
+    setShowF(false);
+    setResaltadoId(resaltar.valor);
+    const el=document.getElementById("asiento-"+resaltar.valor);
+    el?.scrollIntoView({behavior:"smooth",block:"center"});
+    const t=setTimeout(()=>setResaltadoId(null),3000);
+    return()=>clearTimeout(t);
+  },[resaltar]);
   const blankFm=()=>({date:new Date().toISOString().slice(0,10),desc:"",centroCosto:"",recurrente:false,lines:[{ac:"",db:0,cr:0},{ac:"",db:0,cr:0}]});
   const [fm,setFm]=useState(blankFm());
   const nxt=useMemo(()=>{const ns=empEntries.map(e=>parseInt(e.num)||0);return String(Math.max(0,...ns)+1).padStart(4,"0")},[empEntries]);
@@ -975,14 +990,14 @@ function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog,ccostos}){
           <button onClick={()=>generarRecurrente(t)} disabled={generado} style={{padding:"6px 14px",borderRadius:"var(--rs)",border:"none",background:generado?"var(--sf2)":"var(--cy)",color:generado?"var(--tx3)":"#fff",fontSize:11,fontWeight:600,cursor:generado?"default":"pointer"}}>{generado?"Ya generado este mes":"Generar para "+mesActual}</button>
         </div>);})}</div>
     </div>}
-    <div style={{display:"flex",flexDirection:"column",gap:8}}>{[...empEntries].sort((a,b)=>b.date.localeCompare(a.date)).map(e=><div key={e.id} style={{background:"var(--sf)",border:"1px solid "+(editId===e.id?"var(--cy)":"var(--bd)"),borderRadius:"var(--r)",padding:16}}>
+    <div style={{display:"flex",flexDirection:"column",gap:8}}>{[...empEntries].sort((a,b)=>b.date.localeCompare(a.date)).map(e=><div key={e.id} id={"asiento-"+e.id} style={{background:"var(--sf)",border:"1px solid "+(resaltadoId===e.id?"var(--am)":editId===e.id?"var(--cy)":"var(--bd)"),boxShadow:resaltadoId===e.id?"0 0 0 3px rgba(245,158,11,.25)":"none",borderRadius:"var(--r)",padding:16,transition:"box-shadow .3s,border-color .3s"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:10,fontFamily:"monospace",background:"var(--sf2)",padding:"2px 8px",borderRadius:4}}>N {e.num}</span><span style={{fontSize:13,fontWeight:500}}>{e.desc}</span>{e.centroCosto&&ccNombre[e.centroCosto]&&<span style={{fontSize:10,background:"var(--cyg)",color:"var(--cy)",padding:"2px 8px",borderRadius:4}}>{ccNombre[e.centroCosto]}</span>}{e.recurrente&&<span style={{fontSize:10,background:"rgba(139,92,246,.15)",color:"var(--pu)",padding:"2px 8px",borderRadius:4}}>↻ Recurrente</span>}</div><div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:11,color:"var(--tx3)"}}>{fD(e.date)}</span><button onClick={()=>openEdit(e)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.6,fontSize:11}}>editar</button><button onClick={()=>{if(confirm("Eliminar este asiento?"))delE(e.id)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5}}>x</button></div></div>
       <div style={{fontSize:11}}>{e.lines.map((l,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 80px 80px",gap:8,padding:"2px 0"}}><span style={{color:"var(--tx2)",paddingLeft:l.cr>0?20:0}}>{l.ac} {leafAccts.find(a=>a.cd===l.ac)?.nm||""}</span><span style={{textAlign:"right",fontFamily:"monospace"}}>{l.db>0?"$"+fmt(l.db):""}</span><span style={{textAlign:"right",fontFamily:"monospace"}}>{l.cr>0?"$"+fmt(l.cr):""}</span></div>)}</div>
     </div>)}</div>
   </div>);
 }
 
-function LDiario({empEntries,accts,eObj,ccostos}){
+function LDiario({empEntries,accts,eObj,ccostos,irAAsiento}){
   const [filtroCC,setFiltroCC]=useState("todos");
   const filtradas=useMemo(()=>filtroCC==="todos"?empEntries:empEntries.filter(e=>e.centroCosto===filtroCC),[empEntries,filtroCC]);
   const sorted=useMemo(()=>[...filtradas].sort((a,b)=>a.date.localeCompare(b.date)||a.num.localeCompare(b.num)),[filtradas]);
@@ -1007,7 +1022,7 @@ function LDiario({empEntries,accts,eObj,ccostos}){
       </div>
     </div>
     <div style={{overflowX:"auto"}}><table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}><thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:10,color:"var(--tx3)",background:"var(--sf2)"}}><th style={{textAlign:"left",padding:"8px 12px",fontWeight:500}}>Fecha</th><th style={{textAlign:"left",padding:"8px 4px",fontWeight:500}}>N</th><th style={{textAlign:"left",padding:"8px 4px",fontWeight:500}}>Cod</th><th style={{textAlign:"left",padding:"8px 4px",fontWeight:500}}>Cuenta / Glosa</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Debe</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Haber</th></tr></thead>
-      <tbody>{sorted.map(e=>e.lines.map((l,i)=><tr key={e.id+"-"+i} style={{borderBottom:"1px solid var(--bd)"}}>
+      <tbody>{sorted.map(e=>e.lines.map((l,i)=><tr key={e.id+"-"+i} onClick={()=>irAAsiento?.(e.id)} title="Ver asiento" style={{borderBottom:"1px solid var(--bd)",cursor:irAAsiento?"pointer":"default"}}>
         <td style={{padding:"6px 12px",fontSize:11}}>{i===0?fD(e.date):""}</td>
         <td style={{padding:"6px 4px",fontFamily:"monospace",fontSize:10}}>{i===0?e.num:""}</td>
         <td style={{padding:"6px 4px",fontFamily:"monospace",fontSize:10}}>{l.ac}</td>
@@ -1020,7 +1035,7 @@ function LDiario({empEntries,accts,eObj,ccostos}){
   </div>);
 }
 
-function Balance({empEntries,accts,leafAccts,eObj}){
+function Balance({empEntries,accts,leafAccts,eObj,irACuenta}){
   const [fechaCorte,setFechaCorte]=useState(()=>new Date().toISOString().slice(0,10));
   if(!empEntries.length)return<Ey i="⚖️" t="Sin datos" d="Registra asientos para generar el Balance."/>;
   const filtradas=useMemo(()=>empEntries.filter(e=>e.date<=fechaCorte),[empEntries,fechaCorte]);
@@ -1032,7 +1047,7 @@ function Balance({empEntries,accts,leafAccts,eObj}){
 
   const BSec=({title,groups,total,color})=><div><div style={{fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:12,color}}>{title}</div>
     {groups.map((g,i)=><div key={i} style={{marginBottom:12}}><div style={{fontSize:11,fontWeight:600,color:"var(--tx2)",marginBottom:4,paddingLeft:8}}>{g.grp}</div>
-      {g.items.map((it,j)=><div key={j} style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:12,paddingLeft:24,padding:"3px 0 3px 24px"}}><span style={{color:"var(--tx2)"}}>{it.nm}</span><span style={{textAlign:"right",fontFamily:"monospace"}}>${fmt(it.bal)}</span></div>)}
+      {g.items.map((it,j)=><div key={j} onClick={()=>irACuenta?.(it.cd)} title={irACuenta?"Ver en Libro Mayor":undefined} style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:12,paddingLeft:24,padding:"3px 0 3px 24px",cursor:irACuenta?"pointer":"default"}}><span style={{color:"var(--tx2)"}}>{it.nm}</span><span style={{textAlign:"right",fontFamily:"monospace"}}>${fmt(it.bal)}</span></div>)}
       <div style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:12,paddingLeft:24,padding:"6px 0 6px 24px",borderTop:"1px solid var(--bd)",marginTop:4,fontWeight:600}}><span>Subtotal {g.grp}</span><span style={{textAlign:"right",fontFamily:"monospace"}}>${fmt(g.sub)}</span></div>
     </div>)}
     <div style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:13,fontWeight:700,padding:"10px 0",borderTop:"2px solid var(--bd2)",marginTop:4}}><span>TOTAL {title.toUpperCase()}</span><span style={{textAlign:"right",fontFamily:"monospace"}}>${fmt(total)}</span></div>
@@ -1064,7 +1079,7 @@ function Balance({empEntries,accts,leafAccts,eObj}){
 }
 
 // ═══ ESTADO DE RESULTADOS ═══
-function EERR({empEntries,accts,leafAccts,eObj,ccostos}){
+function EERR({empEntries,accts,leafAccts,eObj,ccostos,irACuenta}){
   const [filtroCC,setFiltroCC]=useState("todos");
   const anios=useMemo(()=>[...new Set(empEntries.map(e=>e.date?.slice(0,4)).filter(Boolean))].sort((a,b)=>b.localeCompare(a)),[empEntries]);
   const [anio,setAnio]=useState("todos");
@@ -1110,12 +1125,12 @@ function EERR({empEntries,accts,leafAccts,eObj,ccostos}){
     <div className="no-print" style={{textAlign:"center",marginBottom:24}}><div style={{fontSize:18,fontWeight:700}}>{eObj?.name}</div><div style={{fontSize:13,color:"var(--tx3)"}}>Estado de Resultados{ccNombre?" — "+ccNombre:""}</div><div style={{fontSize:11,color:"var(--tx3)"}}>{anio==="todos"?"Todo el historial":"Año "+anio}</div></div>
     <div><div style={{fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:12,color:"var(--gn)"}}>Ingresos</div>
       {inc.map((g,i)=><div key={i} style={{marginBottom:8}}><div style={{fontSize:11,fontWeight:600,color:"var(--tx2)",paddingLeft:8,marginBottom:4}}>{g.grp}</div>
-        {g.items.map((it,j)=><div key={j} style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:12,padding:"3px 0 3px 24px"}}><span style={{color:"var(--tx2)"}}>{it.nm}</span><span style={{textAlign:"right",fontFamily:"monospace"}}>${fmt(it.bal)}</span></div>)}</div>)}
+        {g.items.map((it,j)=><div key={j} onClick={()=>irACuenta?.(it.cd)} title={irACuenta?"Ver en Libro Mayor":undefined} style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:12,padding:"3px 0 3px 24px",cursor:irACuenta?"pointer":"default"}}><span style={{color:"var(--tx2)"}}>{it.nm}</span><span style={{textAlign:"right",fontFamily:"monospace"}}>${fmt(it.bal)}</span></div>)}</div>)}
       <div style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:13,fontWeight:700,padding:"10px 0",borderTop:"2px solid var(--bd2)"}}><span>TOTAL INGRESOS</span><span style={{textAlign:"right",fontFamily:"monospace"}}>${fmt(tI)}</span></div>
     </div>
     <div style={{marginTop:16}}><div style={{fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:12,color:"var(--am)"}}>Costos y Gastos</div>
       {exp.map((g,i)=><div key={i} style={{marginBottom:8}}><div style={{fontSize:11,fontWeight:600,color:"var(--tx2)",paddingLeft:8,marginBottom:4}}>{g.grp}</div>
-        {g.items.map((it,j)=><div key={j} style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:12,padding:"3px 0 3px 24px"}}><span style={{color:"var(--tx2)"}}>{it.nm}</span><span style={{textAlign:"right",fontFamily:"monospace"}}>(${fmt(it.bal)})</span></div>)}</div>)}
+        {g.items.map((it,j)=><div key={j} onClick={()=>irACuenta?.(it.cd)} title={irACuenta?"Ver en Libro Mayor":undefined} style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:12,padding:"3px 0 3px 24px",cursor:irACuenta?"pointer":"default"}}><span style={{color:"var(--tx2)"}}>{it.nm}</span><span style={{textAlign:"right",fontFamily:"monospace"}}>(${fmt(it.bal)})</span></div>)}</div>)}
       <div style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:13,fontWeight:700,padding:"10px 0",borderTop:"2px solid var(--bd2)"}}><span>TOTAL COSTOS Y GASTOS</span><span style={{textAlign:"right",fontFamily:"monospace"}}>(${fmt(tE)})</span></div>
     </div>
     <div style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:15,fontWeight:700,padding:"14px 0",borderTop:"3px double var(--bd2)",marginTop:16,color:net>=0?"var(--gn)":"var(--rd)"}}><span>{net>=0?"UTILIDAD":"PERDIDA"} DEL EJERCICIO</span><span style={{textAlign:"right",fontFamily:"monospace"}}>${fmt(net)}</span></div>
@@ -1134,13 +1149,14 @@ function EERR({empEntries,accts,leafAccts,eObj,ccostos}){
 }
 
 // ═══ LIBRO MAYOR ═══
-function LMayor({empEntries,accts,leafAccts,eObj}){
+function LMayor({empEntries,accts,leafAccts,eObj,irAAsiento,cuentaInicial}){
   const [sel,setSel]=useState("");
+  useEffect(()=>{if(cuentaInicial?.valor)setSel(cuentaInicial.valor)},[cuentaInicial]);
   const am=useMemo(()=>Object.fromEntries(accts.map(a=>[a.cd,a.nm])),[accts]);
   const used=useMemo(()=>{const cs=new Set();empEntries.forEach(e=>e.lines.forEach(l=>cs.add(l.ac)));return leafAccts.filter(a=>cs.has(a.cd))},[empEntries,leafAccts]);
   const acctType=leafAccts.find(a=>a.cd===sel)?.tp;
   const isDeb=acctType==="asset"||acctType==="expense";
-  const movesWithBal=useMemo(()=>{if(!sel)return[];const m=[];empEntries.forEach(e=>e.lines.forEach(l=>{if(l.ac===sel)m.push({date:e.date,num:e.num,desc:e.desc,db:l.db||0,cr:l.cr||0})}));m.sort((a,b)=>a.date.localeCompare(b.date));let bal=0;return m.map(mv=>{bal+=isDeb?(mv.db-mv.cr):(mv.cr-mv.db);return{...mv,bal}})},[sel,empEntries,isDeb]);
+  const movesWithBal=useMemo(()=>{if(!sel)return[];const m=[];empEntries.forEach(e=>e.lines.forEach(l=>{if(l.ac===sel)m.push({id:e.id,date:e.date,num:e.num,desc:e.desc,db:l.db||0,cr:l.cr||0})}));m.sort((a,b)=>a.date.localeCompare(b.date));let bal=0;return m.map(mv=>{bal+=isDeb?(mv.db-mv.cr):(mv.cr-mv.db);return{...mv,bal}})},[sel,empEntries,isDeb]);
   return(<div>
     <div className="no-print" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:16,marginBottom:16}}>
       <label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:8,fontWeight:500}}>Seleccionar cuenta</label>
@@ -1161,7 +1177,7 @@ function LMayor({empEntries,accts,leafAccts,eObj}){
       </div>
       {movesWithBal.length===0?<div style={{padding:24,textAlign:"center",color:"var(--tx3)",fontSize:13}}>Sin movimientos.</div>
       :<div style={{overflowX:"auto"}}><table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}><thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:10,color:"var(--tx3)",background:"var(--sf2)"}}><th style={{textAlign:"left",padding:"8px 12px",fontWeight:500}}>Fecha</th><th style={{textAlign:"left",padding:"8px 4px",fontWeight:500}}>N</th><th style={{textAlign:"left",padding:"8px 4px",fontWeight:500}}>Glosa</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Debe</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Haber</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Saldo</th></tr></thead>
-        <tbody>{movesWithBal.map((m,i)=><tr key={i} style={{borderBottom:"1px solid var(--bd)"}}><td style={{padding:"6px 12px",fontSize:11}}>{fD(m.date)}</td><td style={{padding:"6px 4px",fontFamily:"monospace",fontSize:10}}>{m.num}</td><td style={{padding:"6px 4px"}}>{m.desc}</td><td style={{padding:"6px 12px",textAlign:"right",fontFamily:"monospace"}}>{m.db>0?"$"+fmt(m.db):""}</td><td style={{padding:"6px 12px",textAlign:"right",fontFamily:"monospace"}}>{m.cr>0?"$"+fmt(m.cr):""}</td><td style={{padding:"6px 12px",textAlign:"right",fontFamily:"monospace",fontWeight:600,color:m.bal<0?"var(--rd)":"var(--tx)"}}>${fmt(m.bal)}</td></tr>)}</tbody></table></div>}
+        <tbody>{movesWithBal.map((m,i)=><tr key={i} onClick={()=>irAAsiento?.(m.id)} title="Ver asiento" style={{borderBottom:"1px solid var(--bd)",cursor:irAAsiento?"pointer":"default"}}><td style={{padding:"6px 12px",fontSize:11}}>{fD(m.date)}</td><td style={{padding:"6px 4px",fontFamily:"monospace",fontSize:10}}>{m.num}</td><td style={{padding:"6px 4px"}}>{m.desc}</td><td style={{padding:"6px 12px",textAlign:"right",fontFamily:"monospace"}}>{m.db>0?"$"+fmt(m.db):""}</td><td style={{padding:"6px 12px",textAlign:"right",fontFamily:"monospace"}}>{m.cr>0?"$"+fmt(m.cr):""}</td><td style={{padding:"6px 12px",textAlign:"right",fontFamily:"monospace",fontWeight:600,color:m.bal<0?"var(--rd)":"var(--tx)"}}>${fmt(m.bal)}</td></tr>)}</tbody></table></div>}
     </div>}
   </div>);
 }
@@ -1170,7 +1186,7 @@ function LMayor({empEntries,accts,leafAccts,eObj}){
 // Como el Libro Mayor pero en vez de agrupar por cuenta, agrupa por RUT:
 // todo lo comprado/vendido a una misma contraparte, cruzando los datos
 // que ya trae cada documento importado del SII (rut, razonSocial).
-function LibroAuxiliar({empEntries,eObj}){
+function LibroAuxiliar({empEntries,eObj,irAAsiento}){
   const [busqueda,setBusqueda]=useState("");
   const [rutSel,setRutSel]=useState("");
 
@@ -1237,7 +1253,7 @@ function LibroAuxiliar({empEntries,eObj}){
           <th style={{textAlign:"left",padding:"8px 8px",fontWeight:500}}>Glosa</th>
           <th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Total</th>
         </tr></thead>
-        <tbody>{movsSel.map(e=><tr key={e.id} style={{borderBottom:"1px solid var(--bd)"}}>
+        <tbody>{movsSel.map(e=><tr key={e.id} onClick={()=>irAAsiento?.(e.id)} title="Ver asiento" style={{borderBottom:"1px solid var(--bd)",cursor:irAAsiento?"pointer":"default"}}>
           <td style={{padding:"6px 12px",fontSize:11}}>{fD(e.date)}</td>
           <td style={{padding:"6px 8px",fontSize:11}}>{e.tipoDoc==="compra"?"Compra":e.tipoDoc==="venta"?"Venta":"—"}</td>
           <td style={{padding:"6px 8px",fontFamily:"monospace",fontSize:11}}>{e.folio||"—"}</td>
@@ -1400,7 +1416,7 @@ function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog,reglas}){
 const MESES=[["01","Enero"],["02","Febrero"],["03","Marzo"],["04","Abril"],["05","Mayo"],["06","Junio"],["07","Julio"],["08","Agosto"],["09","Septiembre"],["10","Octubre"],["11","Noviembre"],["12","Diciembre"]];
 const TIPO_DOC_LABELS={"33":"Factura Electronica","34":"Factura No Afecta o Exenta Electronica","39":"Boleta Electronica","41":"Boleta Exenta Electronica","46":"Factura de Compra Electronica","56":"Nota de Debito Electronica","61":"Nota de Credito Electronica","110":"Factura de Exportacion","111":"Nota de Debito de Exportacion","112":"Nota de Credito de Exportacion"};
 
-function LibroCV({empEntries,tipo,eObj}){
+function LibroCV({empEntries,tipo,eObj,irAAsiento}){
   const [filtroAno,setFiltroAno]=useState("todos");
   const [filtroMes,setFiltroMes]=useState("todos");
   const [fFolio,setFFolio]=useState("");
@@ -1633,7 +1649,7 @@ function LibroCV({empEntries,tipo,eObj}){
           <th style={{textAlign:"right",padding:"6px 8px"}}>IVA</th>
           <th style={{textAlign:"right",padding:"6px 8px"}}>Total</th>
         </tr></thead>
-        <tbody>{g.rows.map(r=><tr key={r.id} style={{borderBottom:"1px solid var(--bd)"}}>
+        <tbody>{g.rows.map(r=><tr key={r.id} onClick={()=>irAAsiento?.(r.id)} title="Ver asiento" style={{borderBottom:"1px solid var(--bd)",cursor:irAAsiento?"pointer":"default"}}>
           <td style={{padding:"6px 8px"}}>{fD(r.date)}</td>
           <td style={{padding:"6px 8px",fontFamily:"monospace"}}>{r.folio}</td>
           <td style={{padding:"6px 8px",fontSize:11,fontFamily:"monospace"}} title={r.tipoDocCod?fmtTipoDoc(r.tipoDocCod):""}>{r.tipoDocCod||"—"}</td>
@@ -1778,7 +1794,7 @@ function ConciliacionP({entries,setEntries,leafAccts,eObj,empEntries,aLog,reglas
 // importacion de ese mismo proveedor ya no pasa por esta bandeja.
 const CTA_POR_CLASIFICAR="1.1.05.001";
 
-function PorClasificar({empEntries,setEntries,leafAccts,eObj,aLog,reglas,setReglas}){
+function PorClasificar({empEntries,setEntries,leafAccts,eObj,aLog,reglas,setReglas,irAAsiento}){
   const pendientes=useMemo(()=>empEntries.filter(e=>e.tipoDoc==="compra"&&e.lines.some(l=>l.ac===CTA_POR_CLASIFICAR)).sort((a,b)=>b.date.localeCompare(a.date)),[empEntries]);
   const [sel,setSel]=useState(()=>new Set());
   const [cuentaLote,setCuentaLote]=useState("");
@@ -1864,11 +1880,11 @@ function PorClasificar({empEntries,setEntries,leafAccts,eObj,aLog,reglas,setRegl
           const monto=(linea?.db||0)||(linea?.cr||0);
           return<tr key={e.id} style={{borderBottom:"1px solid var(--bd)"}}>
             <td style={{padding:"8px 12px"}}><input type="checkbox" checked={sel.has(e.id)} onChange={()=>toggleSel(e.id)}/></td>
-            <td style={{padding:"8px 8px",whiteSpace:"nowrap"}}>{fD(e.date)}</td>
-            <td style={{padding:"8px 8px",fontFamily:"monospace"}}>{e.folio||"—"}</td>
-            <td style={{padding:"8px 8px",fontFamily:"monospace"}}>{e.rut||"—"}</td>
-            <td style={{padding:"8px 8px"}}>{e.razonSocial||e.desc}</td>
-            <td style={{padding:"8px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(monto)}</td>
+            <td onClick={()=>irAAsiento?.(e.id)} title="Ver asiento" style={{padding:"8px 8px",whiteSpace:"nowrap",cursor:irAAsiento?"pointer":"default"}}>{fD(e.date)}</td>
+            <td onClick={()=>irAAsiento?.(e.id)} title="Ver asiento" style={{padding:"8px 8px",fontFamily:"monospace",cursor:irAAsiento?"pointer":"default"}}>{e.folio||"—"}</td>
+            <td onClick={()=>irAAsiento?.(e.id)} title="Ver asiento" style={{padding:"8px 8px",fontFamily:"monospace",cursor:irAAsiento?"pointer":"default"}}>{e.rut||"—"}</td>
+            <td onClick={()=>irAAsiento?.(e.id)} title="Ver asiento" style={{padding:"8px 8px",cursor:irAAsiento?"pointer":"default"}}>{e.razonSocial||e.desc}</td>
+            <td onClick={()=>irAAsiento?.(e.id)} title="Ver asiento" style={{padding:"8px 8px",textAlign:"right",fontFamily:"monospace",cursor:irAAsiento?"pointer":"default"}}>${fmt(monto)}</td>
             <td style={{padding:"8px 12px"}}>
               <div style={{display:"flex",gap:6}}>
                 <select value={porFila[e.id]||""} onChange={ev=>setPorFila(p=>({...p,[e.id]:ev.target.value}))} style={{fontSize:11}}>
@@ -1909,7 +1925,7 @@ function PorClasificar({empEntries,setEntries,leafAccts,eObj,aLog,reglas,setRegl
 }
 
 // ═══ BALANCE 8 COLUMNAS ═══
-function B8Col({empEntries,accts,leafAccts,eObj}){
+function B8Col({empEntries,accts,leafAccts,eObj,irACuenta}){
   if(!empEntries.length)return<Ey i="🔢" t="Sin datos" d="Registra asientos para generar el Balance de 8 Columnas."/>;
   const rows=useMemo(()=>{
     const b={};leafAccts.forEach(a=>{b[a.cd]={db:0,cr:0}});
@@ -1954,7 +1970,7 @@ function B8Col({empEntries,accts,leafAccts,eObj}){
       </tr></thead>
       <tbody>
         {rows.map(r=><tr key={r.cd} style={{borderBottom:"1px solid var(--bd)"}}>
-          <td style={{padding:"5px 12px",borderRight:"1px solid var(--bd)",whiteSpace:"nowrap"}}><span style={{fontFamily:"monospace",fontSize:10,marginRight:6}}>{r.cd}</span>{r.nm}</td>
+          <td onClick={()=>irACuenta?.(r.cd)} title={irACuenta?"Ver en Libro Mayor":undefined} style={{padding:"5px 12px",borderRight:"1px solid var(--bd)",whiteSpace:"nowrap",cursor:irACuenta?"pointer":"default"}}><span style={{fontFamily:"monospace",fontSize:10,marginRight:6}}>{r.cd}</span>{r.nm}</td>
           <td style={{padding:"5px 8px",textAlign:"right",fontFamily:"monospace",borderRight:"1px solid var(--bd)"}}>{r.sumDb?fmt(r.sumDb):""}</td>
           <td style={{padding:"5px 8px",textAlign:"right",fontFamily:"monospace",borderRight:"1px solid var(--bd)"}}>{r.sumCr?fmt(r.sumCr):""}</td>
           <td style={{padding:"5px 8px",textAlign:"right",fontFamily:"monospace",borderRight:"1px solid var(--bd)"}}>{r.salDb?fmt(r.salDb):""}</td>
