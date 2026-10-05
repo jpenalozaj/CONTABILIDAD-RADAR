@@ -2374,9 +2374,34 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
       <div style={{width:40,height:40,borderRadius:10,background:"var(--sf2)",border:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"var(--tx2)",flexShrink:0}}>{(t.nombre||"?").slice(0,2).toUpperCase()}</div>
       <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:600}}>{t.nombre} {t.apellido}</div><div style={{fontSize:11,color:"var(--tx3)"}}>{t.cargo||"Sin cargo"} · {t.rut}{t.activo===false?" · Inactivo":""}</div></div>
       <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(t.sueldoBase||0)}</div><div style={{fontSize:10,color:"var(--tx3)"}}>Sueldo base</div></div>
+      <button onClick={e=>{e.stopPropagation();setTid(t.id);setVw("historial")}} style={{background:"none",border:"1px solid var(--bd)",borderRadius:"var(--rs)",color:"var(--tx2)",cursor:"pointer",fontSize:11,padding:"6px 10px",flexShrink:0}}>Historial</button>
       <button onClick={e=>{e.stopPropagation();if(confirm("Eliminar la ficha de "+t.nombre+"?"))doDelT(t.id)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5,padding:4}}>x</button>
     </div>)}</div>}
   </div>);
+
+  if(vw==="historial"){
+    const th=empTrabajadores.find(x=>x.id===tid);
+    const hist=empRems.filter(r=>r.trabajadorId===tid).sort((a,b)=>(b.periodo||"").localeCompare(a.periodo||""));
+    const totLiqHist=hist.reduce((s,r)=>s+(r.liquido||0),0);
+    const totCostoHist=hist.reduce((s,r)=>s+(r.costoEmpresa||0),0);
+    return(<div style={{maxWidth:900,margin:"0 auto"}}>
+      <Bk onClick={()=>setVw("trabajadores")}>Volver</Bk>
+      <div style={{display:"flex",flexWrap:"wrap",gap:12,marginBottom:20,alignItems:"center",justifyContent:"space-between"}}>
+        <div><div style={{fontSize:15,fontWeight:600}}>Historial - {th?th.nombre+" "+(th.apellido||""):"Trabajador"}</div><div style={{fontSize:12,color:"var(--tx3)",marginTop:2}}>{hist.length} liquidacion{hist.length!==1?"es":""}{th?.rut?" · "+th.rut:""}</div></div>
+      </div>
+      {hist.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12,marginBottom:16}}>
+        <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4}}>Total Liquido Pagado</div><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2,color:"var(--gn)"}}>${fmt(totLiqHist)}</div></div>
+        <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4}}>Costo Empresa Acumulado</div><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2,color:"var(--am)"}}>${fmt(totCostoHist)}</div></div>
+        <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4}}>Liquido Promedio</div><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2}}>${fmt(Math.round(totLiqHist/hist.length))}</div></div>
+      </div>}
+      {hist.length===0?<Ey i="📄" t="Sin liquidaciones" d="Este trabajador todavia no tiene liquidaciones registradas."/>
+      :<div style={{display:"flex",flexDirection:"column",gap:8}}>{hist.map(r=><div key={r.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16,cursor:"pointer"}} onClick={()=>openEdit(r)}>
+        <div style={{width:72,flexShrink:0}}><div style={{fontSize:13,fontWeight:600}}>{r.periodo}</div><div style={{fontSize:10,color:"var(--tx3)"}}>Periodo</div></div>
+        <div style={{flex:1,minWidth:0}}><div style={{fontSize:12,color:"var(--tx2)"}}>Haberes ${fmt(r.totalHaberes||0)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Descuentos ${fmt(r.totalDescuentos||0)}</div></div>
+        <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,color:"var(--gn)"}}>${fmt(r.liquido||0)}</div><div style={{fontSize:10,color:"var(--tx3)"}}>Liquido</div></div>
+      </div>)}</div>}
+    </div>);
+  }
 
   if(vw==="params")return(<div style={{maxWidth:700,margin:"0 auto"}}>
     <Bk onClick={()=>setVw("list")}>Volver</Bk>
