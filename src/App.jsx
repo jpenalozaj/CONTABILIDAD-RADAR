@@ -913,14 +913,12 @@ function DashboardFin({empEntries,leafAccts,eObj}){
   const tFlujo=mesesData.reduce((s,d)=>s+d.flujoCaja,0);
 
   if(!empEntries.length)return<Ey i="📊" t="Sin datos todavia" d="Registra asientos para ver el dashboard financiero."/>;
+  const kpis=[{l:"Ingresos",v:tIngresos,c:"var(--gn)",tilt:"-1.5deg",tilty:"5px"},{l:"Gastos",v:tGastos,c:"var(--am)",tilt:"1deg",tilty:"-6px"},{l:"Resultado",v:tIngresos-tGastos,c:tIngresos-tGastos>=0?"var(--gn)":"var(--rd)",tilt:"-1.25deg",tilty:"7px"},{l:"Flujo de caja neto",v:tFlujo,c:tFlujo>=0?"var(--gn)":"var(--rd)",tilt:"1.5deg",tilty:"-5px"}];
   return(<div>
-    <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Dashboard Financiero</div>
-    <div style={{fontSize:12,color:"var(--tx3)",marginBottom:20}}>Ultimos {mesesData.length} meses con movimientos — {eObj?.name}.</div>
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:20}}>
-      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:6}}>Ingresos</div><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2,color:"var(--gn)"}}>${fmt(tIngresos)}</div></div>
-      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:6}}>Gastos</div><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2,color:"var(--am)"}}>${fmt(tGastos)}</div></div>
-      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:6}}>Resultado</div><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2,color:tIngresos-tGastos>=0?"var(--gn)":"var(--rd)"}}>${fmt(tIngresos-tGastos)}</div></div>
-      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:6}}>Flujo de caja neto</div><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2,color:tFlujo>=0?"var(--gn)":"var(--rd)"}}>${fmt(tFlujo)}</div></div>
+    <div style={{fontSize:28,fontWeight:800,letterSpacing:-1,marginBottom:4}}>Dashboard Financiero</div>
+    <div style={{fontSize:12,color:"var(--tx3)",marginBottom:24}}>Ultimos {mesesData.length} meses con movimientos — {eObj?.name}.</div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:24,paddingTop:8,paddingBottom:4}}>
+      {kpis.map((k,i)=><div key={i} className="rd-hover-lift rd-tilt" style={{"--tilt":k.tilt,"--tilty":k.tilty,background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:18}}><div style={{fontSize:10,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:8,fontWeight:600}}>{k.l}</div><div style={{fontSize:30,fontWeight:800,letterSpacing:-1,lineHeight:1.05,color:k.c}}>${fmt(k.v)}</div></div>)}
     </div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(320px,1fr))",gap:16,marginBottom:16}}>
       <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:18}}>
