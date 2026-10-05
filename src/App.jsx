@@ -1121,12 +1121,20 @@ function Balance({empEntries,accts,leafAccts,eObj,irACuenta}){
   const bals=useMemo(()=>{const b={};leafAccts.forEach(a=>{b[a.cd]={db:0,cr:0}});filtradas.forEach(e=>e.lines.forEach(l=>{if(!b[l.ac])b[l.ac]={db:0,cr:0};b[l.ac].db+=(l.db||0);b[l.ac].cr+=(l.cr||0)}));return b},[filtradas,leafAccts]);
   const getB=(cd,tp)=>{const b=bals[cd]||{db:0,cr:0};return(tp==="asset"||tp==="expense")?b.db-b.cr:b.cr-b.db};
   const mkSec=tp=>{const l2=accts.filter(a=>a.tp===tp&&a.lv===2);return l2.map(g=>{const ch=leafAccts.filter(a=>a.tp===tp&&a.cd.startsWith(g.cd+"."));const items=ch.map(c=>({cd:c.cd,nm:c.nm,bal:getB(c.cd,tp)})).filter(c=>c.bal!==0);return{grp:g.nm,items,sub:items.reduce((s,c)=>s+c.bal,0)}}).filter(g=>g.items.length>0)};
-  const assets=mkSec("asset");const liabs=mkSec("liability");const eq=mkSec("equity");
+  const assets=mkSec("asset");const liabs=mkSec("liability");
+  // El patrimonio no cuadra con solo las cuentas de capital -- falta el
+  // resultado del ejercicio (Ingresos - Gastos) mientras no se haga un
+  // cierre contable formal que lo traspase a una cuenta de capital.
+  const incomeTotal=leafAccts.filter(a=>a.tp==="income").reduce((s,a)=>s+getB(a.cd,"income"),0);
+  const expenseTotal=leafAccts.filter(a=>a.tp==="expense").reduce((s,a)=>s+getB(a.cd,"expense"),0);
+  const resultadoEjercicio=incomeTotal-expenseTotal;
+  const eqCapital=mkSec("equity");
+  const eq=resultadoEjercicio!==0?[...eqCapital,{grp:"Resultado del Ejercicio",items:[{cd:null,nm:resultadoEjercicio>=0?"Utilidad del ejercicio":"Perdida del ejercicio",bal:resultadoEjercicio}],sub:resultadoEjercicio}]:eqCapital;
   const tA=assets.reduce((s,g)=>s+g.sub,0);const tL=liabs.reduce((s,g)=>s+g.sub,0);const tE=eq.reduce((s,g)=>s+g.sub,0);const tPE=tL+tE;
 
   const BSec=({title,groups,total,color})=><div><div style={{fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:12,color}}>{title}</div>
     {groups.map((g,i)=><div key={i} style={{marginBottom:12}}><div style={{fontSize:11,fontWeight:600,color:"var(--tx2)",marginBottom:4,paddingLeft:8}}>{g.grp}</div>
-      {g.items.map((it,j)=><div key={j} onClick={()=>irACuenta?.(it.cd)} title={irACuenta?"Ver en Libro Mayor":undefined} style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:12,paddingLeft:24,padding:"3px 0 3px 24px",cursor:irACuenta?"pointer":"default"}}><span style={{color:"var(--tx2)"}}>{it.nm}</span><span style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(it.bal)}</span></div>)}
+      {g.items.map((it,j)=><div key={j} onClick={()=>it.cd&&irACuenta?.(it.cd)} title={it.cd&&irACuenta?"Ver en Libro Mayor":undefined} style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:12,paddingLeft:24,padding:"3px 0 3px 24px",cursor:it.cd&&irACuenta?"pointer":"default"}}><span style={{color:"var(--tx2)"}}>{it.nm}</span><span style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(it.bal)}</span></div>)}
       <div style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:12,paddingLeft:24,padding:"6px 0 6px 24px",borderTop:"1px solid var(--bd)",marginTop:4,fontWeight:600}}><span>Subtotal {g.grp}</span><span style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(g.sub)}</span></div>
     </div>)}
     <div style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:13,fontWeight:700,padding:"10px 0",borderTop:"2px solid var(--bd2)",marginTop:4}}><span>TOTAL {title.toUpperCase()}</span><span style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(total)}</span></div>
