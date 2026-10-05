@@ -13,9 +13,16 @@ input,select,textarea{font-family:inherit;background:var(--sf);border:1px solid 
 input:focus,select:focus,textarea:focus{border-color:var(--cy);box-shadow:0 0 0 3px var(--cyg)}
 input::placeholder,textarea::placeholder{color:var(--tx3)}
 select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:16px;padding-right:36px}
-textarea{resize:vertical;min-height:80px}button{font-family:inherit;cursor:pointer}
+textarea{resize:vertical;min-height:80px}button{font-family:inherit;cursor:pointer;transition:transform .1s ease-out}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
 @keyframes rpulse{0%,100%{opacity:1}50%{opacity:.4}}
+/* Respuesta instantanea al presionar (principio "Response" de Apple Design):
+   el feedback vive en el press, no en el click/release. */
+button:active:not(:disabled){transform:scale(.97)}
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+  button:active:not(:disabled){transform:none}
+}
 .rpt-print-head{display:none}
 /* El look formal (papel blanco, encabezado tipo carta) solo se ve al
    exportar a PDF -- en pantalla los reportes se quedan con el tema
