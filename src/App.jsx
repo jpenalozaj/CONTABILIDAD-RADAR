@@ -311,6 +311,13 @@ function AuthScreen(){
   const[msg,setMsg]=useState(null);
   const submit=async(ev)=>{
     ev.preventDefault();setBusy(true);setMsg(null);
+    if(mode==="forgot"){
+      const{error}=await supabase.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin});
+      setBusy(false);
+      if(error)setMsg({t:"err",m:error.message});
+      else setMsg({t:"ok",m:"Si ese correo tiene una cuenta, te llegara un link para definir una nueva contrasena. Revisa tu bandeja (y spam)."});
+      return;
+    }
     const{error}=mode==="login"
       ?await supabase.auth.signInWithPassword({email,password})
       :await supabase.auth.signUp({email,password});
@@ -322,16 +329,46 @@ function AuthScreen(){
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)"}}>
       <form onSubmit={submit} style={{width:340,background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:28}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:24,color:"var(--cy)"}}>{IC.radar}<div style={{fontSize:18,fontWeight:800,letterSpacing:4}}>RADAR</div></div>
-        <div style={{display:"flex",gap:6,marginBottom:20,background:"var(--sf2)",borderRadius:"var(--rs)",padding:4}}>
+        {mode!=="forgot"&&<div style={{display:"flex",gap:6,marginBottom:20,background:"var(--sf2)",borderRadius:"var(--rs)",padding:4}}>
           <button type="button" onClick={()=>{setMode("login");setMsg(null)}} style={{flex:1,padding:"8px 0",borderRadius:6,border:"none",fontSize:12,fontWeight:600,background:mode==="login"?"var(--cy)":"transparent",color:mode==="login"?"#fff":"var(--tx2)"}}>Iniciar sesion</button>
           <button type="button" onClick={()=>{setMode("signup");setMsg(null)}} style={{flex:1,padding:"8px 0",borderRadius:6,border:"none",fontSize:12,fontWeight:600,background:mode==="signup"?"var(--cy)":"transparent",color:mode==="signup"?"#fff":"var(--tx2)"}}>Crear cuenta</button>
-        </div>
+        </div>}
+        {mode==="forgot"&&<div style={{fontSize:13,color:"var(--tx2)",marginBottom:16,lineHeight:1.5}}>Escribe tu correo y te enviamos un link para definir una nueva contrasena.</div>}
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
           <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Correo</label><input type="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu@estudio.cl"/></div>
-          <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Contrasena</label><input type="password" required minLength={6} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Minimo 6 caracteres"/></div>
+          {mode!=="forgot"&&<div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Contrasena</label><input type="password" required minLength={6} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Minimo 6 caracteres"/></div>}
         </div>
+        {mode==="login"&&<button type="button" onClick={()=>{setMode("forgot");setMsg(null)}} style={{background:"none",border:"none",color:"var(--tx3)",fontSize:11,textAlign:"right",width:"100%",marginTop:8,cursor:"pointer",padding:0}}>Olvidaste tu contrasena?</button>}
         {msg&&<div style={{marginTop:14,fontSize:12,padding:"10px 12px",borderRadius:"var(--rs)",background:msg.t==="err"?"rgba(239,68,68,.1)":"rgba(16,185,129,.1)",color:msg.t==="err"?"var(--rd)":"var(--gn)",border:"1px solid "+(msg.t==="err"?"rgba(239,68,68,.2)":"rgba(16,185,129,.2)")}}>{msg.m}</div>}
-        <button type="submit" disabled={busy} style={{marginTop:18,width:"100%",padding:"12px 0",borderRadius:"var(--rs)",border:"none",background:"var(--cy)",color:"#fff",fontWeight:600,fontSize:13,cursor:busy?"default":"pointer",opacity:busy?.6:1}}>{busy?"Un momento...":mode==="login"?"Iniciar sesion":"Crear cuenta"}</button>
+        <button type="submit" disabled={busy} style={{marginTop:18,width:"100%",padding:"12px 0",borderRadius:"var(--rs)",border:"none",background:"var(--cy)",color:"#fff",fontWeight:600,fontSize:13,cursor:busy?"default":"pointer",opacity:busy?.6:1}}>{busy?"Un momento...":mode==="login"?"Iniciar sesion":mode==="signup"?"Crear cuenta":"Enviar link de recuperacion"}</button>
+        {mode==="forgot"&&<button type="button" onClick={()=>{setMode("login");setMsg(null)}} style={{background:"none",border:"none",color:"var(--tx3)",fontSize:11,width:"100%",marginTop:10,cursor:"pointer",padding:0}}>Volver a iniciar sesion</button>}
+      </form>
+    </div>
+  </>);
+}
+
+function ResetPasswordScreen({onDone}){
+  const[password,setPassword]=useState("");
+  const[busy,setBusy]=useState(false);
+  const[msg,setMsg]=useState(null);
+  const submit=async(ev)=>{
+    ev.preventDefault();setBusy(true);setMsg(null);
+    const{error}=await supabase.auth.updateUser({password});
+    setBusy(false);
+    if(error)setMsg({t:"err",m:error.message});
+    else setMsg({t:"ok",m:"Contrasena actualizada."});
+  };
+  return(<><style>{ST}</style>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)"}}>
+      <form onSubmit={submit} style={{width:340,background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:28}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:24,color:"var(--cy)"}}>{IC.radar}<div style={{fontSize:18,fontWeight:800,letterSpacing:4}}>RADAR</div></div>
+        <div style={{fontSize:14,fontWeight:600,marginBottom:4}}>Define tu nueva contrasena</div>
+        <div style={{fontSize:12,color:"var(--tx3)",marginBottom:16}}>Veniste desde el link de recuperacion que enviamos a tu correo.</div>
+        <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Nueva contrasena</label><input type="password" required minLength={6} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Minimo 6 caracteres"/></div>
+        {msg&&<div style={{marginTop:14,fontSize:12,padding:"10px 12px",borderRadius:"var(--rs)",background:msg.t==="err"?"rgba(239,68,68,.1)":"rgba(16,185,129,.1)",color:msg.t==="err"?"var(--rd)":"var(--gn)",border:"1px solid "+(msg.t==="err"?"rgba(239,68,68,.2)":"rgba(16,185,129,.2)")}}>{msg.m}</div>}
+        {msg?.t==="ok"
+          ?<button type="button" onClick={onDone} style={{marginTop:18,width:"100%",padding:"12px 0",borderRadius:"var(--rs)",border:"none",background:"var(--cy)",color:"#fff",fontWeight:600,fontSize:13,cursor:"pointer"}}>Ir a RADAR</button>
+          :<button type="submit" disabled={busy} style={{marginTop:18,width:"100%",padding:"12px 0",borderRadius:"var(--rs)",border:"none",background:"var(--cy)",color:"#fff",fontWeight:600,fontSize:13,cursor:busy?"default":"pointer",opacity:busy?.6:1}}>{busy?"Un momento...":"Guardar nueva contrasena"}</button>}
       </form>
     </div>
   </>);
@@ -356,14 +393,16 @@ function ConfigMissing(){
 
 export default function App(){
   const[session,setSession]=useState(undefined);
+  const[recovering,setRecovering]=useState(false);
   useEffect(()=>{
     if(!supabase)return;
     supabase.auth.getSession().then(({data})=>setSession(data.session));
-    const{data:sub}=supabase.auth.onAuthStateChange((_ev,s)=>setSession(s));
+    const{data:sub}=supabase.auth.onAuthStateChange((ev,s)=>{if(ev==="PASSWORD_RECOVERY")setRecovering(true);setSession(s)});
     return()=>sub.subscription.unsubscribe();
   },[]);
   if(!supabase)return<ConfigMissing/>;
   if(session===undefined)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#050A18"}}><div style={{textAlign:"center",color:"#06B6D4"}}><div style={{fontSize:24,fontWeight:800,letterSpacing:6}}>RADAR</div><div style={{fontSize:12,color:"#64748B",marginTop:8}}>Cargando...</div></div></div>;
+  if(recovering)return<ResetPasswordScreen onDone={()=>setRecovering(false)}/>;
   if(!session)return<AuthScreen/>;
   return<Dashboard key={session.user.id} session={session}/>;
 }

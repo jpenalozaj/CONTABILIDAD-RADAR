@@ -106,6 +106,15 @@ Por defecto, Supabase Auth exige confirmar el correo antes de poder
 iniciar sesion (revisa la bandeja de entrada tras crear la cuenta). Esto se
 puede desactivar en Authentication > Providers > Email mientras pruebas.
 
+### Recuperar contrasena olvidada
+
+En la pantalla de login, "Olvidaste tu contrasena?" envia un correo con un
+link para definirla de nuevo. Para que ese link vuelva a RADAR (y no de
+error), agrega la URL donde corre RADAR a Supabase: Authentication > URL
+Configuration > Redirect URLs. Agrega tanto
+`http://localhost:5173` (desarrollo) como la URL de produccion si ya
+desplegaste RADAR en algun dominio.
+
 ## Notas
 
 - Ver `ROADMAP.md` para las fases siguientes (informes con IA, modulos
