@@ -7,7 +7,7 @@ import { yaContabilizado, sugerirContraparte, armarAsiento, buscarReglaPorRut, b
 
 const ST = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fraunces:ital,wght@0,600;0,700;1,600&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#0D0F08;--sf:#17190F;--sf2:#1F2316;--bd:#2B2F1E;--bd2:#3B4129;--tx:#F3F1E8;--tx2:#AEAA9A;--tx3:#7A7868;--cy:#E4FF3D;--cy2:#A6BF25;--cyg:rgba(228,255,61,.15);--gn:#10B981;--am:#FBBF24;--rd:#EF4444;--pu:#9BA888;--r:12px;--rs:8px;--shadow:0 1px 0 rgba(255,255,255,.04) inset,0 10px 24px -8px rgba(0,0,0,.55),0 2px 6px -2px rgba(0,0,0,.35);--glass:rgba(23,25,15,.72);--grad:linear-gradient(135deg,#E4FF3D,#F7FFD1);--grad-gn:linear-gradient(135deg,#10B981,#6EE7B7);--grad-am:linear-gradient(135deg,#FBBF24,#FCD34D);--grad-pu:linear-gradient(135deg,#9BA888,#C7D1B0)}
+:root{--bg:#EDEAD9;--sf:#F7F5EA;--sf2:#FFFFFF;--bd:#D9D4BE;--bd2:#C5BFA2;--tx:#1C1B12;--tx2:#4A4836;--tx3:#817C5F;--cy:#6B7408;--cy2:#4D5306;--cyg:rgba(107,116,8,.12);--cy-fill:#D4F000;--gn:#0D8A5F;--am:#B45309;--rd:#DC2626;--pu:#5F6B4A;--r:12px;--rs:8px;--shadow:0 1px 0 rgba(255,255,255,.6) inset,0 10px 24px -10px rgba(40,35,10,.18),0 2px 6px -2px rgba(40,35,10,.12);--glass:rgba(250,249,240,.72);--grad:linear-gradient(135deg,#5C6B04,#8FA300);--grad-gn:linear-gradient(135deg,#0D8A5F,#059669);--grad-am:linear-gradient(135deg,#B45309,#D97706);--grad-pu:linear-gradient(135deg,#4A5538,#6B7A52)}
 body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--tx)}
 input,select,textarea{font-family:inherit;background:var(--sf);border:1px solid var(--bd);color:var(--tx);border-radius:var(--rs);padding:10px 14px;font-size:13px;outline:none;width:100%;transition:border-color .2s}
 input:focus,select:focus,textarea:focus{border-color:var(--cy);box-shadow:0 0 0 3px var(--cyg)}
@@ -68,9 +68,9 @@ button:active:not(:disabled){transform:scale(.97)}
 function ld(k,fb){try{const r=localStorage.getItem(k);return r?JSON.parse(r):fb}catch{return fb}}
 function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){console.error(e)}}
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-const SVCS=[{id:"contabilidad",label:"Contabilidad",icon:"\u{1F4CA}",color:"#E4FF3D"},{id:"tributario",label:"Tributario",icon:"\u{1F4CB}",color:"#9BA888"},{id:"auditoria",label:"Auditor\u00eda",icon:"\u{1F50D}",color:"#FBBF24"},{id:"remuneraciones",label:"Remuneraciones",icon:"\u{1F465}",color:"#10B981"},{id:"consultoria",label:"Consultor\u00eda",icon:"\u{1F4A1}",color:"#EC4899"},{id:"compliance",label:"Compliance",icon:"\u{1F6E1}",color:"#6366F1"}];
+const SVCS=[{id:"contabilidad",label:"Contabilidad",icon:"\u{1F4CA}",color:"#6B7408"},{id:"tributario",label:"Tributario",icon:"\u{1F4CB}",color:"#5F6B4A"},{id:"auditoria",label:"Auditor\u00eda",icon:"\u{1F50D}",color:"#B45309"},{id:"remuneraciones",label:"Remuneraciones",icon:"\u{1F465}",color:"#0D8A5F"},{id:"consultoria",label:"Consultor\u00eda",icon:"\u{1F4A1}",color:"#EC4899"},{id:"compliance",label:"Compliance",icon:"\u{1F6E1}",color:"#6366F1"}];
 const REGS=["Pro Pyme General (14 D N\u00b03)","Pro Pyme Transparente (14 D N\u00b08)","Semi Integrado (14 A)","Renta Presunta (34)","Otro"];
-const ETYPES=[{id:"renta",label:"RADAR Renta (F22)",icon:"\u{1F4CB}",color:"#9BA888",desc:"Revision integral del F22 - ultimos 5 anos tributarios"},{id:"tributario",label:"RADAR Tributario",icon:"\u2696\uFE0F",color:"#E4FF3D",desc:"Cumplimiento F29, DJ, situacion tributaria"},{id:"financiero",label:"RADAR Financiero",icon:"\u{1F4CA}",color:"#10B981",desc:"Liquidez, endeudamiento, rentabilidad, capital de trabajo"},{id:"auditoria",label:"RADAR Auditoria",icon:"\u{1F50D}",color:"#FBBF24",desc:"Planificacion, riesgos, COSO",soon:true},{id:"360",label:"RADAR 360",icon:"\u{1F3AF}",color:"#EF4444",desc:"Diagnostico completo - todas las areas"}];
+const ETYPES=[{id:"renta",label:"RADAR Renta (F22)",icon:"\u{1F4CB}",color:"#5F6B4A",desc:"Revision integral del F22 - ultimos 5 anos tributarios"},{id:"tributario",label:"RADAR Tributario",icon:"\u2696\uFE0F",color:"#6B7408",desc:"Cumplimiento F29, DJ, situacion tributaria"},{id:"financiero",label:"RADAR Financiero",icon:"\u{1F4CA}",color:"#0D8A5F",desc:"Liquidez, endeudamiento, rentabilidad, capital de trabajo"},{id:"auditoria",label:"RADAR Auditoria",icon:"\u{1F50D}",color:"#B45309",desc:"Planificacion, riesgos, COSO",soon:true},{id:"360",label:"RADAR 360",icon:"\u{1F3AF}",color:"#DC2626",desc:"Diagnostico completo - todas las areas"}];
 const CY=new Date().getFullYear();
 const ATY=[CY,CY-1,CY-2,CY-3,CY-4];
 const IC={
@@ -223,7 +223,7 @@ function mkQ(y){return[
   {id:"obs_"+y,text:"AT "+y+" - Observaciones del profesional",type:"textarea",ph:"Analisis, conclusiones, recomendaciones...",nx:()=>null},
 ]}
 function visQ(qs,r){const v=[];if(!qs.length)return v;v.push(qs[0]);let c=qs[0];while(c){const rv=r[c.id];if(rv===undefined||rv===""||rv===null)break;const ni=c.nx?c.nx(rv):null;if(!ni)break;const nq=qs.find(q=>q.id===ni);if(!nq)break;v.push(nq);c=nq}return v}
-function ySt(y,r){const e=r["e_"+y];if(!e)return{s:"pend",l:"Sin evaluar",c:"#7A7868"};if(e==="aceptada")return{s:"ok",l:"Aceptada",c:"#10B981"};if(e==="no_presentada")return{s:"alert",l:"No presentada",c:"#EF4444"};if(r["obs_"+y])return{s:"rev",l:"Observada - Revisada",c:"#FBBF24"};return{s:"proc",l:"Observada - En revision",c:"#FBBF24"}}
+function ySt(y,r){const e=r["e_"+y];if(!e)return{s:"pend",l:"Sin evaluar",c:"#817C5F"};if(e==="aceptada")return{s:"ok",l:"Aceptada",c:"#0D8A5F"};if(e==="no_presentada")return{s:"alert",l:"No presentada",c:"#DC2626"};if(r["obs_"+y])return{s:"rev",l:"Observada - Revisada",c:"#B45309"};return{s:"proc",l:"Observada - En revision",c:"#B45309"}}
 
 function Dashboard({session}){
   const userId=session.user.id;
@@ -294,7 +294,7 @@ function Dashboard({session}){
   const portalIcon=<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{width:20,height:20}}><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>;
   const nav=[{id:"inicio",label:"Inicio",icon:IC.home},{id:"empresas",label:"Empresas",icon:IC.emp},{id:"radar",label:"RADAR",icon:IC.eval},{id:"contabilidad",label:"Contabilidad",icon:IC.contab},{id:"remuneraciones",label:"Remuneraciones",icon:remIcon},{id:"documentos",label:"Documentos",icon:docIcon},{id:"planificacion",label:"Planificacion",icon:planIcon},{id:"portal",label:"Portal Cliente",icon:portalIcon}];
   const go=p=>{if(!nav.find(n=>n.id===p)?.soon){setPg(p);setSb(false)}};
-  if(!rdy)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#0D0F08"}}><div style={{textAlign:"center",color:"#E4FF3D"}}><div style={{fontSize:24,fontWeight:800,letterSpacing:6,fontFamily:"'Fraunces',Georgia,serif"}}>RADAR</div><div style={{fontSize:12,color:"#7A7868",marginTop:8}}>Cargando...</div></div></div>;
+  if(!rdy)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#EDEAD9"}}><div style={{textAlign:"center",color:"#6B7408"}}><div style={{fontSize:24,fontWeight:800,letterSpacing:6,fontFamily:"'Fraunces',Georgia,serif"}}>RADAR</div><div style={{fontSize:12,color:"#7A7868",marginTop:8}}>Cargando...</div></div></div>;
   return(<><style>{ST}</style><div style={{display:"flex",height:"100vh",overflow:"hidden",background:"var(--bg)"}}>
     {sb&&<div onClick={()=>setSb(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:40}}/>}
     <aside className="rsb rd-glass" style={{position:"fixed",zIndex:50,top:0,bottom:0,left:0,width:260,borderRight:"1px solid var(--bd)",display:"flex",flexDirection:"column",transform:sb?"translateX(0)":"translateX(-100%)",transition:"transform .25s"}}>
@@ -349,8 +349,8 @@ function AuthScreen(){
       <form onSubmit={submit} style={{width:340,background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:24,color:"var(--cy)"}}>{IC.radar}<div style={{fontSize:18,fontWeight:800,letterSpacing:4,fontFamily:"'Fraunces',Georgia,serif"}}>RADAR</div></div>
         {mode!=="forgot"&&<div style={{display:"flex",gap:6,marginBottom:20,background:"var(--sf2)",borderRadius:"var(--rs)",padding:4}}>
-          <button type="button" onClick={()=>{setMode("login");setMsg(null)}} style={{flex:1,padding:"8px 0",borderRadius:6,border:"none",fontSize:12,fontWeight:600,background:mode==="login"?"var(--cy)":"transparent",color:mode==="login"?"#0D0F08":"var(--tx2)"}}>Iniciar sesion</button>
-          <button type="button" onClick={()=>{setMode("signup");setMsg(null)}} style={{flex:1,padding:"8px 0",borderRadius:6,border:"none",fontSize:12,fontWeight:600,background:mode==="signup"?"var(--cy)":"transparent",color:mode==="signup"?"#0D0F08":"var(--tx2)"}}>Crear cuenta</button>
+          <button type="button" onClick={()=>{setMode("login");setMsg(null)}} style={{flex:1,padding:"8px 0",borderRadius:6,border:"none",fontSize:12,fontWeight:600,background:mode==="login"?"var(--cy-fill)":"transparent",color:mode==="login"?"#1C1B12":"var(--tx2)"}}>Iniciar sesion</button>
+          <button type="button" onClick={()=>{setMode("signup");setMsg(null)}} style={{flex:1,padding:"8px 0",borderRadius:6,border:"none",fontSize:12,fontWeight:600,background:mode==="signup"?"var(--cy-fill)":"transparent",color:mode==="signup"?"#1C1B12":"var(--tx2)"}}>Crear cuenta</button>
         </div>}
         {mode==="forgot"&&<div style={{fontSize:13,color:"var(--tx2)",marginBottom:16,lineHeight:1.5}}>Escribe tu correo y te enviamos un link para definir una nueva contrasena.</div>}
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
@@ -359,7 +359,7 @@ function AuthScreen(){
         </div>
         {mode==="login"&&<button type="button" onClick={()=>{setMode("forgot");setMsg(null)}} style={{background:"none",border:"none",color:"var(--tx3)",fontSize:11,textAlign:"right",width:"100%",marginTop:8,cursor:"pointer",padding:0}}>Olvidaste tu contrasena?</button>}
         {msg&&<div style={{marginTop:14,fontSize:12,padding:"10px 12px",borderRadius:"var(--rs)",background:msg.t==="err"?"rgba(239,68,68,.1)":"rgba(16,185,129,.1)",color:msg.t==="err"?"var(--rd)":"var(--gn)",border:"1px solid "+(msg.t==="err"?"rgba(239,68,68,.2)":"rgba(16,185,129,.2)")}}>{msg.m}</div>}
-        <button type="submit" disabled={busy} style={{marginTop:18,width:"100%",padding:"12px 0",borderRadius:"var(--rs)",border:"none",background:"var(--cy)",color:"#0D0F08",fontWeight:600,fontSize:13,cursor:busy?"default":"pointer",opacity:busy?.6:1}}>{busy?"Un momento...":mode==="login"?"Iniciar sesion":mode==="signup"?"Crear cuenta":"Enviar link de recuperacion"}</button>
+        <button type="submit" disabled={busy} style={{marginTop:18,width:"100%",padding:"12px 0",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"#1C1B12",fontWeight:600,fontSize:13,cursor:busy?"default":"pointer",opacity:busy?.6:1}}>{busy?"Un momento...":mode==="login"?"Iniciar sesion":mode==="signup"?"Crear cuenta":"Enviar link de recuperacion"}</button>
         {mode==="forgot"&&<button type="button" onClick={()=>{setMode("login");setMsg(null)}} style={{background:"none",border:"none",color:"var(--tx3)",fontSize:11,width:"100%",marginTop:10,cursor:"pointer",padding:0}}>Volver a iniciar sesion</button>}
       </form>
     </div>
@@ -386,8 +386,8 @@ function ResetPasswordScreen({onDone}){
         <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Nueva contrasena</label><input type="password" required minLength={6} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Minimo 6 caracteres"/></div>
         {msg&&<div style={{marginTop:14,fontSize:12,padding:"10px 12px",borderRadius:"var(--rs)",background:msg.t==="err"?"rgba(239,68,68,.1)":"rgba(16,185,129,.1)",color:msg.t==="err"?"var(--rd)":"var(--gn)",border:"1px solid "+(msg.t==="err"?"rgba(239,68,68,.2)":"rgba(16,185,129,.2)")}}>{msg.m}</div>}
         {msg?.t==="ok"
-          ?<button type="button" onClick={onDone} style={{marginTop:18,width:"100%",padding:"12px 0",borderRadius:"var(--rs)",border:"none",background:"var(--cy)",color:"#0D0F08",fontWeight:600,fontSize:13,cursor:"pointer"}}>Ir a RADAR</button>
-          :<button type="submit" disabled={busy} style={{marginTop:18,width:"100%",padding:"12px 0",borderRadius:"var(--rs)",border:"none",background:"var(--cy)",color:"#0D0F08",fontWeight:600,fontSize:13,cursor:busy?"default":"pointer",opacity:busy?.6:1}}>{busy?"Un momento...":"Guardar nueva contrasena"}</button>}
+          ?<button type="button" onClick={onDone} style={{marginTop:18,width:"100%",padding:"12px 0",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"#1C1B12",fontWeight:600,fontSize:13,cursor:"pointer"}}>Ir a RADAR</button>
+          :<button type="submit" disabled={busy} style={{marginTop:18,width:"100%",padding:"12px 0",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"#1C1B12",fontWeight:600,fontSize:13,cursor:busy?"default":"pointer",opacity:busy?.6:1}}>{busy?"Un momento...":"Guardar nueva contrasena"}</button>}
       </form>
     </div>
   </>);
@@ -420,7 +420,7 @@ export default function App(){
     return()=>sub.subscription.unsubscribe();
   },[]);
   if(!supabase)return<ConfigMissing/>;
-  if(session===undefined)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#0D0F08"}}><div style={{textAlign:"center",color:"#E4FF3D"}}><div style={{fontSize:24,fontWeight:800,letterSpacing:6,fontFamily:"'Fraunces',Georgia,serif"}}>RADAR</div><div style={{fontSize:12,color:"#7A7868",marginTop:8}}>Cargando...</div></div></div>;
+  if(session===undefined)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#EDEAD9"}}><div style={{textAlign:"center",color:"#6B7408"}}><div style={{fontSize:24,fontWeight:800,letterSpacing:6,fontFamily:"'Fraunces',Georgia,serif"}}>RADAR</div><div style={{fontSize:12,color:"#7A7868",marginTop:8}}>Cargando...</div></div></div>;
   if(recovering)return<ResetPasswordScreen onDone={()=>setRecovering(false)}/>;
   if(!session)return<AuthScreen/>;
   return<Dashboard key={session.user.id} session={session}/>;
@@ -632,7 +632,7 @@ function F22V({ev,upd,del,emp,back}){
       <div style={{borderTop:"1px solid var(--bd)",paddingTop:24,marginTop:8}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16,flexWrap:"wrap",gap:12}}>
           <div><div style={{fontSize:13,fontWeight:700,color:"var(--cy)"}}>Informe Ejecutivo con IA</div><div style={{fontSize:11,color:"var(--tx3)"}}>Generado a partir de los datos de la evaluacion</div></div>
-          <button onClick={genAI} disabled={aiL} style={{display:"flex",alignItems:"center",gap:8,background:aiL?"var(--sf2)":"linear-gradient(135deg, #E4FF3D, #9BA888)",color:"#fff",border:"none",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600,cursor:aiL?"wait":"pointer",opacity:aiL?.7:1}}>{aiL?"Generando...":aiR?"Regenerar Informe":"Generar Informe"}</button>
+          <button onClick={genAI} disabled={aiL} style={{display:"flex",alignItems:"center",gap:8,background:aiL?"var(--sf2)":"linear-gradient(135deg, #D4F000, #8FA300)",color:"#1C1B12",border:"none",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600,cursor:aiL?"wait":"pointer",opacity:aiL?.7:1}}>{aiL?"Generando...":aiR?"Regenerar Informe":"Generar Informe"}</button>
         </div>
         {aiL&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:32,textAlign:"center"}}><div style={{fontSize:28,marginBottom:12,animation:"rpulse 1.5s infinite"}}>🤖</div><div style={{fontSize:14,fontWeight:600,color:"var(--cy)"}}>Analizando evaluacion...</div><div style={{fontSize:12,color:"var(--tx3)",marginTop:4}}>Revisando datos, contingencias y observaciones profesionales.</div></div>}
         {!aiL&&aiR&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:24}}><div style={{whiteSpace:"pre-wrap",fontSize:13,lineHeight:1.7,color:"var(--tx)"}}>{aiR}</div><div style={{display:"flex",gap:8,marginTop:20,paddingTop:16,borderTop:"1px solid var(--bd)"}}><button onClick={()=>{navigator.clipboard.writeText(aiR);alert("Copiado!")}} style={{display:"flex",alignItems:"center",gap:6,background:"var(--sf)",border:"1px solid var(--bd)",color:"var(--tx2)",padding:"8px 16px",borderRadius:"var(--rs)",fontSize:12}}>Copiar informe</button><button onClick={genAI} style={{display:"flex",alignItems:"center",gap:6,background:"var(--sf)",border:"1px solid var(--bd)",color:"var(--tx2)",padding:"8px 16px",borderRadius:"var(--rs)",fontSize:12}}>Regenerar</button></div></div>}
@@ -684,7 +684,7 @@ function ReportHeader({eObj,title,subtitle}){
   </div>);
 }
 const tpL={asset:"Activo",liability:"Pasivo",equity:"Patrimonio",income:"Ingreso",expense:"Gasto"};
-const tpC={asset:"#E4FF3D",liability:"#EF4444",equity:"#9BA888",income:"#10B981",expense:"#FBBF24"};
+const tpC={asset:"#6B7408",liability:"#DC2626",equity:"#5F6B4A",income:"#0D8A5F",expense:"#B45309"};
 
 function ContabP({eObj,accts,setAccts,entries,setEntries,empEntries,leafAccts,aLog,go,reglas,setReglas,ccostos,setCcostos,activos,setActivos}){
   const [tab,setTab]=useState("dashboard");
@@ -734,7 +734,7 @@ function CentrosCosto({ccostos,setCcostos,eObj,aLog}){
     <div style={{fontSize:12,color:"var(--tx3)",marginBottom:16}}>Agrupa asientos por proyecto o area (ej. "Obra Maipu", "Administracion") para filtrar el Libro Diario y el Estado de Resultados por separado.</div>
     <div style={{display:"flex",gap:8,marginBottom:16}}>
       <input value={nombre} onChange={e=>setNombre(e.target.value)} onKeyDown={e=>e.key==="Enter"&&agregar()} placeholder="Nombre del centro de costo" style={{maxWidth:300}}/>
-      <button onClick={agregar} disabled={!nombre.trim()} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--cy)",color:"#0D0F08",fontSize:12,fontWeight:600,cursor:nombre.trim()?"pointer":"default",opacity:nombre.trim()?1:.5}}>Agregar</button>
+      <button onClick={agregar} disabled={!nombre.trim()} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"#1C1B12",fontSize:12,fontWeight:600,cursor:nombre.trim()?"pointer":"default",opacity:nombre.trim()?1:.5}}>Agregar</button>
     </div>
     {ccostos.length===0?<Ey i="🏷️" t="Sin centros de costo" d="Agrega uno para poder asignarlo a tus asientos."/>:
     <div style={{display:"flex",flexDirection:"column",gap:6}}>{ccostos.map(c=>
@@ -824,7 +824,7 @@ function ActivosFijos({activos,setActivos,empEntries,setEntries,leafAccts,eObj,a
           <div><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase"}}>Acumulada</div><div style={{fontSize:13,fontFamily:"monospace",fontWeight:600,color:"var(--am)"}}>${fmt(Math.round(a.acumulada))}</div></div>
           <div><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase"}}>Valor libro</div><div style={{fontSize:13,fontFamily:"monospace",fontWeight:600,color:"var(--gn)"}}>${fmt(Math.round(a.valorLibro))}</div></div>
         </div>
-        <button onClick={()=>generarDepreciacion(a)} disabled={a.generadoEsteMes||a.valorLibro<=0} style={{padding:"6px 16px",borderRadius:"var(--rs)",border:"none",background:(a.generadoEsteMes||a.valorLibro<=0)?"var(--sf2)":"var(--cy)",color:(a.generadoEsteMes||a.valorLibro<=0)?"var(--tx3)":"#0D0F08",fontSize:11,fontWeight:600,cursor:(a.generadoEsteMes||a.valorLibro<=0)?"default":"pointer"}}>{a.valorLibro<=0?"Totalmente depreciado":a.generadoEsteMes?"Ya generado este mes":"Generar depreciacion de "+mesActual}</button>
+        <button onClick={()=>generarDepreciacion(a)} disabled={a.generadoEsteMes||a.valorLibro<=0} style={{padding:"6px 16px",borderRadius:"var(--rs)",border:"none",background:(a.generadoEsteMes||a.valorLibro<=0)?"var(--sf2)":"var(--cy-fill)",color:(a.generadoEsteMes||a.valorLibro<=0)?"var(--tx3)":"#1C1B12",fontSize:11,fontWeight:600,cursor:(a.generadoEsteMes||a.valorLibro<=0)?"default":"pointer"}}>{a.valorLibro<=0?"Totalmente depreciado":a.generadoEsteMes?"Ya generado este mes":"Generar depreciacion de "+mesActual}</button>
       </div>
     )}</div>}
   </div>);
@@ -966,7 +966,7 @@ function PlanCtas({accts,setAccts,aLog}){
         <tbody>{accts.map(a=><tr key={a.cd} style={{borderBottom:"1px solid "+(a.lv===1?"var(--bd2)":"var(--bd)"),background:a.lv===1?"var(--sf2)":"transparent"}}>
           <td style={{padding:"7px 16px",fontFamily:"monospace",fontSize:11,color:a.lv<=2?"var(--cy)":"var(--tx2)"}}>{a.cd}</td>
           <td style={{padding:"7px 8px",paddingLeft:lvPad[a.lv]||56,fontWeight:lvWeight[a.lv]||400,fontSize:lvSize[a.lv]||11}}>
-            {editCd===a.cd?<div style={{display:"flex",gap:6,alignItems:"center"}}><input value={editNm} onChange={e=>setEditNm(e.target.value)} style={{padding:"4px 8px",fontSize:12,background:"var(--sf2)",width:"100%"}} onKeyDown={e=>e.key==="Enter"&&saveEdit()}/><button onClick={saveEdit} style={{background:"var(--cy)",color:"#0D0F08",border:"none",borderRadius:4,padding:"4px 10px",fontSize:10,whiteSpace:"nowrap"}}>OK</button><button onClick={()=>setEditCd(null)} style={{background:"none",border:"none",color:"var(--tx3)",fontSize:10}}>x</button></div>:a.nm}
+            {editCd===a.cd?<div style={{display:"flex",gap:6,alignItems:"center"}}><input value={editNm} onChange={e=>setEditNm(e.target.value)} style={{padding:"4px 8px",fontSize:12,background:"var(--sf2)",width:"100%"}} onKeyDown={e=>e.key==="Enter"&&saveEdit()}/><button onClick={saveEdit} style={{background:"var(--cy-fill)",color:"#1C1B12",border:"none",borderRadius:4,padding:"4px 10px",fontSize:10,whiteSpace:"nowrap"}}>OK</button><button onClick={()=>setEditCd(null)} style={{background:"none",border:"none",color:"var(--tx3)",fontSize:10}}>x</button></div>:a.nm}
           </td>
           <td style={{padding:"7px 8px",fontSize:10,color:tpC[a.tp]}}>{tpL[a.tp]}</td>
           <td style={{padding:"7px 8px",fontSize:10,textAlign:"center",color:"var(--tx3)"}}>{a.lv}</td>
@@ -1064,7 +1064,7 @@ function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog,ccostos,res
       <div style={{display:"flex",flexDirection:"column",gap:8}}>{recurrentes.map(t=>{const generado=yaGeneradoEsteMes.has(t.id);return(
         <div key={t.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:"10px 14px",flexWrap:"wrap"}}>
           <div style={{fontSize:12}}>{t.desc} <span style={{color:"var(--tx3)"}}>· ${fmt(t.lines.reduce((s,l)=>s+(l.db||0),0))} · dia {t.date.slice(8,10)} de cada mes</span></div>
-          <button onClick={()=>generarRecurrente(t)} disabled={generado} style={{padding:"6px 14px",borderRadius:"var(--rs)",border:"none",background:generado?"var(--sf2)":"var(--cy)",color:generado?"var(--tx3)":"#0D0F08",fontSize:11,fontWeight:600,cursor:generado?"default":"pointer"}}>{generado?"Ya generado este mes":"Generar para "+mesActual}</button>
+          <button onClick={()=>generarRecurrente(t)} disabled={generado} style={{padding:"6px 14px",borderRadius:"var(--rs)",border:"none",background:generado?"var(--sf2)":"var(--cy-fill)",color:generado?"var(--tx3)":"#1C1B12",fontSize:11,fontWeight:600,cursor:generado?"default":"pointer"}}>{generado?"Ya generado este mes":"Generar para "+mesActual}</button>
         </div>);})}</div>
     </div>}
     <div style={{display:"flex",flexDirection:"column",gap:8}}>{[...empEntries].sort((a,b)=>b.date.localeCompare(a.date)).map(e=><div key={e.id} id={"asiento-"+e.id} style={{background:"var(--sf)",border:"1px solid "+(resaltadoId===e.id?"var(--am)":editId===e.id?"var(--cy)":"var(--bd)"),boxShadow:resaltadoId===e.id?"0 0 0 3px rgba(251,191,36,.25), var(--shadow)":"var(--shadow)",borderRadius:"var(--r)",padding:16,transition:"box-shadow .3s,border-color .3s"}}>
@@ -1448,7 +1448,7 @@ function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog,reglas}){
       <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Importar automatico desde el SII</div>
       <div style={{fontSize:12,color:"var(--tx3)",marginBottom:16}}>Requiere el puente local corriendo en tu computador: <code>node tools/sii-local-server.mjs</code> (despues de <code>sii auth login</code>). Ver <code>tools/README.md</code> para instalarlo.</div>
       <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap"}}>
-        <button onClick={()=>importarAuto("compra")} disabled={!!autoBusy} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--cy)",color:"#0D0F08",fontSize:12,fontWeight:600,cursor:autoBusy?"default":"pointer",opacity:autoBusy?.6:1}}>{autoBusy==="compra"?"Importando...":"Importar Compras"}</button>
+        <button onClick={()=>importarAuto("compra")} disabled={!!autoBusy} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"#1C1B12",fontSize:12,fontWeight:600,cursor:autoBusy?"default":"pointer",opacity:autoBusy?.6:1}}>{autoBusy==="compra"?"Importando...":"Importar Compras"}</button>
         <button onClick={()=>importarAuto("venta")} disabled={!!autoBusy} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--pu)",color:"#fff",fontSize:12,fontWeight:600,cursor:autoBusy?"default":"pointer",opacity:autoBusy?.6:1}}>{autoBusy==="venta"?"Importando...":"Importar Ventas"}</button>
       </div>
       <div style={{fontSize:11,color:"var(--tx3)",marginTop:12}}>Si reimportas el mismo periodo, reemplaza los asientos con el mismo folio+RUT en vez de duplicarlos.</div>
@@ -1466,7 +1466,7 @@ function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog,reglas}){
           <div style={{fontSize:28,marginBottom:8}}>📥</div>
           <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>Libro de Compras</div>
           <div style={{fontSize:11,color:"var(--tx3)",marginBottom:12}}>CSV del registro de compras SII</div>
-          <label style={{display:"inline-flex",alignItems:"center",gap:8,background:"var(--cy)",color:"#0D0F08",padding:"8px 20px",borderRadius:"var(--rs)",fontSize:12,fontWeight:600,cursor:"pointer"}}>Cargar CSV<input type="file" accept=".csv" onChange={e=>{if(e.target.files?.[0])processCSV(e.target.files[0],"compra");e.target.value=""}} style={{display:"none"}}/></label>
+          <label style={{display:"inline-flex",alignItems:"center",gap:8,background:"var(--cy-fill)",color:"#1C1B12",padding:"8px 20px",borderRadius:"var(--rs)",fontSize:12,fontWeight:600,cursor:"pointer"}}>Cargar CSV<input type="file" accept=".csv" onChange={e=>{if(e.target.files?.[0])processCSV(e.target.files[0],"compra");e.target.value=""}} style={{display:"none"}}/></label>
         </div>
         <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:20,textAlign:"center"}}>
           <div style={{fontSize:28,marginBottom:8}}>📤</div>
@@ -1701,7 +1701,7 @@ function LibroCV({empEntries,tipo,eObj,irAAsiento}){
           <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace",fontWeight:600}}>${fmt(r.total)}</td>
         </tr>)}</tbody>
       </table></div>
-      <div style={{background:coincide?"rgba(16,185,129,.1)":"rgba(251,191,36,.1)",border:"1px solid "+(coincide?"rgba(16,185,129,.3)":"rgba(251,191,36,.3)"),borderRadius:"var(--rs)",padding:16,fontSize:13,color:coincide?"var(--gn)":"var(--yl,#FBBF24)"}}>
+      <div style={{background:coincide?"rgba(16,185,129,.1)":"rgba(251,191,36,.1)",border:"1px solid "+(coincide?"rgba(16,185,129,.3)":"rgba(251,191,36,.3)"),borderRadius:"var(--rs)",padding:16,fontSize:13,color:coincide?"var(--gn)":"var(--yl,#B45309)"}}>
         {coincide?"✓ Coincide con el RCV del SII — mismos documentos y mismo total.":
         "⚠ No coincide con el RCV del SII. SII: "+oficialTot.docs+" documentos, $"+fmt(oficialTot.total)+" — RADAR: "+granTotal.docs+" documentos, $"+fmt(granTotal.total)+" (diferencia $"+fmt(Math.abs(oficialTot.total-granTotal.total))+"). Puede que falten documentos por importar en este periodo, o que el SII haya agregado/rechazado documentos despues de tu ultima importacion — vuelve a importar este periodo para actualizar."}
       </div>
@@ -1806,7 +1806,7 @@ function ConciliacionP({entries,setEntries,leafAccts,eObj,empEntries,aLog,reglas
         <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Cuenta bancaria (Disponible)</label>
           <select value={cuentaBanco} onChange={e=>setCuentaBanco(e.target.value)}><option value="">-- Selecciona --</option>{bancoLeaf.map(a=><option key={a.cd} value={a.cd}>{a.cd} {a.nm}</option>)}</select>
         </div>
-        <label style={{display:"inline-flex",alignItems:"center",gap:8,background:"var(--cy)",color:"#0D0F08",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>Cargar cartola<input type="file" accept=".xlsx" onChange={e=>{if(e.target.files?.[0])cargarCartola(e.target.files[0]);e.target.value=""}} style={{display:"none"}}/></label>
+        <label style={{display:"inline-flex",alignItems:"center",gap:8,background:"var(--cy-fill)",color:"#1C1B12",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>Cargar cartola<input type="file" accept=".xlsx" onChange={e=>{if(e.target.files?.[0])cargarCartola(e.target.files[0]);e.target.value=""}} style={{display:"none"}}/></label>
       </div>
       {loading&&<div style={{marginTop:12,fontSize:12,color:"var(--tx3)"}}>Leyendo cartola...</div>}
       {err&&<div style={{marginTop:12,background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.3)",borderRadius:"var(--rs)",padding:12,fontSize:12,color:"var(--rd)"}}>{err}</div>}
@@ -1938,7 +1938,7 @@ function PorClasificar({empEntries,setEntries,leafAccts,eObj,aLog,reglas,setRegl
         <option value="">-- Cuenta destino --</option>
         {leafAccts.map(a=><option key={a.cd} value={a.cd}>{a.cd} {a.nm}</option>)}
       </select>
-      <button onClick={aplicarLote} disabled={!cuentaLote||sel.size===0} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--cy)",color:"#0D0F08",fontSize:12,fontWeight:600,cursor:(!cuentaLote||sel.size===0)?"default":"pointer",opacity:(!cuentaLote||sel.size===0)?.5:1}}>Reclasificar seleccionados</button>
+      <button onClick={aplicarLote} disabled={!cuentaLote||sel.size===0} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"#1C1B12",fontSize:12,fontWeight:600,cursor:(!cuentaLote||sel.size===0)?"default":"pointer",opacity:(!cuentaLote||sel.size===0)?.5:1}}>Reclasificar seleccionados</button>
     </div>
 
     <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden",marginBottom:24}}>
@@ -1987,7 +1987,7 @@ function PorClasificar({empEntries,setEntries,leafAccts,eObj,aLog,reglas,setRegl
             <option value="">-- Cuenta --</option>
             {leafAccts.map(a=><option key={a.cd} value={a.cd}>{a.cd} {a.nm}</option>)}
           </select>
-          <button onClick={agregarPalabra} disabled={!nuevaPalabra.trim()||!nuevaPalabraCta} style={{padding:"8px 16px",borderRadius:"var(--rs)",border:"none",background:"var(--cy)",color:"#0D0F08",fontSize:12,fontWeight:600,cursor:"pointer"}}>Agregar regla</button>
+          <button onClick={agregarPalabra} disabled={!nuevaPalabra.trim()||!nuevaPalabraCta} style={{padding:"8px 16px",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"#1C1B12",fontSize:12,fontWeight:600,cursor:"pointer"}}>Agregar regla</button>
         </div>
         {reglas.length===0?<div style={{fontSize:12,color:"var(--tx3)"}}>Sin reglas todavia.</div>:
         <div style={{display:"flex",flexDirection:"column",gap:6}}>{reglas.map(r=>
@@ -2309,7 +2309,7 @@ function TribV({ev,upd,del,emp,back}){
       <div style={{borderTop:"1px solid var(--bd)",paddingTop:24,marginTop:8}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16,flexWrap:"wrap",gap:12}}>
           <div><div style={{fontSize:13,fontWeight:700,color:"var(--cy)"}}>Informe con IA</div></div>
-          <button onClick={genAI} disabled={aiL} style={{display:"flex",alignItems:"center",gap:8,background:aiL?"var(--sf2)":"linear-gradient(135deg, #E4FF3D, #9BA888)",color:"#fff",border:"none",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600,cursor:aiL?"wait":"pointer",opacity:aiL?.7:1}}>{aiL?"Generando...":aiR?"Regenerar":"Generar Informe"}</button>
+          <button onClick={genAI} disabled={aiL} style={{display:"flex",alignItems:"center",gap:8,background:aiL?"var(--sf2)":"linear-gradient(135deg, #D4F000, #8FA300)",color:"#1C1B12",border:"none",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600,cursor:aiL?"wait":"pointer",opacity:aiL?.7:1}}>{aiL?"Generando...":aiR?"Regenerar":"Generar Informe"}</button>
         </div>
         {aiL&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:32,textAlign:"center"}}><div style={{fontSize:28,marginBottom:12,animation:"rpulse 1.5s infinite"}}>🤖</div><div style={{fontSize:14,fontWeight:600,color:"var(--cy)"}}>Analizando...</div></div>}
         {!aiL&&aiR&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:24}}><div style={{whiteSpace:"pre-wrap",fontSize:13,lineHeight:1.7}}>{aiR}</div><div style={{display:"flex",gap:8,marginTop:16,paddingTop:12,borderTop:"1px solid var(--bd)"}}><button onClick={()=>{navigator.clipboard.writeText(aiR);alert("Copiado!")}} style={{background:"var(--sf)",border:"1px solid var(--bd)",color:"var(--tx2)",padding:"8px 16px",borderRadius:"var(--rs)",fontSize:12}}>Copiar</button></div></div>}
@@ -2493,7 +2493,7 @@ function FinV({ev,upd,del,emp,back}){
           return<div key={q.id} style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,padding:"6px 0",borderBottom:"1px solid var(--bd)",fontSize:12}}><span style={{color:"var(--tx2)"}}>{q.text}</span><span style={{fontWeight:500}}>{ol}</span></div>})}</div>)}
       <div style={{borderTop:"1px solid var(--bd)",paddingTop:24}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}><div style={{fontSize:13,fontWeight:700,color:"var(--cy)"}}>Informe con IA</div>
-          <button onClick={genAI} disabled={aiL} style={{background:aiL?"var(--sf2)":"linear-gradient(135deg,#E4FF3D,#10B981)",color:"#fff",border:"none",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600,cursor:aiL?"wait":"pointer"}}>{aiL?"Generando...":aiR?"Regenerar":"Generar Informe"}</button></div>
+          <button onClick={genAI} disabled={aiL} style={{background:aiL?"var(--sf2)":"linear-gradient(135deg,#D4F000,#34D399)",color:"#1C1B12",border:"none",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600,cursor:aiL?"wait":"pointer"}}>{aiL?"Generando...":aiR?"Regenerar":"Generar Informe"}</button></div>
         {aiL&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:32,textAlign:"center"}}><div style={{fontSize:28,animation:"rpulse 1.5s infinite"}}>🤖</div></div>}
         {!aiL&&aiR&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:24}}><div style={{whiteSpace:"pre-wrap",fontSize:13,lineHeight:1.7}}>{aiR}</div><button onClick={()=>{navigator.clipboard.writeText(aiR);alert("Copiado!")}} style={{marginTop:16,background:"var(--sf)",border:"1px solid var(--bd)",color:"var(--tx2)",padding:"8px 16px",borderRadius:"var(--rs)",fontSize:12}}>Copiar</button></div>}
       </div>
@@ -2543,7 +2543,7 @@ function R360V({ev,upd,del,emp,back}){
       <div style={{textAlign:"center",marginBottom:24}}><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:2}}>Evaluacion RADAR</div><div style={{fontSize:22,fontWeight:700,letterSpacing:-.3,lineHeight:1.15,marginTop:4}}>{emp.name}</div><div style={{fontSize:13,color:"var(--rd)",fontWeight:600,marginTop:4}}>RADAR 360 - Diagnostico Integral</div><div style={{fontSize:11,color:"var(--tx3)",marginTop:4}}>{answered}/{totalQ} respuestas</div></div>
       <div style={{borderTop:"1px solid var(--bd)",paddingTop:24}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}><div style={{fontSize:13,fontWeight:700,color:"var(--cy)"}}>Informe 360 con IA</div>
-          <button onClick={genAI} disabled={aiL} style={{background:aiL?"var(--sf2)":"linear-gradient(135deg,#EF4444,#9BA888)",color:"#fff",border:"none",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600,cursor:aiL?"wait":"pointer"}}>{aiL?"Generando...":aiR?"Regenerar":"Generar Informe 360"}</button></div>
+          <button onClick={genAI} disabled={aiL} style={{background:aiL?"var(--sf2)":"linear-gradient(135deg,#F87171,#8FA300)",color:"#1C1B12",border:"none",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600,cursor:aiL?"wait":"pointer"}}>{aiL?"Generando...":aiR?"Regenerar":"Generar Informe 360"}</button></div>
         {aiL&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:32,textAlign:"center"}}><div style={{fontSize:28,animation:"rpulse 1.5s infinite"}}>🎯</div><div style={{fontSize:14,fontWeight:600,color:"var(--cy)",marginTop:8}}>Generando diagnostico integral...</div></div>}
         {!aiL&&aiR&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:24}}><div style={{whiteSpace:"pre-wrap",fontSize:13,lineHeight:1.7}}>{aiR}</div><button onClick={()=>{navigator.clipboard.writeText(aiR);alert("Copiado!")}} style={{marginTop:16,background:"var(--sf)",border:"1px solid var(--bd)",color:"var(--tx2)",padding:"8px 16px",borderRadius:"var(--rs)",fontSize:12}}>Copiar</button></div>}
       </div>
@@ -2731,7 +2731,7 @@ function PortalP({eObj,empEntries,empDocs,empRems,eEvs,accts,leafAccts,go}){
   </div>);
 }
 
-function Bt({children,onClick,p}){return<button onClick={onClick} style={{display:"flex",alignItems:"center",gap:8,background:p?"var(--cy)":"var(--sf2)",color:p?"#0D0F08":"var(--tx2)",border:p?"none":"1px solid var(--bd)",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600}}>{children}</button>}
+function Bt({children,onClick,p}){return<button onClick={onClick} style={{display:"flex",alignItems:"center",gap:8,background:p?"var(--cy-fill)":"var(--sf2)",color:p?"#1C1B12":"var(--tx2)",border:p?"none":"1px solid var(--bd)",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600}}>{children}</button>}
 function Bk({onClick,children}){return<button onClick={onClick} style={{background:"none",border:"none",color:"var(--tx3)",fontSize:12,display:"flex",alignItems:"center",gap:6,marginBottom:16,padding:0}}>{IC.back}{children}</button>}
 function Tg({children,c}){return<span style={{fontSize:12,padding:"6px 14px",borderRadius:20,background:c+"15",color:c,border:"1px solid "+c+"30",fontWeight:500}}>{children}</span>}
 function Ey({i,t,d,children}){return<div style={{textAlign:"center",padding:"60px 20px",background:"var(--sf)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",border:"1px solid var(--bd)"}}><div style={{fontSize:40,marginBottom:12}}>{i}</div><div style={{fontSize:15,fontWeight:600,marginBottom:6}}>{t}</div><div style={{fontSize:13,color:"var(--tx3)",marginBottom:20}}>{d}</div>{children}</div>}
