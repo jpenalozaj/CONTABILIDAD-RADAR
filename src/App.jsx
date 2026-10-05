@@ -2158,6 +2158,7 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
   const [fm,setFm]=useState({});
   const [tid,setTid]=useState(null);
   const [tfm,setTfm]=useState({});
+  const [ftab,setFtab]=useState("resumen");
   const [params,setParamsSt]=useState(getParamsPrevired);
   const setParams=next=>{setParamsSt(next);sv("rd_param_previred",next)};
   // Los parametros previsionales (UF, UTM, tasas AFP) son valores legales
@@ -2228,8 +2229,8 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
 
   // ── Ficha de Trabajador ──
   const emptyTF=()=>({activo:true,nombre:"",apellido:"",segundoApellido:"",rut:"",fechaNacimiento:"",sexo:"",estadoCivil:"",telefono:"",email:"",direccion:"",cargo:"",fechaIngreso:"",afp:"habitat",isapre:"fonasa",contratoTipo:"indefinido",sueldoBase:0,gratificacion:0,colacion:0,movilizacion:0,centroCosto:""});
-  const openNewT=()=>{setTfm(emptyTF());setTid(null);setVw("trabajadorForm")};
-  const openEditT=t=>{setTfm({...emptyTF(),...t});setTid(t.id);setVw("trabajadorForm")};
+  const openNewT=()=>{setTfm(emptyTF());setTid(null);setFtab("resumen");setVw("trabajadorForm")};
+  const openEditT=(t,tab)=>{setTfm({...emptyTF(),...t});setTid(t.id);setFtab(tab||"resumen");setVw("trabajadorForm")};
   const doSaveT=()=>{
     if(!tfm.nombre||!tfm.rut)return;
     const rec={...tfm,id:tid||uid(),empresaId:eObj.id};
@@ -2341,10 +2342,25 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
     </div>
   </div>);
 
-  if(vw==="trabajadorForm")return(<div style={{maxWidth:700,margin:"0 auto"}}>
+  if(vw==="trabajadorForm"){
+    const hist=tid?empRems.filter(r=>r.trabajadorId===tid).sort((a,b)=>(b.periodo||"").localeCompare(a.periodo||"")):[];
+    const totLiqHist=hist.reduce((s,r)=>s+(r.liquido||0),0);
+    const totCostoHist=hist.reduce((s,r)=>s+(r.costoEmpresa||0),0);
+    const fichaTabs=[{id:"resumen",l:"Resumen"},{id:"liquidaciones",l:"Liquidaciones"+(hist.length>0?" ("+hist.length+")":"")},{id:"documentos",l:"Documentos"},{id:"vacaciones",l:"Vacaciones"}];
+    return(<div style={{maxWidth:700,margin:"0 auto"}}>
     <Bk onClick={()=>setVw("trabajadores")}>Volver</Bk>
-    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28}}>
-      <h2 style={{fontSize:18,fontWeight:700,marginBottom:4}}>{tid?"Editar":"Nuevo"} Trabajador</h2>
+
+    <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:16}}>
+      <div style={{width:48,height:48,borderRadius:12,background:tfm.activo!==false?"var(--cy-fill)":"var(--sf2)",border:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,fontWeight:700,color:tfm.activo!==false?"#1B4D2E":"var(--tx2)",flexShrink:0}}>{(tfm.nombre||"?").slice(0,2).toUpperCase()}</div>
+      <div style={{minWidth:0}}>
+        <div style={{fontSize:17,fontWeight:700}}>{tid?(tfm.nombre+" "+(tfm.apellido||"")):"Nuevo Trabajador"}</div>
+        <div style={{fontSize:12,color:"var(--tx3)",marginTop:2}}>{tid?[tfm.cargo||"Sin cargo",tfm.rut,tfm.activo===false?"Inactivo":null].filter(Boolean).join(" · "):"Completa la ficha para crearlo"}</div>
+      </div>
+    </div>
+
+    {tid&&<div style={{display:"flex",gap:6,marginBottom:20,flexWrap:"wrap"}}>{fichaTabs.map(ft=><button key={ft.id} onClick={()=>setFtab(ft.id)} style={{padding:"8px 16px",borderRadius:"var(--rs)",border:"none",fontSize:12,fontWeight:ftab===ft.id?700:500,background:"var(--sf)",color:ftab===ft.id?"var(--cy)":"var(--tx2)",cursor:"pointer"}}>{ft.l}</button>)}</div>}
+
+    {(!tid||ftab==="resumen")&&<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28}}>
       <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:24,fontSize:12,color:"var(--tx2)",cursor:"pointer"}}><input type="checkbox" checked={tfm.activo!==false} onChange={e=>setTfm(p=>({...p,activo:e.target.checked}))}/>Trabajador activo</label>
 
       <Sc t="Datos Personales"><FG>
@@ -2382,51 +2398,15 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
       </div>
 
       <div style={{display:"flex",gap:12}}><Bt onClick={doSaveT} p={true}>{tid?"Guardar":"Crear Trabajador"}</Bt><Bt onClick={()=>setVw("trabajadores")}>Cancelar</Bt></div>
-    </div>
-  </div>);
-
-  if(vw==="trabajadores"){
-    const activosN=empTrabajadores.filter(t=>t.activo!==false).length;
-    const nominaBase=empTrabajadores.filter(t=>t.activo!==false).reduce((s,t)=>s+(t.sueldoBase||0),0);
-    return(<div style={{maxWidth:900,margin:"0 auto"}}>
-    <div style={{display:"flex",flexWrap:"wrap",gap:12,marginBottom:20,alignItems:"center",justifyContent:"space-between"}}>
-      <div style={{display:"flex",alignItems:"center",gap:12}}>
-        <div style={{width:42,height:42,borderRadius:12,background:"var(--cy-fill)",color:"#1B4D2E",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{IC.emp}</div>
-        <div><div style={{fontSize:16,fontWeight:700}}>Trabajadores</div><div style={{fontSize:12,color:"var(--tx3)",marginTop:2}}>{eObj.name} · {activosN} activo{activosN!==1?"s":""}{empTrabajadores.length!==activosN?" · "+(empTrabajadores.length-activosN)+" inactivo"+(empTrabajadores.length-activosN!==1?"s":""):""}</div></div>
-      </div>
-      <div style={{display:"flex",gap:8}}><Bt onClick={()=>setVw("list")}>Ver liquidaciones</Bt><Bt onClick={openNewT} p={true}>{IC.plus} Nuevo Trabajador</Bt></div>
-    </div>
-    {empTrabajadores.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12,marginBottom:16}}>
-      <div className="rd-hover-lift rd-tilt" style={{"--tilt":"-1deg","--tilty":"4px",background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4,fontWeight:600}}>Nomina activa</div><div style={{fontSize:22,fontWeight:800,letterSpacing:-.3,lineHeight:1.2}}>{activosN}</div></div>
-      <div className="rd-hover-lift rd-tilt" style={{"--tilt":"1deg","--tilty":"-5px",background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4,fontWeight:600}}>Sueldos base (activos)</div><div style={{fontSize:20,fontWeight:800,letterSpacing:-.3,lineHeight:1.2,color:"var(--gn)"}}>${fmt(nominaBase)}</div></div>
     </div>}
-    {empTrabajadores.length===0?<Ey i="👥" t="Sin trabajadores" d="Crea la ficha de tu primer trabajador."><Bt onClick={openNewT} p={true}>Crear trabajador</Bt></Ey>
-    :<div style={{display:"flex",flexDirection:"column",gap:8}}>{empTrabajadores.map(t=><div key={t.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16,cursor:"pointer",opacity:t.activo===false?.55:1}} onClick={()=>openEditT(t)}>
-      <div style={{width:40,height:40,borderRadius:10,background:t.activo===false?"var(--sf2)":"var(--cy-fill)",border:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:t.activo===false?"var(--tx2)":"#1B4D2E",flexShrink:0}}>{(t.nombre||"?").slice(0,2).toUpperCase()}</div>
-      <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:600}}>{t.nombre} {t.apellido}</div><div style={{fontSize:11,color:"var(--tx3)"}}>{t.cargo||"Sin cargo"} · {t.rut}{t.activo===false?" · Inactivo":""}</div></div>
-      <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(t.sueldoBase||0)}</div><div style={{fontSize:10,color:"var(--tx3)"}}>Sueldo base</div></div>
-      <button onClick={e=>{e.stopPropagation();setTid(t.id);setVw("historial")}} style={{background:"none",border:"1px solid var(--bd)",borderRadius:"var(--rs)",color:"var(--tx2)",cursor:"pointer",fontSize:11,padding:"6px 10px",flexShrink:0}}>Historial</button>
-      <button onClick={e=>{e.stopPropagation();if(confirm("Eliminar la ficha de "+t.nombre+"?"))doDelT(t.id)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5,padding:4}}>x</button>
-    </div>)}</div>}
-  </div>);
-  }
 
-  if(vw==="historial"){
-    const th=empTrabajadores.find(x=>x.id===tid);
-    const hist=empRems.filter(r=>r.trabajadorId===tid).sort((a,b)=>(b.periodo||"").localeCompare(a.periodo||""));
-    const totLiqHist=hist.reduce((s,r)=>s+(r.liquido||0),0);
-    const totCostoHist=hist.reduce((s,r)=>s+(r.costoEmpresa||0),0);
-    return(<div style={{maxWidth:900,margin:"0 auto"}}>
-      <Bk onClick={()=>setVw("trabajadores")}>Volver</Bk>
-      <div style={{display:"flex",flexWrap:"wrap",gap:12,marginBottom:20,alignItems:"center",justifyContent:"space-between"}}>
-        <div><div style={{fontSize:15,fontWeight:600}}>Historial - {th?th.nombre+" "+(th.apellido||""):"Trabajador"}</div><div style={{fontSize:12,color:"var(--tx3)",marginTop:2}}>{hist.length} liquidacion{hist.length!==1?"es":""}{th?.rut?" · "+th.rut:""}</div></div>
-      </div>
+    {tid&&ftab==="liquidaciones"&&<div>
       {hist.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12,marginBottom:16}}>
         <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4}}>Total Liquido Pagado</div><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2,color:"var(--gn)"}}>${fmt(totLiqHist)}</div></div>
         <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4}}>Costo Empresa Acumulado</div><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2,color:"var(--am)"}}>${fmt(totCostoHist)}</div></div>
         <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4}}>Liquido Promedio</div><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2}}>${fmt(Math.round(totLiqHist/hist.length))}</div></div>
       </div>}
-      {hist.length===0?<Ey i="📄" t="Sin liquidaciones" d="Este trabajador todavia no tiene liquidaciones registradas."/>
+      {hist.length===0?<Ey i="📄" t="Sin liquidaciones" d="Este trabajador todavia no tiene liquidaciones registradas."><Bt onClick={()=>{openNew();elegirTrabajador(tid)}} p={true}>Crear liquidacion</Bt></Ey>
       :[...new Set(hist.map(r=>(r.periodo||"").slice(0,4)))].sort((a,b)=>b.localeCompare(a)).map(y=>{
         const rowsY=hist.filter(r=>(r.periodo||"").slice(0,4)===y);
         const tImpY=rowsY.reduce((s,r)=>s+(r.totalImponible||0),0);
@@ -2448,8 +2428,39 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
           </div>)}</div>
         </div>);
       })}
-    </div>);
+    </div>}
+
+    {tid&&ftab==="documentos"&&<Ey i="📁" t="Documentos" d="Contratos, anexos y certificados del trabajador. Proximamente."/>}
+    {tid&&ftab==="vacaciones"&&<Ey i="🌴" t="Vacaciones" d="Dias disponibles, solicitudes y feriado legal. Proximamente."/>}
+  </div>);
   }
+
+  if(vw==="trabajadores"){
+    const activosN=empTrabajadores.filter(t=>t.activo!==false).length;
+    const nominaBase=empTrabajadores.filter(t=>t.activo!==false).reduce((s,t)=>s+(t.sueldoBase||0),0);
+    return(<div style={{maxWidth:900,margin:"0 auto"}}>
+    <div style={{display:"flex",flexWrap:"wrap",gap:12,marginBottom:20,alignItems:"center",justifyContent:"space-between"}}>
+      <div style={{display:"flex",alignItems:"center",gap:12}}>
+        <div style={{width:42,height:42,borderRadius:12,background:"var(--cy-fill)",color:"#1B4D2E",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{IC.emp}</div>
+        <div><div style={{fontSize:16,fontWeight:700}}>Trabajadores</div><div style={{fontSize:12,color:"var(--tx3)",marginTop:2}}>{eObj.name} · {activosN} activo{activosN!==1?"s":""}{empTrabajadores.length!==activosN?" · "+(empTrabajadores.length-activosN)+" inactivo"+(empTrabajadores.length-activosN!==1?"s":""):""}</div></div>
+      </div>
+      <div style={{display:"flex",gap:8}}><Bt onClick={()=>setVw("list")}>Ver liquidaciones</Bt><Bt onClick={openNewT} p={true}>{IC.plus} Nuevo Trabajador</Bt></div>
+    </div>
+    {empTrabajadores.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12,marginBottom:16}}>
+      <div className="rd-hover-lift rd-tilt" style={{"--tilt":"-1deg","--tilty":"4px",background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4,fontWeight:600}}>Nomina activa</div><div style={{fontSize:22,fontWeight:800,letterSpacing:-.3,lineHeight:1.2}}>{activosN}</div></div>
+      <div className="rd-hover-lift rd-tilt" style={{"--tilt":"1deg","--tilty":"-5px",background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4,fontWeight:600}}>Sueldos base (activos)</div><div style={{fontSize:20,fontWeight:800,letterSpacing:-.3,lineHeight:1.2,color:"var(--gn)"}}>${fmt(nominaBase)}</div></div>
+    </div>}
+    {empTrabajadores.length===0?<Ey i="👥" t="Sin trabajadores" d="Crea la ficha de tu primer trabajador."><Bt onClick={openNewT} p={true}>Crear trabajador</Bt></Ey>
+    :<div style={{display:"flex",flexDirection:"column",gap:8}}>{empTrabajadores.map(t=><div key={t.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16,cursor:"pointer",opacity:t.activo===false?.55:1}} onClick={()=>openEditT(t)}>
+      <div style={{width:40,height:40,borderRadius:10,background:t.activo===false?"var(--sf2)":"var(--cy-fill)",border:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:t.activo===false?"var(--tx2)":"#1B4D2E",flexShrink:0}}>{(t.nombre||"?").slice(0,2).toUpperCase()}</div>
+      <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:600}}>{t.nombre} {t.apellido}</div><div style={{fontSize:11,color:"var(--tx3)"}}>{t.cargo||"Sin cargo"} · {t.rut}{t.activo===false?" · Inactivo":""}</div></div>
+      <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(t.sueldoBase||0)}</div><div style={{fontSize:10,color:"var(--tx3)"}}>Sueldo base</div></div>
+      <button onClick={e=>{e.stopPropagation();openEditT(t,"liquidaciones")}} style={{background:"none",border:"1px solid var(--bd)",borderRadius:"var(--rs)",color:"var(--tx2)",cursor:"pointer",fontSize:11,padding:"6px 10px",flexShrink:0}}>Liquidaciones</button>
+      <button onClick={e=>{e.stopPropagation();if(confirm("Eliminar la ficha de "+t.nombre+"?"))doDelT(t.id)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5,padding:4}}>x</button>
+    </div>)}</div>}
+  </div>);
+  }
+
 
   if(vw==="params"){
     const ultimaRev=[params.actualizadoUfUtm,params.actualizadoAfp].filter(Boolean).sort().pop();
