@@ -2385,20 +2385,31 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
     </div>
   </div>);
 
-  if(vw==="trabajadores")return(<div style={{maxWidth:900,margin:"0 auto"}}>
+  if(vw==="trabajadores"){
+    const activosN=empTrabajadores.filter(t=>t.activo!==false).length;
+    const nominaBase=empTrabajadores.filter(t=>t.activo!==false).reduce((s,t)=>s+(t.sueldoBase||0),0);
+    return(<div style={{maxWidth:900,margin:"0 auto"}}>
     <div style={{display:"flex",flexWrap:"wrap",gap:12,marginBottom:20,alignItems:"center",justifyContent:"space-between"}}>
-      <div><div style={{fontSize:15,fontWeight:600}}>Trabajadores - {eObj.name}</div><div style={{fontSize:12,color:"var(--tx3)",marginTop:2}}>{empTrabajadores.length} trabajador{empTrabajadores.length!==1?"es":""}</div></div>
+      <div style={{display:"flex",alignItems:"center",gap:12}}>
+        <div style={{width:42,height:42,borderRadius:12,background:"var(--cy-fill)",color:"#1B4D2E",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{IC.emp}</div>
+        <div><div style={{fontSize:16,fontWeight:700}}>Trabajadores</div><div style={{fontSize:12,color:"var(--tx3)",marginTop:2}}>{eObj.name} · {activosN} activo{activosN!==1?"s":""}{empTrabajadores.length!==activosN?" · "+(empTrabajadores.length-activosN)+" inactivo"+(empTrabajadores.length-activosN!==1?"s":""):""}</div></div>
+      </div>
       <div style={{display:"flex",gap:8}}><Bt onClick={()=>setVw("list")}>Ver liquidaciones</Bt><Bt onClick={openNewT} p={true}>{IC.plus} Nuevo Trabajador</Bt></div>
     </div>
+    {empTrabajadores.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12,marginBottom:16}}>
+      <div className="rd-hover-lift rd-tilt" style={{"--tilt":"-1deg","--tilty":"4px",background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4,fontWeight:600}}>Nomina activa</div><div style={{fontSize:22,fontWeight:800,letterSpacing:-.3,lineHeight:1.2}}>{activosN}</div></div>
+      <div className="rd-hover-lift rd-tilt" style={{"--tilt":"1deg","--tilty":"-5px",background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4,fontWeight:600}}>Sueldos base (activos)</div><div style={{fontSize:20,fontWeight:800,letterSpacing:-.3,lineHeight:1.2,color:"var(--gn)"}}>${fmt(nominaBase)}</div></div>
+    </div>}
     {empTrabajadores.length===0?<Ey i="👥" t="Sin trabajadores" d="Crea la ficha de tu primer trabajador."><Bt onClick={openNewT} p={true}>Crear trabajador</Bt></Ey>
-    :<div style={{display:"flex",flexDirection:"column",gap:8}}>{empTrabajadores.map(t=><div key={t.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16,cursor:"pointer",opacity:t.activo===false?.5:1}} onClick={()=>openEditT(t)}>
-      <div style={{width:40,height:40,borderRadius:10,background:"var(--sf2)",border:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"var(--tx2)",flexShrink:0}}>{(t.nombre||"?").slice(0,2).toUpperCase()}</div>
+    :<div style={{display:"flex",flexDirection:"column",gap:8}}>{empTrabajadores.map(t=><div key={t.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16,cursor:"pointer",opacity:t.activo===false?.55:1}} onClick={()=>openEditT(t)}>
+      <div style={{width:40,height:40,borderRadius:10,background:t.activo===false?"var(--sf2)":"var(--cy-fill)",border:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:t.activo===false?"var(--tx2)":"#1B4D2E",flexShrink:0}}>{(t.nombre||"?").slice(0,2).toUpperCase()}</div>
       <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:600}}>{t.nombre} {t.apellido}</div><div style={{fontSize:11,color:"var(--tx3)"}}>{t.cargo||"Sin cargo"} · {t.rut}{t.activo===false?" · Inactivo":""}</div></div>
       <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(t.sueldoBase||0)}</div><div style={{fontSize:10,color:"var(--tx3)"}}>Sueldo base</div></div>
       <button onClick={e=>{e.stopPropagation();setTid(t.id);setVw("historial")}} style={{background:"none",border:"1px solid var(--bd)",borderRadius:"var(--rs)",color:"var(--tx2)",cursor:"pointer",fontSize:11,padding:"6px 10px",flexShrink:0}}>Historial</button>
       <button onClick={e=>{e.stopPropagation();if(confirm("Eliminar la ficha de "+t.nombre+"?"))doDelT(t.id)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5,padding:4}}>x</button>
     </div>)}</div>}
   </div>);
+  }
 
   if(vw==="historial"){
     const th=empTrabajadores.find(x=>x.id===tid);
@@ -2473,26 +2484,62 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
   </div>);
   }
 
-  // LIST
+  // PANEL DE REMUNERACIONES (list) -- inspirado en el panel de control de
+  // Buk: periodo vigente a la vista, variables (UF/UTM) junto a los KPIs,
+  // accesos a modulos como tarjetas en vez de botones de texto sueltos, y
+  // las liquidaciones agrupadas por periodo en vez de una lista plana.
   const totLiq=empRems.reduce((s,r)=>s+(r.liquido||0),0);
   const totCosto=empRems.reduce((s,r)=>s+(r.costoEmpresa||0),0);
+  const periodos=[...new Set(empRems.map(r=>r.periodo))].sort((a,b)=>b.localeCompare(a));
+  const periodoActual=periodos[0];
+  const labelPeriodo=p=>{try{return new Date(p+"-01T12:00:00").toLocaleDateString("es-CL",{month:"long",year:"numeric"})}catch{return p}};
+  const accionesModulo=[
+    {id:"trabajadores",icon:IC.emp,label:"Trabajadores",sub:empTrabajadores.length+" ficha"+(empTrabajadores.length!==1?"s":""),onClick:()=>setVw("trabajadores")},
+    {id:"params",icon:IC.contab,label:"Parametros Previsionales",sub:"UF $"+fmt(params.uf),onClick:()=>setVw("params")},
+    ...(empRems.length>0?[{id:"centralizar",icon:IC.check,label:"Centralizar",sub:"Generar asiento contable",onClick:genAsiento}]:[]),
+  ];
   return(<div style={{maxWidth:900,margin:"0 auto"}}>
     <div style={{display:"flex",flexWrap:"wrap",gap:12,marginBottom:20,alignItems:"center",justifyContent:"space-between"}}>
-      <div><div style={{fontSize:15,fontWeight:600}}>Remuneraciones - {eObj.name}</div><div style={{fontSize:12,color:"var(--tx3)",marginTop:2}}>{empRems.length} liquidacion{empRems.length!==1?"es":""} · {empTrabajadores.length} trabajador{empTrabajadores.length!==1?"es":""}</div></div>
-      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}><Bt onClick={()=>setVw("trabajadores")}>Trabajadores</Bt><Bt onClick={()=>setVw("params")}>Parametros Previsionales</Bt>{empRems.length>0&&<Bt onClick={genAsiento}>Centralizar</Bt>}<Bt onClick={openNew} p={true}>{IC.plus} Nueva Liquidacion</Bt></div>
+      <div style={{display:"flex",alignItems:"center",gap:12}}>
+        <div style={{width:42,height:42,borderRadius:12,background:"var(--cy-fill)",color:"#1B4D2E",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{IC.contab}</div>
+        <div><div style={{fontSize:16,fontWeight:700}}>Remuneraciones</div><div style={{fontSize:12,color:"var(--tx3)",marginTop:2}}>{eObj.name}{periodoActual?<> · Periodo vigente <b style={{color:"var(--tx2)",textTransform:"capitalize"}}>{labelPeriodo(periodoActual)}</b></>:null}</div></div>
+      </div>
+      <Bt onClick={openNew} p={true}>{IC.plus} Nueva Liquidacion</Bt>
     </div>
-    {empRems.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12,marginBottom:16}}>
-      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4}}>Total Liquido</div><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2,color:"var(--gn)"}}>${fmt(totLiq)}</div></div>
-      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4}}>Costo Empresa</div><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2,color:"var(--am)"}}>${fmt(totCosto)}</div></div>
-      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4}}>Trabajadores</div><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2}}>{empTrabajadores.length}</div></div>
-    </div>}
+
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12,marginBottom:16}}>
+      <div className="rd-hover-lift rd-tilt" style={{"--tilt":"-1deg","--tilty":"4px",background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4,fontWeight:600}}>Total Liquido</div><div style={{fontSize:22,fontWeight:800,letterSpacing:-.3,lineHeight:1.2,color:"var(--gn)"}}>${fmt(totLiq)}</div></div>
+      <div className="rd-hover-lift rd-tilt" style={{"--tilt":"1deg","--tilty":"-5px",background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4,fontWeight:600}}>Costo Empresa</div><div style={{fontSize:22,fontWeight:800,letterSpacing:-.3,lineHeight:1.2,color:"var(--am)"}}>${fmt(totCosto)}</div></div>
+      <div className="rd-hover-lift rd-tilt" style={{"--tilt":"-1.25deg","--tilty":"6px",background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4,fontWeight:600}}>Trabajadores</div><div style={{fontSize:22,fontWeight:800,letterSpacing:-.3,lineHeight:1.2}}>{empTrabajadores.length}</div></div>
+      <div className="rd-hover-lift rd-tilt" style={{"--tilt":"1.25deg","--tilty":"-4px",background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4,fontWeight:600}}>UF / UTM vigente</div><div style={{fontSize:15,fontWeight:700,letterSpacing:-.2,lineHeight:1.3,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(params.uf)} · ${fmt(params.utm)}</div></div>
+    </div>
+
+    <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:24}}>
+      {accionesModulo.map(a=><button key={a.id} onClick={a.onClick} className="rd-hover-lift" style={{display:"flex",alignItems:"center",gap:10,padding:"12px 16px",borderRadius:"var(--r)",border:"1px solid var(--bd)",background:"var(--sf)",cursor:"pointer",textAlign:"left",flex:"1 1 180px",minWidth:160}}>
+        <div style={{width:34,height:34,borderRadius:9,background:"var(--cyg)",color:"var(--cy2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{a.icon}</div>
+        <div style={{minWidth:0}}><div style={{fontSize:12,fontWeight:700,color:"var(--tx2)"}}>{a.label}</div><div style={{fontSize:10,color:"var(--tx3)"}}>{a.sub}</div></div>
+      </button>)}
+    </div>
+
     {empRems.length===0?<Ey i="👥" t="Sin liquidaciones" d="Crea tu primera liquidacion de sueldo."><Bt onClick={openNew} p={true}>Crear liquidacion</Bt></Ey>
-    :<div style={{display:"flex",flexDirection:"column",gap:8}}>{empRems.map(r=><div key={r.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16,cursor:"pointer"}} onClick={()=>openEdit(r)}>
-      <div style={{width:40,height:40,borderRadius:10,background:"var(--sf2)",border:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"var(--tx2)",flexShrink:0}}>{(r.nombre||"?").slice(0,2).toUpperCase()}</div>
-      <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:600}}>{r.nombre}</div><div style={{fontSize:11,color:"var(--tx3)"}}>{r.cargo||"Sin cargo"} - {r.periodo}</div></div>
-      <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,color:"var(--gn)"}}>${fmt(r.liquido||0)}</div><div style={{fontSize:10,color:"var(--tx3)"}}>Liquido</div></div>
-      <button onClick={e=>{e.stopPropagation();doDel(r.id)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5,padding:4}}>x</button>
-    </div>)}</div>}
+    :periodos.map(p=>{
+      const rowsP=empRems.filter(r=>r.periodo===p);
+      const totP=rowsP.reduce((s,r)=>s+(r.liquido||0),0);
+      const esActual=p===periodoActual;
+      return(<div key={p} style={{marginBottom:20}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8,flexWrap:"wrap"}}>
+          <div style={{fontSize:13,fontWeight:700,textTransform:"capitalize"}}>{labelPeriodo(p)}</div>
+          {esActual&&<span style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:.4,color:"#1B4D2E",background:"var(--cy-fill)",padding:"3px 8px",borderRadius:999}}>Periodo actual</span>}
+          <span style={{fontSize:11,color:"var(--tx3)"}}>{rowsP.length} liquidacion{rowsP.length!==1?"es":""} · ${fmt(totP)} liquido</span>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>{rowsP.map(r=><div key={r.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16,cursor:"pointer"}} onClick={()=>openEdit(r)}>
+          <div style={{width:40,height:40,borderRadius:10,background:"var(--sf2)",border:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"var(--tx2)",flexShrink:0}}>{(r.nombre||"?").slice(0,2).toUpperCase()}</div>
+          <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:600}}>{r.nombre}</div><div style={{fontSize:11,color:"var(--tx3)"}}>{r.cargo||"Sin cargo"}</div></div>
+          <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,color:"var(--gn)"}}>${fmt(r.liquido||0)}</div><div style={{fontSize:10,color:"var(--tx3)"}}>Liquido</div></div>
+          <button onClick={e=>{e.stopPropagation();doDel(r.id)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5,padding:4}}>x</button>
+        </div>)}</div>
+      </div>);
+    })}
   </div>);
 }
 
