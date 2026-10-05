@@ -34,6 +34,14 @@ button:active:not(:disabled){transform:scale(.97)}
 .rd-hover-lift{transition:transform .2s ease-out,box-shadow .2s ease-out}
 .rd-hover-lift:hover{transform:translateY(-3px)}
 @media (prefers-reduced-motion: reduce){.rd-hover-lift{transition:none}.rd-hover-lift:hover{transform:none}}
+/* Tarjetas deliberadamente desalineadas (leve rotacion/offset via
+   variables CSS) en vez de una grilla perfectamente pareja -- se
+   enderezan al pasar el mouse, y se aplanan en pantallas chicas donde
+   no hay espacio para que el desorden se vea intencional. */
+.rd-tilt{transform:rotate(var(--tilt,0deg)) translateY(var(--tilty,0px))}
+.rd-tilt:hover{transform:rotate(0deg) translateY(-5px) scale(1.015)!important;z-index:5}
+@media (max-width:640px){.rd-tilt{--tilt:0deg;--tilty:0px}}
+@media (prefers-reduced-motion: reduce){.rd-tilt:hover{transform:rotate(0deg)!important}}
 .rpt-print-head{display:none}
 /* El look formal (papel blanco, encabezado tipo carta) solo se ve al
    exportar a PDF -- en pantalla los reportes se quedan con el tema
@@ -479,11 +487,11 @@ function HomeP({emps,eObj,evs,log}){
       <div style={{position:"relative",fontSize:14,color:"var(--tx2)",maxWidth:460}}>Plataforma de Inteligencia Empresarial</div>
     </div>
     <RecordatoriosTrib/>
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:28}}>
-      {[{l:"Empresas",v:emps.length,g:"var(--grad)"},{l:"Evaluaciones",v:evs.length,g:"var(--grad-pu)"},{l:"Contabilidad",v:emps.filter(e=>e.services?.includes("contabilidad")).length,g:"var(--grad-gn)"}].map((s,i)=><div key={i} className="rd-hover-lift" style={{position:"relative",overflow:"hidden",background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:"24px 20px"}}>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:28,paddingTop:10,paddingBottom:6}}>
+      {[{l:"Empresas",v:emps.length,g:"var(--grad)",tilt:"-1.75deg",tilty:"6px",big:true},{l:"Evaluaciones",v:evs.length,g:"var(--grad-pu)",tilt:"1.25deg",tilty:"-8px",big:false},{l:"Contabilidad",v:emps.filter(e=>e.services?.includes("contabilidad")).length,g:"var(--grad-gn)",tilt:"-1deg",tilty:"10px",big:false}].map((s,i)=><div key={i} className="rd-hover-lift rd-tilt" style={{"--tilt":s.tilt,"--tilty":s.tilty,position:"relative",overflow:"hidden",background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:s.big?"30px 22px":"22px 18px"}}>
         <div aria-hidden style={{position:"absolute",top:0,left:0,right:0,height:3,background:s.g}}/>
         <div style={{fontSize:10,textTransform:"uppercase",letterSpacing:1.5,color:"var(--tx3)",marginBottom:10,fontWeight:600}}>{s.l}</div>
-        <div style={{fontSize:44,fontWeight:800,letterSpacing:-1.5,lineHeight:1,background:s.g,...GRADT}}>{s.v}</div>
+        <div style={{fontSize:s.big?52:40,fontWeight:800,letterSpacing:-1.5,lineHeight:1,background:s.g,...GRADT}}>{s.v}</div>
       </div>)}
     </div>
     <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:24}}><div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:1.5,color:"var(--tx3)",marginBottom:18}}>Actividad reciente</div>
