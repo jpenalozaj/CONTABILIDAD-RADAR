@@ -5,14 +5,14 @@ import { normRut } from "./lib/rut";
 import { parseCartolaSantander, decodeRutFromGlosa } from "./lib/cartola";
 import { yaContabilizado, sugerirContraparte, armarAsiento, buscarReglaPorRut, buscarReglaPorPalabra } from "./lib/conciliacion";
 
-const ST = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+const ST = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fraunces:ital,wght@0,600;0,700;1,600&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#0A0A0A;--sf:#161616;--sf2:#1F1F1F;--bd:#2A2A2A;--bd2:#3A3A3A;--tx:#F2F2F2;--tx2:#A8A8A8;--tx3:#737373;--cy:#FF7A00;--cy2:#B85500;--cyg:rgba(255,122,0,.15);--gn:#10B981;--am:#FBBF24;--rd:#EF4444;--pu:#3B82F6;--r:12px;--rs:8px;--shadow:0 1px 0 rgba(255,255,255,.04) inset,0 10px 24px -8px rgba(0,0,0,.55),0 2px 6px -2px rgba(0,0,0,.35);--glass:rgba(22,22,22,.72);--grad:linear-gradient(135deg,#FF7A00,#FFC14D);--grad-gn:linear-gradient(135deg,#10B981,#6EE7B7);--grad-am:linear-gradient(135deg,#FBBF24,#FCD34D);--grad-pu:linear-gradient(135deg,#3B82F6,#93C5FD)}
+:root{--bg:#0D0F08;--sf:#17190F;--sf2:#1F2316;--bd:#2B2F1E;--bd2:#3B4129;--tx:#F3F1E8;--tx2:#AEAA9A;--tx3:#7A7868;--cy:#D7FF1A;--cy2:#8A9E1A;--cyg:rgba(215,255,26,.15);--gn:#10B981;--am:#FBBF24;--rd:#EF4444;--pu:#9BA888;--r:12px;--rs:8px;--shadow:0 1px 0 rgba(255,255,255,.04) inset,0 10px 24px -8px rgba(0,0,0,.55),0 2px 6px -2px rgba(0,0,0,.35);--glass:rgba(23,25,15,.72);--grad:linear-gradient(135deg,#D7FF1A,#F3FFB3);--grad-gn:linear-gradient(135deg,#10B981,#6EE7B7);--grad-am:linear-gradient(135deg,#FBBF24,#FCD34D);--grad-pu:linear-gradient(135deg,#9BA888,#C7D1B0)}
 body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--tx)}
 input,select,textarea{font-family:inherit;background:var(--sf);border:1px solid var(--bd);color:var(--tx);border-radius:var(--rs);padding:10px 14px;font-size:13px;outline:none;width:100%;transition:border-color .2s}
 input:focus,select:focus,textarea:focus{border-color:var(--cy);box-shadow:0 0 0 3px var(--cyg)}
 input::placeholder,textarea::placeholder{color:var(--tx3)}
-select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='%23737373' stroke-width='2' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:16px;padding-right:36px}
+select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='%237A7868' stroke-width='2' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:16px;padding-right:36px}
 textarea{resize:vertical;min-height:80px}button{font-family:inherit;cursor:pointer;transition:transform .1s ease-out}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
 @keyframes rpulse{0%,100%{opacity:1}50%{opacity:.4}}
@@ -68,9 +68,9 @@ button:active:not(:disabled){transform:scale(.97)}
 function ld(k,fb){try{const r=localStorage.getItem(k);return r?JSON.parse(r):fb}catch{return fb}}
 function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){console.error(e)}}
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-const SVCS=[{id:"contabilidad",label:"Contabilidad",icon:"\u{1F4CA}",color:"#FF7A00"},{id:"tributario",label:"Tributario",icon:"\u{1F4CB}",color:"#3B82F6"},{id:"auditoria",label:"Auditor\u00eda",icon:"\u{1F50D}",color:"#FBBF24"},{id:"remuneraciones",label:"Remuneraciones",icon:"\u{1F465}",color:"#10B981"},{id:"consultoria",label:"Consultor\u00eda",icon:"\u{1F4A1}",color:"#EC4899"},{id:"compliance",label:"Compliance",icon:"\u{1F6E1}",color:"#6366F1"}];
+const SVCS=[{id:"contabilidad",label:"Contabilidad",icon:"\u{1F4CA}",color:"#D7FF1A"},{id:"tributario",label:"Tributario",icon:"\u{1F4CB}",color:"#9BA888"},{id:"auditoria",label:"Auditor\u00eda",icon:"\u{1F50D}",color:"#FBBF24"},{id:"remuneraciones",label:"Remuneraciones",icon:"\u{1F465}",color:"#10B981"},{id:"consultoria",label:"Consultor\u00eda",icon:"\u{1F4A1}",color:"#EC4899"},{id:"compliance",label:"Compliance",icon:"\u{1F6E1}",color:"#6366F1"}];
 const REGS=["Pro Pyme General (14 D N\u00b03)","Pro Pyme Transparente (14 D N\u00b08)","Semi Integrado (14 A)","Renta Presunta (34)","Otro"];
-const ETYPES=[{id:"renta",label:"RADAR Renta (F22)",icon:"\u{1F4CB}",color:"#3B82F6",desc:"Revision integral del F22 - ultimos 5 anos tributarios"},{id:"tributario",label:"RADAR Tributario",icon:"\u2696\uFE0F",color:"#FF7A00",desc:"Cumplimiento F29, DJ, situacion tributaria"},{id:"financiero",label:"RADAR Financiero",icon:"\u{1F4CA}",color:"#10B981",desc:"Liquidez, endeudamiento, rentabilidad, capital de trabajo"},{id:"auditoria",label:"RADAR Auditoria",icon:"\u{1F50D}",color:"#FBBF24",desc:"Planificacion, riesgos, COSO",soon:true},{id:"360",label:"RADAR 360",icon:"\u{1F3AF}",color:"#EF4444",desc:"Diagnostico completo - todas las areas"}];
+const ETYPES=[{id:"renta",label:"RADAR Renta (F22)",icon:"\u{1F4CB}",color:"#9BA888",desc:"Revision integral del F22 - ultimos 5 anos tributarios"},{id:"tributario",label:"RADAR Tributario",icon:"\u2696\uFE0F",color:"#D7FF1A",desc:"Cumplimiento F29, DJ, situacion tributaria"},{id:"financiero",label:"RADAR Financiero",icon:"\u{1F4CA}",color:"#10B981",desc:"Liquidez, endeudamiento, rentabilidad, capital de trabajo"},{id:"auditoria",label:"RADAR Auditoria",icon:"\u{1F50D}",color:"#FBBF24",desc:"Planificacion, riesgos, COSO",soon:true},{id:"360",label:"RADAR 360",icon:"\u{1F3AF}",color:"#EF4444",desc:"Diagnostico completo - todas las areas"}];
 const CY=new Date().getFullYear();
 const ATY=[CY,CY-1,CY-2,CY-3,CY-4];
 const IC={
@@ -223,7 +223,7 @@ function mkQ(y){return[
   {id:"obs_"+y,text:"AT "+y+" - Observaciones del profesional",type:"textarea",ph:"Analisis, conclusiones, recomendaciones...",nx:()=>null},
 ]}
 function visQ(qs,r){const v=[];if(!qs.length)return v;v.push(qs[0]);let c=qs[0];while(c){const rv=r[c.id];if(rv===undefined||rv===""||rv===null)break;const ni=c.nx?c.nx(rv):null;if(!ni)break;const nq=qs.find(q=>q.id===ni);if(!nq)break;v.push(nq);c=nq}return v}
-function ySt(y,r){const e=r["e_"+y];if(!e)return{s:"pend",l:"Sin evaluar",c:"#737373"};if(e==="aceptada")return{s:"ok",l:"Aceptada",c:"#10B981"};if(e==="no_presentada")return{s:"alert",l:"No presentada",c:"#EF4444"};if(r["obs_"+y])return{s:"rev",l:"Observada - Revisada",c:"#FBBF24"};return{s:"proc",l:"Observada - En revision",c:"#FBBF24"}}
+function ySt(y,r){const e=r["e_"+y];if(!e)return{s:"pend",l:"Sin evaluar",c:"#7A7868"};if(e==="aceptada")return{s:"ok",l:"Aceptada",c:"#10B981"};if(e==="no_presentada")return{s:"alert",l:"No presentada",c:"#EF4444"};if(r["obs_"+y])return{s:"rev",l:"Observada - Revisada",c:"#FBBF24"};return{s:"proc",l:"Observada - En revision",c:"#FBBF24"}}
 
 function Dashboard({session}){
   const userId=session.user.id;
@@ -294,13 +294,13 @@ function Dashboard({session}){
   const portalIcon=<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{width:20,height:20}}><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>;
   const nav=[{id:"inicio",label:"Inicio",icon:IC.home},{id:"empresas",label:"Empresas",icon:IC.emp},{id:"radar",label:"RADAR",icon:IC.eval},{id:"contabilidad",label:"Contabilidad",icon:IC.contab},{id:"remuneraciones",label:"Remuneraciones",icon:remIcon},{id:"documentos",label:"Documentos",icon:docIcon},{id:"planificacion",label:"Planificacion",icon:planIcon},{id:"portal",label:"Portal Cliente",icon:portalIcon}];
   const go=p=>{if(!nav.find(n=>n.id===p)?.soon){setPg(p);setSb(false)}};
-  if(!rdy)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#0A0A0A"}}><div style={{textAlign:"center",color:"#FF7A00"}}><div style={{fontSize:24,fontWeight:800,letterSpacing:6}}>RADAR</div><div style={{fontSize:12,color:"#737373",marginTop:8}}>Cargando...</div></div></div>;
+  if(!rdy)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#0D0F08"}}><div style={{textAlign:"center",color:"#D7FF1A"}}><div style={{fontSize:24,fontWeight:800,letterSpacing:6,fontFamily:"'Fraunces',Georgia,serif"}}>RADAR</div><div style={{fontSize:12,color:"#7A7868",marginTop:8}}>Cargando...</div></div></div>;
   return(<><style>{ST}</style><div style={{display:"flex",height:"100vh",overflow:"hidden",background:"var(--bg)"}}>
     {sb&&<div onClick={()=>setSb(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:40}}/>}
     <aside className="rsb rd-glass" style={{position:"fixed",zIndex:50,top:0,bottom:0,left:0,width:260,borderRight:"1px solid var(--bd)",display:"flex",flexDirection:"column",transform:sb?"translateX(0)":"translateX(-100%)",transition:"transform .25s"}}>
-      <div style={{padding:"24px 20px 20px",borderBottom:"1px solid var(--bd)"}}><div style={{display:"flex",alignItems:"center",gap:12}}><div style={{color:"var(--cy)"}}>{IC.radar}</div><div><div style={{fontSize:18,fontWeight:800,letterSpacing:4,color:"var(--cy)"}}>RADAR</div><div style={{fontSize:10,color:"var(--tx3)",letterSpacing:1}}>INTELIGENCIA EMPRESARIAL</div></div></div></div>
+      <div style={{padding:"24px 20px 20px",borderBottom:"1px solid var(--bd)"}}><div style={{display:"flex",alignItems:"center",gap:12}}><div style={{color:"var(--cy)"}}>{IC.radar}</div><div><div style={{fontSize:18,fontWeight:800,letterSpacing:4,color:"var(--cy)",fontFamily:"'Fraunces',Georgia,serif"}}>RADAR</div><div style={{fontSize:10,color:"var(--tx3)",letterSpacing:1}}>INTELIGENCIA EMPRESARIAL</div></div></div></div>
       {emps.length>0&&<div style={{padding:"16px 16px 8px"}}><div style={{fontSize:10,textTransform:"uppercase",letterSpacing:1.5,color:"var(--tx3)",marginBottom:8,paddingLeft:4}}>Empresa Activa</div><select value={aEmp||""} onChange={e=>setAEmp(e.target.value)} style={{fontSize:12,padding:"8px 12px",background:"var(--sf2)"}}>{emps.map(e=><option key={e.id} value={e.id}>{e.name}</option>)}</select></div>}
-      <nav style={{flex:1,padding:12,overflowY:"auto"}}><div style={{display:"flex",flexDirection:"column",gap:2}}>{nav.map(n=><button key={n.id} onClick={()=>go(n.id)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:"var(--rs)",border:"none",width:"100%",textAlign:"left",fontSize:13,fontWeight:pg===n.id?600:400,background:pg===n.id?"var(--cyg)":"transparent",color:pg===n.id?"var(--cy)":n.soon?"var(--tx3)":"var(--tx2)",opacity:n.soon?.5:1,cursor:n.soon?"default":"pointer"}}>{n.icon}<span>{n.label}</span>{n.soon&&<span style={{marginLeft:"auto",fontSize:9,background:"var(--bd)",padding:"2px 6px",borderRadius:4,color:"var(--tx3)"}}>Pronto</span>}</button>)}</div></nav>
+      <nav style={{flex:1,padding:12,overflowY:"auto"}}><div style={{display:"flex",flexDirection:"column",gap:2}}>{nav.map(n=><button key={n.id} onClick={()=>go(n.id)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:"var(--rs)",border:"none",width:"100%",textAlign:"left",fontSize:13,fontWeight:pg===n.id?700:400,background:"transparent",color:pg===n.id?"var(--cy)":n.soon?"var(--tx3)":"var(--tx2)",opacity:n.soon?.5:1,cursor:n.soon?"default":"pointer"}}>{n.icon}<span style={{position:"relative"}}>{n.label}{pg===n.id&&<svg aria-hidden viewBox="0 0 100 8" preserveAspectRatio="none" style={{position:"absolute",left:0,bottom:-6,width:"100%",height:6,overflow:"visible"}}><path d="M0,5 C10,0 20,0 30,5 C40,10 50,10 60,5 C70,0 80,0 90,5 C95,7.5 98,6 100,5" fill="none" stroke="var(--cy)" strokeWidth="1.6" strokeLinecap="round"/></svg>}</span>{n.soon&&<span style={{marginLeft:"auto",fontSize:9,background:"var(--bd)",padding:"2px 6px",borderRadius:4,color:"var(--tx3)"}}>Pronto</span>}</button>)}</div></nav>
       <div style={{padding:"14px 20px",borderTop:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
         <div style={{fontSize:10,color:"var(--tx3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={session.user.email}>{session.user.email}</div>
         <button onClick={()=>supabase.auth.signOut()} style={{background:"none",border:"none",color:"var(--tx3)",fontSize:10,cursor:"pointer",flexShrink:0,padding:0}}>Salir</button>
@@ -347,7 +347,7 @@ function AuthScreen(){
   return(<><style>{ST}</style>
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)"}}>
       <form onSubmit={submit} style={{width:340,background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28}}>
-        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:24,color:"var(--cy)"}}>{IC.radar}<div style={{fontSize:18,fontWeight:800,letterSpacing:4}}>RADAR</div></div>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:24,color:"var(--cy)"}}>{IC.radar}<div style={{fontSize:18,fontWeight:800,letterSpacing:4,fontFamily:"'Fraunces',Georgia,serif"}}>RADAR</div></div>
         {mode!=="forgot"&&<div style={{display:"flex",gap:6,marginBottom:20,background:"var(--sf2)",borderRadius:"var(--rs)",padding:4}}>
           <button type="button" onClick={()=>{setMode("login");setMsg(null)}} style={{flex:1,padding:"8px 0",borderRadius:6,border:"none",fontSize:12,fontWeight:600,background:mode==="login"?"var(--cy)":"transparent",color:mode==="login"?"#fff":"var(--tx2)"}}>Iniciar sesion</button>
           <button type="button" onClick={()=>{setMode("signup");setMsg(null)}} style={{flex:1,padding:"8px 0",borderRadius:6,border:"none",fontSize:12,fontWeight:600,background:mode==="signup"?"var(--cy)":"transparent",color:mode==="signup"?"#fff":"var(--tx2)"}}>Crear cuenta</button>
@@ -380,7 +380,7 @@ function ResetPasswordScreen({onDone}){
   return(<><style>{ST}</style>
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)"}}>
       <form onSubmit={submit} style={{width:340,background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28}}>
-        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:24,color:"var(--cy)"}}>{IC.radar}<div style={{fontSize:18,fontWeight:800,letterSpacing:4}}>RADAR</div></div>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:24,color:"var(--cy)"}}>{IC.radar}<div style={{fontSize:18,fontWeight:800,letterSpacing:4,fontFamily:"'Fraunces',Georgia,serif"}}>RADAR</div></div>
         <div style={{fontSize:14,fontWeight:600,marginBottom:4}}>Define tu nueva contrasena</div>
         <div style={{fontSize:12,color:"var(--tx3)",marginBottom:16}}>Veniste desde el link de recuperacion que enviamos a tu correo.</div>
         <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Nueva contrasena</label><input type="password" required minLength={6} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Minimo 6 caracteres"/></div>
@@ -397,7 +397,7 @@ function ConfigMissing(){
   return(<><style>{ST}</style>
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",padding:20}}>
       <div style={{maxWidth:480,background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28}}>
-        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16,color:"var(--cy)"}}>{IC.radar}<div style={{fontSize:18,fontWeight:800,letterSpacing:4}}>RADAR</div></div>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16,color:"var(--cy)"}}>{IC.radar}<div style={{fontSize:18,fontWeight:800,letterSpacing:4,fontFamily:"'Fraunces',Georgia,serif"}}>RADAR</div></div>
         <div style={{fontSize:14,fontWeight:600,marginBottom:10}}>Falta configurar Supabase</div>
         <div style={{fontSize:13,color:"var(--tx2)",lineHeight:1.6,marginBottom:14}}>
           Crea un proyecto gratuito en supabase.com, corre <code style={{background:"var(--sf2)",padding:"1px 6px",borderRadius:4}}>supabase/schema.sql</code> en su SQL Editor,
@@ -420,7 +420,7 @@ export default function App(){
     return()=>sub.subscription.unsubscribe();
   },[]);
   if(!supabase)return<ConfigMissing/>;
-  if(session===undefined)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#0A0A0A"}}><div style={{textAlign:"center",color:"#FF7A00"}}><div style={{fontSize:24,fontWeight:800,letterSpacing:6}}>RADAR</div><div style={{fontSize:12,color:"#737373",marginTop:8}}>Cargando...</div></div></div>;
+  if(session===undefined)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#0D0F08"}}><div style={{textAlign:"center",color:"#D7FF1A"}}><div style={{fontSize:24,fontWeight:800,letterSpacing:6,fontFamily:"'Fraunces',Georgia,serif"}}>RADAR</div><div style={{fontSize:12,color:"#7A7868",marginTop:8}}>Cargando...</div></div></div>;
   if(recovering)return<ResetPasswordScreen onDone={()=>setRecovering(false)}/>;
   if(!session)return<AuthScreen/>;
   return<Dashboard key={session.user.id} session={session}/>;
@@ -482,8 +482,12 @@ function HomeP({emps,eObj,evs,log}){
   return(<div style={{maxWidth:900,margin:"0 auto"}}>
     <div style={{position:"relative",overflow:"hidden",background:"linear-gradient(135deg,var(--sf2),var(--sf))",borderRadius:"var(--r)",boxShadow:"var(--shadow)",border:"1px solid var(--bd)",padding:"44px 32px",marginBottom:28}}>
       <div aria-hidden style={{position:"absolute",top:-90,right:-70,width:280,height:280,borderRadius:"50%",background:"var(--grad)",opacity:.22,filter:"blur(70px)",pointerEvents:"none"}}/>
+      <svg aria-hidden viewBox="0 0 600 220" preserveAspectRatio="none" style={{position:"absolute",inset:0,width:"100%",height:"100%",opacity:.35,pointerEvents:"none"}}>
+        <path d="M-20,180 C60,140 100,210 180,160 C260,110 300,190 380,150 C460,110 500,170 560,130 C600,105 630,120 660,100" fill="none" stroke="var(--tx3)" strokeWidth="1"/>
+        <path d="M-20,40 C40,10 90,70 160,50 C230,30 260,80 330,60 C400,40 430,90 500,65 C550,45 580,55 620,30" fill="none" stroke="var(--tx3)" strokeWidth="1"/>
+      </svg>
       <div style={{position:"relative",fontSize:11,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:2,marginBottom:10,fontWeight:600}}>Bienvenido a</div>
-      <div style={{position:"relative",fontSize:56,fontWeight:800,letterSpacing:-2.5,lineHeight:.95,background:"var(--grad)",...GRADT,marginBottom:10}}>RADAR</div>
+      <div style={{position:"relative",fontSize:56,fontWeight:800,letterSpacing:-2.5,lineHeight:.95,fontFamily:"'Fraunces',Georgia,serif",fontStyle:"italic",background:"var(--grad)",...GRADT,marginBottom:10}}>RADAR</div>
       <div style={{position:"relative",fontSize:14,color:"var(--tx2)",maxWidth:460}}>Plataforma de Inteligencia Empresarial</div>
     </div>
     <RecordatoriosTrib/>
@@ -628,7 +632,7 @@ function F22V({ev,upd,del,emp,back}){
       <div style={{borderTop:"1px solid var(--bd)",paddingTop:24,marginTop:8}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16,flexWrap:"wrap",gap:12}}>
           <div><div style={{fontSize:13,fontWeight:700,color:"var(--cy)"}}>Informe Ejecutivo con IA</div><div style={{fontSize:11,color:"var(--tx3)"}}>Generado a partir de los datos de la evaluacion</div></div>
-          <button onClick={genAI} disabled={aiL} style={{display:"flex",alignItems:"center",gap:8,background:aiL?"var(--sf2)":"linear-gradient(135deg, #FF7A00, #3B82F6)",color:"#fff",border:"none",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600,cursor:aiL?"wait":"pointer",opacity:aiL?.7:1}}>{aiL?"Generando...":aiR?"Regenerar Informe":"Generar Informe"}</button>
+          <button onClick={genAI} disabled={aiL} style={{display:"flex",alignItems:"center",gap:8,background:aiL?"var(--sf2)":"linear-gradient(135deg, #D7FF1A, #9BA888)",color:"#fff",border:"none",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600,cursor:aiL?"wait":"pointer",opacity:aiL?.7:1}}>{aiL?"Generando...":aiR?"Regenerar Informe":"Generar Informe"}</button>
         </div>
         {aiL&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:32,textAlign:"center"}}><div style={{fontSize:28,marginBottom:12,animation:"rpulse 1.5s infinite"}}>🤖</div><div style={{fontSize:14,fontWeight:600,color:"var(--cy)"}}>Analizando evaluacion...</div><div style={{fontSize:12,color:"var(--tx3)",marginTop:4}}>Revisando datos, contingencias y observaciones profesionales.</div></div>}
         {!aiL&&aiR&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:24}}><div style={{whiteSpace:"pre-wrap",fontSize:13,lineHeight:1.7,color:"var(--tx)"}}>{aiR}</div><div style={{display:"flex",gap:8,marginTop:20,paddingTop:16,borderTop:"1px solid var(--bd)"}}><button onClick={()=>{navigator.clipboard.writeText(aiR);alert("Copiado!")}} style={{display:"flex",alignItems:"center",gap:6,background:"var(--sf)",border:"1px solid var(--bd)",color:"var(--tx2)",padding:"8px 16px",borderRadius:"var(--rs)",fontSize:12}}>Copiar informe</button><button onClick={genAI} style={{display:"flex",alignItems:"center",gap:6,background:"var(--sf)",border:"1px solid var(--bd)",color:"var(--tx2)",padding:"8px 16px",borderRadius:"var(--rs)",fontSize:12}}>Regenerar</button></div></div>}
@@ -680,7 +684,7 @@ function ReportHeader({eObj,title,subtitle}){
   </div>);
 }
 const tpL={asset:"Activo",liability:"Pasivo",equity:"Patrimonio",income:"Ingreso",expense:"Gasto"};
-const tpC={asset:"#FF7A00",liability:"#EF4444",equity:"#3B82F6",income:"#10B981",expense:"#FBBF24"};
+const tpC={asset:"#D7FF1A",liability:"#EF4444",equity:"#9BA888",income:"#10B981",expense:"#FBBF24"};
 
 function ContabP({eObj,accts,setAccts,entries,setEntries,empEntries,leafAccts,aLog,go,reglas,setReglas,ccostos,setCcostos,activos,setActivos}){
   const [tab,setTab]=useState("dashboard");
@@ -1066,7 +1070,7 @@ function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog,ccostos,res
         </div>);})}</div>
     </div>}
     <div style={{display:"flex",flexDirection:"column",gap:8}}>{[...empEntries].sort((a,b)=>b.date.localeCompare(a.date)).map(e=><div key={e.id} id={"asiento-"+e.id} style={{background:"var(--sf)",border:"1px solid "+(resaltadoId===e.id?"var(--am)":editId===e.id?"var(--cy)":"var(--bd)"),boxShadow:resaltadoId===e.id?"0 0 0 3px rgba(251,191,36,.25), var(--shadow)":"var(--shadow)",borderRadius:"var(--r)",padding:16,transition:"box-shadow .3s,border-color .3s"}}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:10,fontFamily:"monospace",background:"var(--sf2)",padding:"2px 8px",borderRadius:4}}>N {e.num}</span><span style={{fontSize:13,fontWeight:500}}>{e.desc}</span>{e.centroCosto&&ccNombre[e.centroCosto]&&<span style={{fontSize:10,background:"var(--cyg)",color:"var(--cy)",padding:"2px 8px",borderRadius:4}}>{ccNombre[e.centroCosto]}</span>}{e.recurrente&&<span style={{fontSize:10,background:"rgba(59,130,246,.15)",color:"var(--pu)",padding:"2px 8px",borderRadius:4}}>↻ Recurrente</span>}</div><div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:11,color:"var(--tx3)"}}>{fD(e.date)}</span><button onClick={()=>openEdit(e)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.6,fontSize:11}}>editar</button><button onClick={()=>{if(confirm("Eliminar este asiento?"))delE(e.id)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5}}>x</button></div></div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:10,fontFamily:"monospace",background:"var(--sf2)",padding:"2px 8px",borderRadius:4}}>N {e.num}</span><span style={{fontSize:13,fontWeight:500}}>{e.desc}</span>{e.centroCosto&&ccNombre[e.centroCosto]&&<span style={{fontSize:10,background:"var(--cyg)",color:"var(--cy)",padding:"2px 8px",borderRadius:4}}>{ccNombre[e.centroCosto]}</span>}{e.recurrente&&<span style={{fontSize:10,background:"rgba(155,168,136,.15)",color:"var(--pu)",padding:"2px 8px",borderRadius:4}}>↻ Recurrente</span>}</div><div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:11,color:"var(--tx3)"}}>{fD(e.date)}</span><button onClick={()=>openEdit(e)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.6,fontSize:11}}>editar</button><button onClick={()=>{if(confirm("Eliminar este asiento?"))delE(e.id)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5}}>x</button></div></div>
       <div style={{fontSize:11}}>{e.lines.map((l,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 80px 80px",gap:8,padding:"2px 0"}}><span style={{color:"var(--tx2)",paddingLeft:l.cr>0?20:0}}>{l.ac} {leafAccts.find(a=>a.cd===l.ac)?.nm||""}</span><span style={{textAlign:"right",fontFamily:"monospace"}}>{l.db>0?"$"+fmt(l.db):""}</span><span style={{textAlign:"right",fontFamily:"monospace"}}>{l.cr>0?"$"+fmt(l.cr):""}</span></div>)}</div>
     </div>)}</div>
   </div>);
@@ -2307,7 +2311,7 @@ function TribV({ev,upd,del,emp,back}){
       <div style={{borderTop:"1px solid var(--bd)",paddingTop:24,marginTop:8}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16,flexWrap:"wrap",gap:12}}>
           <div><div style={{fontSize:13,fontWeight:700,color:"var(--cy)"}}>Informe con IA</div></div>
-          <button onClick={genAI} disabled={aiL} style={{display:"flex",alignItems:"center",gap:8,background:aiL?"var(--sf2)":"linear-gradient(135deg, #FF7A00, #3B82F6)",color:"#fff",border:"none",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600,cursor:aiL?"wait":"pointer",opacity:aiL?.7:1}}>{aiL?"Generando...":aiR?"Regenerar":"Generar Informe"}</button>
+          <button onClick={genAI} disabled={aiL} style={{display:"flex",alignItems:"center",gap:8,background:aiL?"var(--sf2)":"linear-gradient(135deg, #D7FF1A, #9BA888)",color:"#fff",border:"none",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600,cursor:aiL?"wait":"pointer",opacity:aiL?.7:1}}>{aiL?"Generando...":aiR?"Regenerar":"Generar Informe"}</button>
         </div>
         {aiL&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:32,textAlign:"center"}}><div style={{fontSize:28,marginBottom:12,animation:"rpulse 1.5s infinite"}}>🤖</div><div style={{fontSize:14,fontWeight:600,color:"var(--cy)"}}>Analizando...</div></div>}
         {!aiL&&aiR&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:24}}><div style={{whiteSpace:"pre-wrap",fontSize:13,lineHeight:1.7}}>{aiR}</div><div style={{display:"flex",gap:8,marginTop:16,paddingTop:12,borderTop:"1px solid var(--bd)"}}><button onClick={()=>{navigator.clipboard.writeText(aiR);alert("Copiado!")}} style={{background:"var(--sf)",border:"1px solid var(--bd)",color:"var(--tx2)",padding:"8px 16px",borderRadius:"var(--rs)",fontSize:12}}>Copiar</button></div></div>}
@@ -2491,7 +2495,7 @@ function FinV({ev,upd,del,emp,back}){
           return<div key={q.id} style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,padding:"6px 0",borderBottom:"1px solid var(--bd)",fontSize:12}}><span style={{color:"var(--tx2)"}}>{q.text}</span><span style={{fontWeight:500}}>{ol}</span></div>})}</div>)}
       <div style={{borderTop:"1px solid var(--bd)",paddingTop:24}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}><div style={{fontSize:13,fontWeight:700,color:"var(--cy)"}}>Informe con IA</div>
-          <button onClick={genAI} disabled={aiL} style={{background:aiL?"var(--sf2)":"linear-gradient(135deg,#FF7A00,#10B981)",color:"#fff",border:"none",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600,cursor:aiL?"wait":"pointer"}}>{aiL?"Generando...":aiR?"Regenerar":"Generar Informe"}</button></div>
+          <button onClick={genAI} disabled={aiL} style={{background:aiL?"var(--sf2)":"linear-gradient(135deg,#D7FF1A,#10B981)",color:"#fff",border:"none",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600,cursor:aiL?"wait":"pointer"}}>{aiL?"Generando...":aiR?"Regenerar":"Generar Informe"}</button></div>
         {aiL&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:32,textAlign:"center"}}><div style={{fontSize:28,animation:"rpulse 1.5s infinite"}}>🤖</div></div>}
         {!aiL&&aiR&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:24}}><div style={{whiteSpace:"pre-wrap",fontSize:13,lineHeight:1.7}}>{aiR}</div><button onClick={()=>{navigator.clipboard.writeText(aiR);alert("Copiado!")}} style={{marginTop:16,background:"var(--sf)",border:"1px solid var(--bd)",color:"var(--tx2)",padding:"8px 16px",borderRadius:"var(--rs)",fontSize:12}}>Copiar</button></div>}
       </div>
@@ -2541,14 +2545,14 @@ function R360V({ev,upd,del,emp,back}){
       <div style={{textAlign:"center",marginBottom:24}}><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:2}}>Evaluacion RADAR</div><div style={{fontSize:22,fontWeight:700,letterSpacing:-.3,lineHeight:1.15,marginTop:4}}>{emp.name}</div><div style={{fontSize:13,color:"var(--rd)",fontWeight:600,marginTop:4}}>RADAR 360 - Diagnostico Integral</div><div style={{fontSize:11,color:"var(--tx3)",marginTop:4}}>{answered}/{totalQ} respuestas</div></div>
       <div style={{borderTop:"1px solid var(--bd)",paddingTop:24}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}><div style={{fontSize:13,fontWeight:700,color:"var(--cy)"}}>Informe 360 con IA</div>
-          <button onClick={genAI} disabled={aiL} style={{background:aiL?"var(--sf2)":"linear-gradient(135deg,#EF4444,#3B82F6)",color:"#fff",border:"none",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600,cursor:aiL?"wait":"pointer"}}>{aiL?"Generando...":aiR?"Regenerar":"Generar Informe 360"}</button></div>
+          <button onClick={genAI} disabled={aiL} style={{background:aiL?"var(--sf2)":"linear-gradient(135deg,#EF4444,#9BA888)",color:"#fff",border:"none",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600,cursor:aiL?"wait":"pointer"}}>{aiL?"Generando...":aiR?"Regenerar":"Generar Informe 360"}</button></div>
         {aiL&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:32,textAlign:"center"}}><div style={{fontSize:28,animation:"rpulse 1.5s infinite"}}>🎯</div><div style={{fontSize:14,fontWeight:600,color:"var(--cy)",marginTop:8}}>Generando diagnostico integral...</div></div>}
         {!aiL&&aiR&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:24}}><div style={{whiteSpace:"pre-wrap",fontSize:13,lineHeight:1.7}}>{aiR}</div><button onClick={()=>{navigator.clipboard.writeText(aiR);alert("Copiado!")}} style={{marginTop:16,background:"var(--sf)",border:"1px solid var(--bd)",color:"var(--tx2)",padding:"8px 16px",borderRadius:"var(--rs)",fontSize:12}}>Copiar</button></div>}
       </div>
     </div></div>);
 
   return(<div style={{maxWidth:900,margin:"0 auto"}}><Bk onClick={back}>Volver</Bk>
-    <div style={{background:"linear-gradient(135deg,rgba(239,68,68,.1),rgba(59,130,246,.1))",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:"20px 24px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
+    <div style={{background:"linear-gradient(135deg,rgba(239,68,68,.1),rgba(155,168,136,.1))",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:"20px 24px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
       <div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:28}}>🎯</span><div><div style={{fontSize:15,fontWeight:600}}>RADAR 360 - Diagnostico Integral</div><div style={{fontSize:12,color:"var(--tx3)"}}>{emp.name} - {answered}/{totalQ}</div></div></div>
       <div style={{display:"flex",gap:8}}><Bt onClick={()=>setShowS(true)}>Resumen</Bt><Bt onClick={()=>upd({status:ev.status==="completada"?"en_proceso":"completada"})} p={ev.status!=="completada"}>{ev.status==="completada"?"Completada":"Completar"}</Bt></div>
     </div>
