@@ -7,7 +7,7 @@ import { yaContabilizado, sugerirContraparte, armarAsiento, buscarReglaPorRut, b
 
 const ST = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#050A18;--sf:#0C1425;--sf2:#111D35;--bd:#1A2744;--bd2:#243352;--tx:#E2E8F0;--tx2:#94A3B8;--tx3:#64748B;--cy:#06B6D4;--cy2:#0E7490;--cyg:rgba(6,182,212,.15);--gn:#10B981;--am:#F59E0B;--rd:#EF4444;--pu:#8B5CF6;--r:12px;--rs:8px;--shadow:0 1px 0 rgba(255,255,255,.04) inset,0 10px 24px -8px rgba(0,0,0,.55),0 2px 6px -2px rgba(0,0,0,.35);--glass:rgba(12,20,37,.72)}
+:root{--bg:#050A18;--sf:#0C1425;--sf2:#111D35;--bd:#1A2744;--bd2:#243352;--tx:#E2E8F0;--tx2:#94A3B8;--tx3:#64748B;--cy:#06B6D4;--cy2:#0E7490;--cyg:rgba(6,182,212,.15);--gn:#10B981;--am:#F59E0B;--rd:#EF4444;--pu:#8B5CF6;--r:12px;--rs:8px;--shadow:0 1px 0 rgba(255,255,255,.04) inset,0 10px 24px -8px rgba(0,0,0,.55),0 2px 6px -2px rgba(0,0,0,.35);--glass:rgba(12,20,37,.72);--grad:linear-gradient(135deg,#06B6D4,#8B5CF6);--grad-gn:linear-gradient(135deg,#10B981,#6EE7B7);--grad-am:linear-gradient(135deg,#F59E0B,#FCD34D);--grad-pu:linear-gradient(135deg,#8B5CF6,#C4B5FD)}
 body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--tx)}
 input,select,textarea{font-family:inherit;background:var(--sf);border:1px solid var(--bd);color:var(--tx);border-radius:var(--rs);padding:10px 14px;font-size:13px;outline:none;width:100%;transition:border-color .2s}
 input:focus,select:focus,textarea:focus{border-color:var(--cy);box-shadow:0 0 0 3px var(--cyg)}
@@ -29,6 +29,11 @@ button:active:not(:disabled){transform:scale(.97)}
 @media (prefers-reduced-transparency: reduce){
   .rd-glass{background:var(--sf);backdrop-filter:none;-webkit-backdrop-filter:none}
 }
+/* Energia al pasar el mouse sobre tarjetas destacadas -- se levantan
+   un poco en vez de quedarse pegadas al fondo. */
+.rd-hover-lift{transition:transform .2s ease-out,box-shadow .2s ease-out}
+.rd-hover-lift:hover{transform:translateY(-3px)}
+@media (prefers-reduced-motion: reduce){.rd-hover-lift{transition:none}.rd-hover-lift:hover{transform:none}}
 .rpt-print-head{display:none}
 /* El look formal (papel blanco, encabezado tipo carta) solo se ve al
    exportar a PDF -- en pantalla los reportes se quedan con el tema
@@ -464,16 +469,26 @@ function RecordatoriosTrib(){
   </div>);
 }
 
+const GRADT={WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"};
 function HomeP({emps,eObj,evs,log}){
   return(<div style={{maxWidth:900,margin:"0 auto"}}>
-    <div style={{background:"linear-gradient(135deg,var(--sf2),var(--sf))",borderRadius:"var(--r)",boxShadow:"var(--shadow)",border:"1px solid var(--bd)",padding:"32px 28px",marginBottom:24,position:"relative",overflow:"hidden"}}><div style={{fontSize:12,color:"var(--tx3)",marginBottom:4}}>Bienvenido a</div><div style={{fontSize:28,fontWeight:800,letterSpacing:3,color:"var(--cy)",marginBottom:8}}>RADAR</div><div style={{fontSize:13,color:"var(--tx2)",maxWidth:500}}>Plataforma de Inteligencia Empresarial</div></div>
-    <RecordatoriosTrib/>
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:24}}>
-      {[{l:"Empresas",v:emps.length,c:"var(--cy)"},{l:"Evaluaciones",v:evs.length,c:"var(--pu)"},{l:"Contabilidad",v:emps.filter(e=>e.services?.includes("contabilidad")).length,c:"var(--gn)"}].map((s,i)=><div key={i} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:"20px 18px"}}><div style={{fontSize:10,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:8}}>{s.l}</div><div style={{fontSize:28,fontWeight:700,letterSpacing:-.5,lineHeight:1.1,color:s.c}}>{s.v}</div></div>)}
+    <div style={{position:"relative",overflow:"hidden",background:"linear-gradient(135deg,var(--sf2),var(--sf))",borderRadius:"var(--r)",boxShadow:"var(--shadow)",border:"1px solid var(--bd)",padding:"44px 32px",marginBottom:28}}>
+      <div aria-hidden style={{position:"absolute",top:-90,right:-70,width:280,height:280,borderRadius:"50%",background:"var(--grad)",opacity:.22,filter:"blur(70px)",pointerEvents:"none"}}/>
+      <div style={{position:"relative",fontSize:11,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:2,marginBottom:10,fontWeight:600}}>Bienvenido a</div>
+      <div style={{position:"relative",fontSize:56,fontWeight:800,letterSpacing:-2.5,lineHeight:.95,background:"var(--grad)",...GRADT,marginBottom:10}}>RADAR</div>
+      <div style={{position:"relative",fontSize:14,color:"var(--tx2)",maxWidth:460}}>Plataforma de Inteligencia Empresarial</div>
     </div>
-    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:24}}><div style={{fontSize:13,fontWeight:600,marginBottom:16}}>Actividad reciente</div>
+    <RecordatoriosTrib/>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:28}}>
+      {[{l:"Empresas",v:emps.length,g:"var(--grad)"},{l:"Evaluaciones",v:evs.length,g:"var(--grad-pu)"},{l:"Contabilidad",v:emps.filter(e=>e.services?.includes("contabilidad")).length,g:"var(--grad-gn)"}].map((s,i)=><div key={i} className="rd-hover-lift" style={{position:"relative",overflow:"hidden",background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:"24px 20px"}}>
+        <div aria-hidden style={{position:"absolute",top:0,left:0,right:0,height:3,background:s.g}}/>
+        <div style={{fontSize:10,textTransform:"uppercase",letterSpacing:1.5,color:"var(--tx3)",marginBottom:10,fontWeight:600}}>{s.l}</div>
+        <div style={{fontSize:44,fontWeight:800,letterSpacing:-1.5,lineHeight:1,background:s.g,...GRADT}}>{s.v}</div>
+      </div>)}
+    </div>
+    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:24}}><div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:1.5,color:"var(--tx3)",marginBottom:18}}>Actividad reciente</div>
       {log.length===0?<div style={{textAlign:"center",padding:"32px 0",color:"var(--tx3)",fontSize:13}}>Sin actividad.</div>
-      :<div>{log.slice(0,8).map((l,i)=><div key={l.id} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"10px 0",borderBottom:i<7?"1px solid var(--bd)":"none"}}><div style={{width:6,height:6,borderRadius:"50%",background:"var(--cy)",marginTop:6,flexShrink:0}}/><div style={{flex:1}}><div style={{fontSize:12,fontWeight:500}}>{l.action}</div><div style={{fontSize:11,color:"var(--tx3)",marginTop:2}}>{l.detail}</div></div><div style={{fontSize:10,color:"var(--tx3)"}}>{new Date(l.time).toLocaleDateString("es-CL")}</div></div>)}</div>}
+      :<div>{log.slice(0,8).map((l,i)=><div key={l.id} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"10px 0",borderBottom:i<7?"1px solid var(--bd)":"none"}}><div style={{width:6,height:6,borderRadius:"50%",background:"var(--grad)",marginTop:6,flexShrink:0}}/><div style={{flex:1}}><div style={{fontSize:12,fontWeight:500}}>{l.action}</div><div style={{fontSize:11,color:"var(--tx3)",marginTop:2}}>{l.detail}</div></div><div style={{fontSize:10,color:"var(--tx3)"}}>{new Date(l.time).toLocaleDateString("es-CL")}</div></div>)}</div>}
     </div>
   </div>);
 }
