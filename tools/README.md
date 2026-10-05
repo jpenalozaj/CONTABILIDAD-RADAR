@@ -64,6 +64,28 @@ npm install -g @albertomarturelo/sii-cli
    donde corriste el comando. Sube ese archivo en RADAR: Contabilidad >
    Compras/Ventas SII > Carga manual > Cargar CSV.
 
+## Actualizar parametros previsionales (UF, UTM, tasas AFP) desde Previred
+
+A diferencia del SII, el informe mensual "Indicadores Previsionales" de
+Previred es un PDF **publico, sin login ni clave** — cualquiera puede
+descargarlo. `previred-core.mjs` lo busca (probando las variantes de
+nombre de archivo que Previred usa mes a mes), lo lee con `pdf-parse` y
+extrae UF, UTM, el tope imponible y las tasas de cada AFP.
+
+Se usa desde el mismo puente local de arriba: con
+`node tools/sii-local-server.mjs` corriendo, ve en RADAR a
+**Remuneraciones > Parametros Previsionales > "Actualizar tasas AFP desde
+Previred"**. El valor de UF/UTM del dia se trae aparte, directo desde el
+navegador, usando la API publica de [mindicador.cl](https://mindicador.cl)
+(no necesita el puente local).
+
+**Importante:** el nombre exacto del PDF cambia levemente cada mes (a veces
+con "-V2" o "-1" al final), asi que esto puede fallar algun mes si Previred
+usa un formato de nombre nuevo que no esta en la lista de variantes
+probadas — en ese caso, actualiza las tasas a mano en el mismo panel (estan
+en el PDF que Previred publica en previred.com, seccion "Indicadores
+Previsionales").
+
 ### Por que son scripts aparte y no todo dentro de RADAR
 
 El login pasa por un navegador real (el SII exige reCAPTCHA en esa pantalla,

@@ -2084,14 +2084,21 @@ function B8Col({empEntries,accts,leafAccts,eObj,irACuenta}){
 }
 
 // ═══ REMUNERACIONES ═══
-const AFP_RATES={capital:{r:11.44,sis:1.85},cuprum:{r:11.44,sis:1.85},habitat:{r:11.27,sis:1.85},modelo:{r:10.58,sis:1.85},planvital:{r:11.16,sis:1.85},provida:{r:11.45,sis:1.85},uno:{r:10.69,sis:1.85}};
+// Valores por defecto -- se usan hasta que el usuario actualice los
+// parametros reales (boton "Actualizar" en Remuneraciones > Parametros
+// Previsionales, que trae UF/UTM del dia desde mindicador.cl o las tasas
+// AFP desde el informe mensual de Previred via el puente local).
+const PARAM_PREVIRED_DEFAULT={
+  uf:38500,utm:67000,topeImponibleUF:87.8,actualizadoUfUtm:null,actualizadoAfp:null,
+  afp:{capital:{r:11.44,sis:1.85},cuprum:{r:11.44,sis:1.85},habitat:{r:11.27,sis:1.85},modelo:{r:10.58,sis:1.85},planvital:{r:11.16,sis:1.85},provida:{r:11.45,sis:1.85},uno:{r:10.49,sis:1.85}},
+};
+function getParamsPrevired(){const p=ld("rd_param_previred",null);return p?{...PARAM_PREVIRED_DEFAULT,...p,afp:{...PARAM_PREVIRED_DEFAULT.afp,...(p.afp||{})}}:PARAM_PREVIRED_DEFAULT}
+const AFP_RATES=PARAM_PREVIRED_DEFAULT.afp; // fallback para listar opciones del selector
 const SALUD_RATE=0.07;
 const CESANTIA_TRAB=0.006;const CESANTIA_EMP_INDEF=0.024;const CESANTIA_EMP_FIJO=0.03;
-const UF_APPROX=38500; // approximation
-const UTM_APPROX=67000;
-// Simplified Impuesto Unico table (monthly, approximate 2024-2026)
-function calcImpUnico(baseImponible){
-  const utm=UTM_APPROX;
+// Tabla de Impuesto Unico (mensual, en tramos de UTM) -- tasas y rebajas
+// vigentes, aplicadas sobre la UTM real del periodo.
+function calcImpUnico(baseImponible,utm){
   const t=baseImponible/utm;
   if(t<=13.5)return 0;
   if(t<=30)return Math.round((baseImponible-13.5*utm)*0.04);
@@ -2102,28 +2109,62 @@ function calcImpUnico(baseImponible){
 }
 
 function calcRem(emp){
+  const params=getParamsPrevired();
   const sb=emp.sueldoBase||0;const grat=emp.gratificacion||0;const bonos=emp.bonos||0;const horasExtra=emp.horasExtra||0;const colacion=emp.colacion||0;const movilizacion=emp.movilizacion||0;
   const totalImponible=sb+grat+bonos+horasExtra;
   const totalNoImponible=colacion+movilizacion;
   const totalHaberes=totalImponible+totalNoImponible;
-  const afpRate=AFP_RATES[emp.afp||"habitat"]||{r:11.27,sis:1.85};
-  const afpMonto=Math.round(totalImponible*afpRate.r/100);
-  const sisMonto=Math.round(totalImponible*afpRate.sis/100);
-  const saludMonto=Math.round(totalImponible*SALUD_RATE);
-  const cesantiaTrab=Math.round(totalImponible*CESANTIA_TRAB);
-  const cesantiaEmp=Math.round(totalImponible*(emp.contratoTipo==="fijo"?CESANTIA_EMP_FIJO:CESANTIA_EMP_INDEF));
+  // Las cotizaciones (AFP, salud, cesantia) se calculan solo hasta el tope
+  // imponible (en UF del periodo) -- lo que exceda ese tope no cotiza.
+  const topeImponible=params.topeImponibleUF*params.uf;
+  const baseCotizable=Math.min(totalImponible,topeImponible);
+  const afpRate=params.afp[emp.afp||"habitat"]||{r:11.27,sis:1.85};
+  const afpMonto=Math.round(baseCotizable*afpRate.r/100);
+  const sisMonto=Math.round(baseCotizable*afpRate.sis/100);
+  const saludMonto=Math.round(baseCotizable*SALUD_RATE);
+  const cesantiaTrab=Math.round(baseCotizable*CESANTIA_TRAB);
+  const cesantiaEmp=Math.round(baseCotizable*(emp.contratoTipo==="fijo"?CESANTIA_EMP_FIJO:CESANTIA_EMP_INDEF));
   const baseImpUnico=totalImponible-afpMonto-saludMonto-cesantiaTrab;
-  const impUnico=calcImpUnico(baseImpUnico);
+  const impUnico=calcImpUnico(baseImpUnico,params.utm);
   const totalDescuentos=afpMonto+saludMonto+cesantiaTrab+impUnico;
   const liquido=totalHaberes-totalDescuentos;
   const costoEmpresa=totalHaberes+cesantiaEmp+sisMonto;
-  return{totalImponible,totalNoImponible,totalHaberes,afpMonto,sisMonto,saludMonto,cesantiaTrab,cesantiaEmp,impUnico,baseImpUnico,totalDescuentos,liquido,costoEmpresa};
+  return{totalImponible,totalNoImponible,totalHaberes,afpMonto,sisMonto,saludMonto,cesantiaTrab,cesantiaEmp,impUnico,baseImpUnico,totalDescuentos,liquido,costoEmpresa,topeImponible,baseCotizable};
 }
 
 function RemP({eObj,rems,setRems,empRems,entries,setEntries,empEntries,leafAccts,aLog,go}){
   const [vw,setVw]=useState("list");
   const [eid,setEid]=useState(null);
   const [fm,setFm]=useState({});
+  const [params,setParamsSt]=useState(getParamsPrevired);
+  const setParams=next=>{setParamsSt(next);sv("rd_param_previred",next)};
+  const [pBusy,setPBusy]=useState(null);
+  const [pMsg,setPMsg]=useState(null);
+  const actualizarUfUtm=async()=>{
+    setPBusy("ufutm");setPMsg(null);
+    try{
+      const[rUf,rUtm]=await Promise.all([fetch("https://mindicador.cl/api/uf"),fetch("https://mindicador.cl/api/utm")]);
+      if(!rUf.ok||!rUtm.ok)throw new Error("mindicador.cl no respondio correctamente");
+      const[dUf,dUtm]=await Promise.all([rUf.json(),rUtm.json()]);
+      const uf=dUf?.serie?.[0]?.valor;const utm=dUtm?.serie?.[0]?.valor;
+      if(!uf||!utm)throw new Error("Respuesta sin valores de UF/UTM");
+      setParams({...params,uf:Math.round(uf),utm:Math.round(utm),actualizadoUfUtm:new Date().toISOString()});
+      setPMsg({t:"ok",m:`UF $${fmt(Math.round(uf))} y UTM $${fmt(Math.round(utm))} actualizadas (${dUf?.serie?.[0]?.fecha?.slice(0,10)||"hoy"}).`});
+    }catch(err){setPMsg({t:"err",m:"No se pudo conectar a mindicador.cl: "+err.message})}
+    setPBusy(null);
+  };
+  const actualizarAfpPrevired=async()=>{
+    setPBusy("afp");setPMsg(null);
+    try{
+      const r=await fetch("http://localhost:4001/previred");
+      if(!r.ok)throw new Error(await r.text());
+      const d=await r.json();
+      if(!d.afp)throw new Error("El puente local no devolvio tasas AFP reconocibles.");
+      setParams({...params,afp:{...params.afp,...d.afp},topeImponibleUF:d.topeImponibleUF||params.topeImponibleUF,actualizadoAfp:new Date().toISOString()});
+      setPMsg({t:"ok",m:"Tasas AFP actualizadas desde el informe de Previred de "+(d.periodo||"este mes")+"."});
+    }catch(err){setPMsg({t:"err",m:"No se pudo leer el informe de Previred ("+err.message+"). Revisa que 'node tools/sii-local-server.mjs' este corriendo, o actualiza las tasas a mano abajo."})}
+    setPBusy(null);
+  };
   if(!eObj)return<Ey i="🏢" t="Selecciona una empresa" d="Activa una empresa primero."><Bt onClick={()=>go("empresas")} p={true}>Ir a Empresas</Bt></Ey>;
 
   const emptyF=()=>({nombre:"",rut:"",cargo:"",afp:"habitat",isapre:"fonasa",contratoTipo:"indefinido",sueldoBase:0,gratificacion:0,bonos:0,horasExtra:0,colacion:0,movilizacion:0,periodo:new Date().toISOString().slice(0,7)});
@@ -2179,7 +2220,7 @@ function RemP({eObj,rems,setRems,empRems,entries,setEntries,empEntries,leafAccts
         <Fi l="Periodo" v={fm.periodo} s={v=>setFm(p=>({...p,periodo:v}))} t="month"/>
       </FG></Sc>
       <Sc t="Prevision"><FG>
-        <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>AFP</label><select value={fm.afp} onChange={e=>setFm(p=>({...p,afp:e.target.value}))}>{Object.keys(AFP_RATES).map(k=><option key={k} value={k}>{k.charAt(0).toUpperCase()+k.slice(1)} ({AFP_RATES[k].r}%)</option>)}</select></div>
+        <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>AFP</label><select value={fm.afp} onChange={e=>setFm(p=>({...p,afp:e.target.value}))}>{Object.keys(params.afp).map(k=><option key={k} value={k}>{k.charAt(0).toUpperCase()+k.slice(1)} ({params.afp[k].r}%)</option>)}</select></div>
         <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Salud</label><select value={fm.isapre} onChange={e=>setFm(p=>({...p,isapre:e.target.value}))}><option value="fonasa">Fonasa (7%)</option><option value="isapre">Isapre</option></select></div>
         <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Contrato</label><select value={fm.contratoTipo} onChange={e=>setFm(p=>({...p,contratoTipo:e.target.value}))}><option value="indefinido">Indefinido</option><option value="fijo">Plazo Fijo</option></select></div>
       </FG></Sc>
@@ -2214,13 +2255,52 @@ function RemP({eObj,rems,setRems,empRems,entries,setEntries,empEntries,leafAccts
     </div>
   </div>);
 
+  if(vw==="params")return(<div style={{maxWidth:700,margin:"0 auto"}}>
+    <Bk onClick={()=>setVw("list")}>Volver</Bk>
+    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28}}>
+      <h2 style={{fontSize:18,fontWeight:700,marginBottom:4}}>Parametros Previsionales</h2>
+      <div style={{fontSize:12,color:"var(--tx3)",marginBottom:20}}>Estos valores son nacionales (no dependen de la empresa) y se usan para calcular todas las liquidaciones de RADAR.</div>
+
+      <Sc t="UF / UTM del periodo"><FG>
+        <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>UF</label><input type="number" value={params.uf} onChange={e=>setParams({...params,uf:parseInt(e.target.value)||0})}/></div>
+        <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>UTM</label><input type="number" value={params.utm} onChange={e=>setParams({...params,utm:parseInt(e.target.value)||0})}/></div>
+      </FG></Sc>
+      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20,flexWrap:"wrap"}}>
+        <Bt onClick={actualizarUfUtm} p={true}>{pBusy==="ufutm"?"Consultando mindicador.cl...":"Actualizar UF/UTM de hoy"}</Bt>
+        {params.actualizadoUfUtm&&<span style={{fontSize:11,color:"var(--tx3)"}}>Ultima actualizacion: {new Date(params.actualizadoUfUtm).toLocaleString("es-CL")}</span>}
+      </div>
+
+      <Sc t="Tope Imponible"><FG>
+        <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Tope imponible (UF)</label><input type="number" step="0.1" value={params.topeImponibleUF} onChange={e=>setParams({...params,topeImponibleUF:parseFloat(e.target.value)||0})}/></div>
+      </FG></Sc>
+      <div style={{fontSize:11,color:"var(--tx3)",marginBottom:20}}>Hoy equivale a ${fmt(Math.round(params.topeImponibleUF*params.uf))} — las cotizaciones de AFP, salud y cesantia no se calculan sobre lo que exceda este monto.</div>
+
+      <div style={{fontSize:12,fontWeight:600,marginBottom:12,color:"var(--tx2)"}}>Tasas AFP (comision + SIS, %)</div>
+      <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:12}}>
+        {Object.keys(params.afp).map(k=><div key={k} style={{display:"grid",gridTemplateColumns:"100px 1fr 1fr",gap:8,alignItems:"center"}}>
+          <span style={{fontSize:12,textTransform:"capitalize"}}>{k}</span>
+          <input type="number" step="0.01" value={params.afp[k].r} onChange={e=>setParams({...params,afp:{...params.afp,[k]:{...params.afp[k],r:parseFloat(e.target.value)||0}}})} style={{fontSize:12}}/>
+          <input type="number" step="0.01" value={params.afp[k].sis} onChange={e=>setParams({...params,afp:{...params.afp,[k]:{...params.afp[k],sis:parseFloat(e.target.value)||0}}})} style={{fontSize:12}}/>
+        </div>)}
+        <div style={{display:"grid",gridTemplateColumns:"100px 1fr 1fr",gap:8,fontSize:10,color:"var(--tx3)"}}><span></span><span>Comision AFP</span><span>SIS</span></div>
+      </div>
+      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16,flexWrap:"wrap"}}>
+        <Bt onClick={actualizarAfpPrevired}>{pBusy==="afp"?"Leyendo informe Previred...":"Actualizar tasas AFP desde Previred"}</Bt>
+        {params.actualizadoAfp&&<span style={{fontSize:11,color:"var(--tx3)"}}>Ultima actualizacion: {new Date(params.actualizadoAfp).toLocaleString("es-CL")}</span>}
+      </div>
+      <div style={{fontSize:11,color:"var(--tx3)",marginBottom:16}}>Necesita <code style={{background:"var(--sf2)",padding:"1px 6px",borderRadius:4}}>node tools/sii-local-server.mjs</code> corriendo en tu computador (ver tools/README.md). Tambien puedes editar las tasas a mano arriba cuando Previred publique un cambio.</div>
+
+      {pMsg&&<div style={{fontSize:12,padding:"10px 12px",borderRadius:"var(--rs)",background:pMsg.t==="err"?"rgba(239,68,68,.1)":"rgba(16,185,129,.1)",color:pMsg.t==="err"?"var(--rd)":"var(--gn)",border:"1px solid "+(pMsg.t==="err"?"rgba(239,68,68,.2)":"rgba(16,185,129,.2)")}}>{pMsg.m}</div>}
+    </div>
+  </div>);
+
   // LIST
   const totLiq=empRems.reduce((s,r)=>s+(r.liquido||0),0);
   const totCosto=empRems.reduce((s,r)=>s+(r.costoEmpresa||0),0);
   return(<div style={{maxWidth:900,margin:"0 auto"}}>
     <div style={{display:"flex",flexWrap:"wrap",gap:12,marginBottom:20,alignItems:"center",justifyContent:"space-between"}}>
       <div><div style={{fontSize:15,fontWeight:600}}>Remuneraciones - {eObj.name}</div><div style={{fontSize:12,color:"var(--tx3)",marginTop:2}}>{empRems.length} trabajador{empRems.length!==1?"es":""}</div></div>
-      <div style={{display:"flex",gap:8}}>{empRems.length>0&&<Bt onClick={genAsiento}>Centralizar</Bt>}<Bt onClick={openNew} p={true}>{IC.plus} Nueva Liquidacion</Bt></div>
+      <div style={{display:"flex",gap:8}}><Bt onClick={()=>setVw("params")}>Parametros Previsionales</Bt>{empRems.length>0&&<Bt onClick={genAsiento}>Centralizar</Bt>}<Bt onClick={openNew} p={true}>{IC.plus} Nueva Liquidacion</Bt></div>
     </div>
     {empRems.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12,marginBottom:16}}>
       <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4}}>Total Liquido</div><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2,color:"var(--gn)"}}>${fmt(totLiq)}</div></div>

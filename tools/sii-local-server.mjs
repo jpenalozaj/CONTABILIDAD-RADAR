@@ -1,8 +1,12 @@
 #!/usr/bin/env node
 // Puente local entre RADAR (que corre en tu navegador via `npm run dev`) y
-// la CLI del SII: expone un endpoint en tu propio computador que RADAR
-// llama para traer el CSV de Compras/Ventas, asi el boton "Importar
-// automatico" no te obliga a descargar y subir el archivo a mano.
+// dos fuentes externas:
+//   - La CLI del SII: trae el CSV de Compras/Ventas, asi el boton
+//     "Importar automatico" no te obliga a descargar y subir el archivo
+//     a mano.
+//   - El informe mensual publico de Previred: trae UF, UTM y tasas AFP
+//     actualizadas para el calculo de remuneraciones. Este, a diferencia
+//     del SII, no necesita login ni clave -- es un PDF publico.
 //
 // Solo escucha en 127.0.0.1 (nunca en la red de tu wifi/oficina), asi que
 // ningun otro computador puede llegar a este puerto — y tu Clave del SII
@@ -14,9 +18,11 @@
 //   2) sii auth login                              (cada sesion, ~100 min)
 //   3) node tools/sii-local-server.mjs             (dejalo corriendo)
 //   4) En RADAR: Contabilidad > Compras/Ventas SII > "Importar automatico"
+//      o Remuneraciones > Parametros Previsionales > "Actualizar desde Previred"
 
 import { createServer } from "node:http";
 import { fetchRcvCsv, fetchRcvResumen } from "./sii-rcv-core.mjs";
+import { fetchIndicadoresPrevired } from "./previred-core.mjs";
 
 const PORT = 4001;
 
@@ -55,6 +61,21 @@ const server = createServer(async (req, res) => {
       console.log(`Listo: ${resumen.rows.length} filas de resumen enviadas a RADAR.`);
       res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
       res.end(JSON.stringify(resumen));
+    } catch (err) {
+      console.error("Error: " + err.message);
+      res.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end(err.message);
+    }
+    return;
+  }
+
+  if (url.pathname === "/previred") {
+    try {
+      console.log("Buscando informe mensual de Previred...");
+      const data = await fetchIndicadoresPrevired();
+      console.log(`Listo: tasas de ${Object.keys(data.afp).length} AFP leidas desde ${data.url}`);
+      res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+      res.end(JSON.stringify(data));
     } catch (err) {
       console.error("Error: " + err.message);
       res.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" });
