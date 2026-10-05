@@ -1618,7 +1618,7 @@ function LibroCV({empEntries,tipo,eObj,irAAsiento}){
     }finally{setRcvBusy(false)}
   };
 
-  const selStyle={padding:"8px 12px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx)",fontSize:13};
+  const selStyle={padding:"8px 12px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx)",fontSize:13,width:"auto",minWidth:170};
   const ivaLabel=tipo==="compra"?"IVA Recuperable":"IVA Debito Fiscal";
 
   const limpiarInput={padding:"8px 12px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx)",fontSize:13,width:130};
@@ -1672,12 +1672,12 @@ function LibroCV({empEntries,tipo,eObj,irAAsiento}){
     <div className="report">
     <ReportHeader eObj={eObj} title={tipo==="compra"?"Libro de Compras":"Libro de Ventas"} subtitle={periodoSel?fmtPeriodo(periodoSel):"Todos los periodos"}/>
 
-    {grupos.length>0&&<div className="rpt-stats" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:20}}>
-      <div className="rpt-stat" style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2}}>{granTotal.docs}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Documentos</div></div>
-      <div className="rpt-stat" style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2}}>${fmt(granTotal.exento)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Exento</div></div>
-      <div className="rpt-stat" style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2}}>${fmt(granTotal.neto)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Neto</div></div>
-      <div className="rpt-stat" style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2}}>${fmt(granTotal.iva)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>IVA</div></div>
-      <div className="rpt-stat" style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2,color:"var(--cy)"}}>${fmt(granTotal.total)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Total</div></div>
+    {grupos.length>0&&<div className="rpt-stats" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:20,paddingTop:8,paddingBottom:4}}>
+      <div className="rpt-stat rd-hover-lift rd-tilt" style={{"--tilt":"-1.25deg","--tilty":"5px",background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",boxShadow:"var(--shadow)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2}}>{granTotal.docs}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Documentos</div></div>
+      <div className="rpt-stat rd-hover-lift rd-tilt" style={{"--tilt":"1deg","--tilty":"-6px",background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",boxShadow:"var(--shadow)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2}}>${fmt(granTotal.exento)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Exento</div></div>
+      <div className="rpt-stat rd-hover-lift rd-tilt" style={{"--tilt":"-1deg","--tilty":"7px",background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",boxShadow:"var(--shadow)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2}}>${fmt(granTotal.neto)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Neto</div></div>
+      <div className="rpt-stat rd-hover-lift rd-tilt" style={{"--tilt":"1.25deg","--tilty":"-5px",background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",boxShadow:"var(--shadow)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2}}>${fmt(granTotal.iva)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>IVA</div></div>
+      <div className="rpt-stat rd-hover-lift rd-tilt" style={{"--tilt":"-1.5deg","--tilty":"6px",background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",boxShadow:"var(--shadow)",padding:16,textAlign:"center"}}><div style={{fontSize:22,fontWeight:700,letterSpacing:-.3,lineHeight:1.2,color:"var(--cy)"}}>${fmt(granTotal.total)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Total</div></div>
     </div>}
 
     {rcvErr&&<div style={{background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.3)",borderRadius:"var(--rs)",padding:16,fontSize:13,color:"var(--rd)",marginBottom:16}}>✗ {rcvErr}</div>}
