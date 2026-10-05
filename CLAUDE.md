@@ -18,9 +18,15 @@ explícitamente lo contrario.
 **Remuneraciones**
 - [x] Fase 1 — separar Trabajador (ficha) de Liquidación (histórico) — hecho, commit `ff6ad3c`.
 - [x] Fase 3 — Historial por trabajador (vista `vw==="historial"` en `RemP`, botón "Historial" en la ficha) — hecho.
+- [x] Fase "panel" — rediseño del panel principal (período vigente, UF/UTM como variable, accesos como tarjetas, liquidaciones agrupadas por período) y lista de Trabajadores con stats — hecho, commit `70eadc5`.
+- [ ] **Fase "ficha completa" (siguiente, plan acordado con el usuario, pendiente de ejecutar)** — la vista sigue sintiéndose pobre porque la ficha de trabajador es solo un formulario, no un perfil. Orden de ejecución acordado (de menor a mayor esfuerzo):
+  1. Fusionar el Historial dentro de la Ficha de Trabajador con pestañas **Resumen | Liquidaciones** (hoy viven como pantallas sueltas — `vw==="historial"` se integra a `vw==="trabajadorForm"` en vez de ser una vista aparte). Pestañas **Documentos** y **Vacaciones** quedan con placeholder "Próximamente" (dependen de fases RRHH no construidas aún).
+  2. Buscador por nombre/RUT en las listas de Trabajadores y Liquidaciones (hoy no existe en Remuneraciones, aunque sí en otros módulos como Libro de Compras/Ventas).
+  3. Vista de liquidación individual como "comprobante" de solo lectura (tipo liquidación de sueldo real, imprimible) separada del formulario de edición — hoy ambas cosas son la misma pantalla de inputs.
+  4. Wizard guiado de 3 pasos para Nuevo Trabajador (Datos básicos → Previsionales → Contrato) y para Nueva Liquidación (elegir trabajador → ajustar variables del mes → vista previa de cálculo antes de guardar), en vez de un formulario largo de un tiro.
+  5. Fase 2 (ya estaba en el backlog) — Proceso de cierre de mes: esto es lo que más le falta al "flujo de trabajo": estado del período (Iniciado/En Revisión/Pagado) + checklist de entregables (Liquidaciones generadas, Centralizado, Previred, Libro Remuneraciones) + "Cerrar período". Es el cambio estructural más grande, se deja al final.
 - [ ] Fase 1b — Portal del trabajador (login propio, visibilidad controlada por el contador).
-- [ ] Fase 2 — Proceso de cierre de mes (estados Iniciado/En Revisión/Pagado, panel de 6 entregables: Anticipos/Sueldos/Liquidaciones PDF/Libros/Contabilidad/Previred/Libro Electrónico, "Generar todos").
-- [ ] Fase 4 — Documentos del cierre (Libro de Remuneraciones CSV, nómina bancaria CSV, archivo de pago Previred, Libro Electrónico/LRE).
+- [ ] Fase 4 — Documentos del cierre (Libro de Remuneraciones XLSX corporativo — en curso, dependencia `write-excel-file` ya instalada —, nómina bancaria, archivo de pago Previred, Libro Electrónico/LRE).
 
 **Honorarios**
 - [ ] Módulo completo: boletas, tasa de retención parametrizable (15.25% hoy, sube a 17% hacia 2028 por ley — debe ser un parámetro, no hardcode), Libro de Retención de Honorarios, Certificado de Honorarios anual, asiento automático vía cuenta "Honorarios por Pagar".
