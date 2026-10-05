@@ -66,11 +66,11 @@ npm install -g @albertomarturelo/sii-cli
 
 ## Actualizar parametros previsionales (UF, UTM, tasas AFP) desde Previred
 
-A diferencia del SII, el informe mensual "Indicadores Previsionales" de
-Previred es un PDF **publico, sin login ni clave** — cualquiera puede
-descargarlo. `previred-core.mjs` lo busca (probando las variantes de
-nombre de archivo que Previred usa mes a mes), lo lee con `pdf-parse` y
-extrae UF, UTM, el tope imponible y las tasas de cada AFP.
+A diferencia del SII, la pagina de indicadores previsionales de Previred es
+**publica, sin login ni clave** — cualquiera puede verla:
+`previred.com/web/previred/indicadores-previsionales`. `previred-core.mjs`
+la lee y extrae UF, UTM, el tope imponible y las tasas de cada AFP para el
+periodo vigente.
 
 Se usa desde el mismo puente local de arriba: con
 `node tools/sii-local-server.mjs` corriendo, ve en RADAR a
@@ -79,12 +79,9 @@ Previred"**. El valor de UF/UTM del dia se trae aparte, directo desde el
 navegador, usando la API publica de [mindicador.cl](https://mindicador.cl)
 (no necesita el puente local).
 
-**Importante:** el nombre exacto del PDF cambia levemente cada mes (a veces
-con "-V2" o "-1" al final), asi que esto puede fallar algun mes si Previred
-usa un formato de nombre nuevo que no esta en la lista de variantes
-probadas — en ese caso, actualiza las tasas a mano en el mismo panel (estan
-en el PDF que Previred publica en previred.com, seccion "Indicadores
-Previsionales").
+**Importante:** si Previred cambia el formato de esa pagina en el futuro,
+la lectura puede fallar — en ese caso, actualiza las tasas a mano en el
+mismo panel de RADAR (estan en esa misma pagina de previred.com).
 
 ### Por que son scripts aparte y no todo dentro de RADAR
 
