@@ -238,21 +238,23 @@ function Dashboard({session}){
   const [accts,setAccts]=useState([]);
   const [entries,setEntries]=useState([]);
   const [rems,setRems]=useState([]);
+  const [trabajadores,setTrabajadores]=useState([]);
   const [docs,setDocs]=useState([]);
   const [tareas,setTareas]=useState([]);
   const [reglas,setReglas]=useState([]);
   const [ccostos,setCcostos]=useState([]);
   const [activos,setActivos]=useState([]);
   const [sb,setSb]=useState(false);
-  const prevIds=useRef({e:new Set(),v:new Set(),l:new Set(),a:new Set(),en:new Set(),rm:new Set(),dc:new Set(),ta:new Set(),rg:new Set(),cc:new Set(),af:new Set()});
+  const prevIds=useRef({e:new Set(),v:new Set(),l:new Set(),a:new Set(),en:new Set(),rm:new Set(),tb:new Set(),dc:new Set(),ta:new Set(),rg:new Set(),cc:new Set(),af:new Set()});
   useEffect(()=>{let cancelled=false;(async()=>{
-    const[e,v,l,a,en,rm,dc,ta,rg,cc,af]=await Promise.all([
+    const[e,v,l,a,en,rm,tb,dc,ta,rg,cc,af]=await Promise.all([
       loadCollection(userId,"empresas",[]),
       loadCollection(userId,"evaluaciones",[]),
       loadCollection(userId,"log",[]),
       loadCollection(userId,"plan_cuentas",DFLT_ACCTS),
       loadCollection(userId,"entries",[]),
       loadCollection(userId,"remuneraciones",[]),
+      loadCollection(userId,"trabajadores",[]),
       loadCollection(userId,"documentos",[]),
       loadCollection(userId,"tareas",[]),
       loadCollection(userId,"reglas_categorizacion",[]),
@@ -263,9 +265,10 @@ function Dashboard({session}){
     prevIds.current={
       e:new Set(e.map(x=>String(x.id))),v:new Set(v.map(x=>String(x.id))),l:new Set(l.map(x=>String(x.id))),
       a:new Set(a.map(x=>String(x.cd))),en:new Set(en.map(x=>String(x.id))),rm:new Set(rm.map(x=>String(x.id))),
+      tb:new Set(tb.map(x=>String(x.id))),
       dc:new Set(dc.map(x=>String(x.id))),ta:new Set(ta.map(x=>String(x.id))),rg:new Set(rg.map(x=>String(x.id))),cc:new Set(cc.map(x=>String(x.id))),af:new Set(af.map(x=>String(x.id))),
     };
-    setEmps(e);setEvs(v);setLog(l);setAccts(a);setEntries(en);setRems(rm);setDocs(dc);setTareas(ta);setReglas(rg);setCcostos(cc);setActivos(af);
+    setEmps(e);setEvs(v);setLog(l);setAccts(a);setEntries(en);setRems(rm);setTrabajadores(tb);setDocs(dc);setTareas(ta);setReglas(rg);setCcostos(cc);setActivos(af);
     if(e.length>0)setAEmp(e[0].id);setRdy(true);
   })();return()=>{cancelled=true}},[userId]);
   useEffect(()=>{if(rdy)saveCollection(userId,"empresas",emps,prevIds.current.e).then(s=>prevIds.current.e=s)},[emps,rdy]);
@@ -274,6 +277,7 @@ function Dashboard({session}){
   useEffect(()=>{if(rdy)saveCollection(userId,"plan_cuentas",accts,prevIds.current.a,"cd").then(s=>prevIds.current.a=s)},[accts,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"entries",entries,prevIds.current.en).then(s=>prevIds.current.en=s)},[entries,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"remuneraciones",rems,prevIds.current.rm).then(s=>prevIds.current.rm=s)},[rems,rdy]);
+  useEffect(()=>{if(rdy)saveCollection(userId,"trabajadores",trabajadores,prevIds.current.tb).then(s=>prevIds.current.tb=s)},[trabajadores,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"documentos",docs,prevIds.current.dc).then(s=>prevIds.current.dc=s)},[docs,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"tareas",tareas,prevIds.current.ta).then(s=>prevIds.current.ta=s)},[tareas,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"reglas_categorizacion",reglas,prevIds.current.rg).then(s=>prevIds.current.rg=s)},[reglas,rdy]);
@@ -287,6 +291,7 @@ function Dashboard({session}){
   const empCcostos=useMemo(()=>ccostos.filter(c=>c.empresaId===aEmp),[ccostos,aEmp]);
   const empActivos=useMemo(()=>activos.filter(a=>a.empresaId===aEmp),[activos,aEmp]);
   const empRems=useMemo(()=>rems.filter(r=>r.empresaId===aEmp),[rems,aEmp]);
+  const empTrabajadores=useMemo(()=>trabajadores.filter(t=>t.empresaId===aEmp),[trabajadores,aEmp]);
   const empDocs=useMemo(()=>docs.filter(d=>d.empresaId===aEmp),[docs,aEmp]);
   const empTareas=useMemo(()=>tareas.filter(t=>t.empresaId===aEmp),[tareas,aEmp]);
   const leafAccts=useMemo(()=>accts.filter(a=>!accts.some(b=>b.cd!==a.cd&&b.cd.startsWith(a.cd+"."))),[accts]);
@@ -315,7 +320,7 @@ function Dashboard({session}){
         {pg==="empresas"&&<EmpP emps={emps} setEmps={setEmps} aEmp={aEmp} setAEmp={setAEmp} aLog={aLog}/>}
         {pg==="radar"&&<RadP eObj={eObj} evs={evs} setEvs={setEvs} eEvs={eEvs} aLog={aLog} go={go}/>}
         {pg==="contabilidad"&&<ContabP eObj={eObj} accts={accts} setAccts={setAccts} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go} reglas={empReglas} setReglas={setReglas} ccostos={empCcostos} setCcostos={setCcostos} activos={empActivos} setActivos={setActivos}/>}
-        {pg==="remuneraciones"&&<RemP eObj={eObj} rems={rems} setRems={setRems} empRems={empRems} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go}/>}
+        {pg==="remuneraciones"&&<RemP eObj={eObj} rems={rems} setRems={setRems} empRems={empRems} trabajadores={trabajadores} setTrabajadores={setTrabajadores} empTrabajadores={empTrabajadores} ccostos={empCcostos} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go}/>}
         {pg==="documentos"&&<DocsP eObj={eObj} docs={docs} setDocs={setDocs} empDocs={empDocs} aLog={aLog} go={go}/>}
         {pg==="planificacion"&&<PlanP eObj={eObj} tareas={tareas} setTareas={setTareas} empTareas={empTareas} aLog={aLog} go={go}/>}
         {pg==="portal"&&<PortalP eObj={eObj} empEntries={empEntries} empDocs={empDocs} empRems={empRems} eEvs={eEvs} accts={accts} leafAccts={leafAccts} go={go}/>}
@@ -2132,10 +2137,12 @@ function calcRem(emp){
   return{totalImponible,totalNoImponible,totalHaberes,afpMonto,sisMonto,saludMonto,cesantiaTrab,cesantiaEmp,impUnico,baseImpUnico,totalDescuentos,liquido,costoEmpresa,topeImponible,baseCotizable};
 }
 
-function RemP({eObj,rems,setRems,empRems,entries,setEntries,empEntries,leafAccts,aLog,go}){
+function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabajadores,ccostos,entries,setEntries,empEntries,leafAccts,aLog,go}){
   const [vw,setVw]=useState("list");
   const [eid,setEid]=useState(null);
   const [fm,setFm]=useState({});
+  const [tid,setTid]=useState(null);
+  const [tfm,setTfm]=useState({});
   const [params,setParamsSt]=useState(getParamsPrevired);
   const setParams=next=>{setParamsSt(next);sv("rd_param_previred",next)};
   const [pBusy,setPBusy]=useState(null);
@@ -2165,10 +2172,62 @@ function RemP({eObj,rems,setRems,empRems,entries,setEntries,empEntries,leafAccts
     }catch(err){setPMsg({t:"err",m:"No se pudo leer el informe de Previred ("+err.message+"). Revisa que 'node tools/sii-local-server.mjs' este corriendo, o actualiza las tasas a mano abajo."})}
     setPBusy(null);
   };
+
+  // Migracion: liquidaciones de antes de esta fase no tenian ficha de
+  // trabajador propia -- se agrupan por RUT y se genera una ficha
+  // automatica (con los datos de la liquidacion mas reciente), sin perder
+  // ningun dato ya guardado.
+  useEffect(()=>{
+    if(!eObj)return;
+    const sinAsignar=empRems.filter(r=>!r.trabajadorId);
+    if(sinAsignar.length===0)return;
+    const porRut=new Map();
+    sinAsignar.forEach(r=>{
+      const key=normRut(r.rut)||r.id;
+      const actual=porRut.get(key);
+      if(!actual||(r.periodo||"")>(actual.periodo||""))porRut.set(key,r);
+    });
+    const idPorRut=new Map();
+    const nuevosTrabajadores=[];
+    porRut.forEach((r,key)=>{
+      const existente=empTrabajadores.find(t=>normRut(t.rut)===key);
+      if(existente){idPorRut.set(key,existente.id);return}
+      const nuevo={id:uid(),empresaId:eObj.id,activo:true,nombre:r.nombre,apellido:"",segundoApellido:"",rut:r.rut,fechaNacimiento:"",sexo:"",estadoCivil:"",telefono:"",email:"",direccion:"",cargo:r.cargo||"",fechaIngreso:"",afp:r.afp||"habitat",isapre:r.isapre||"fonasa",contratoTipo:r.contratoTipo||"indefinido",sueldoBase:r.sueldoBase||0,gratificacion:r.gratificacion||0,colacion:r.colacion||0,movilizacion:r.movilizacion||0,centroCosto:""};
+      nuevosTrabajadores.push(nuevo);idPorRut.set(key,nuevo.id);
+    });
+    if(nuevosTrabajadores.length>0)setTrabajadores(p=>[...p,...nuevosTrabajadores]);
+    setRems(p=>p.map(r=>{
+      if(r.empresaId!==eObj.id||r.trabajadorId)return r;
+      const key=normRut(r.rut)||r.id;
+      return{...r,trabajadorId:idPorRut.get(key)||r.trabajadorId};
+    }));
+  },[empRems.length,empTrabajadores.length,eObj?.id]);
+
   if(!eObj)return<Ey i="🏢" t="Selecciona una empresa" d="Activa una empresa primero."><Bt onClick={()=>go("empresas")} p={true}>Ir a Empresas</Bt></Ey>;
 
-  const emptyF=()=>({nombre:"",rut:"",cargo:"",afp:"habitat",isapre:"fonasa",contratoTipo:"indefinido",sueldoBase:0,gratificacion:0,bonos:0,horasExtra:0,colacion:0,movilizacion:0,periodo:new Date().toISOString().slice(0,7)});
+  // ── Ficha de Trabajador ──
+  const emptyTF=()=>({activo:true,nombre:"",apellido:"",segundoApellido:"",rut:"",fechaNacimiento:"",sexo:"",estadoCivil:"",telefono:"",email:"",direccion:"",cargo:"",fechaIngreso:"",afp:"habitat",isapre:"fonasa",contratoTipo:"indefinido",sueldoBase:0,gratificacion:0,colacion:0,movilizacion:0,centroCosto:""});
+  const openNewT=()=>{setTfm(emptyTF());setTid(null);setVw("trabajadorForm")};
+  const openEditT=t=>{setTfm({...emptyTF(),...t});setTid(t.id);setVw("trabajadorForm")};
+  const doSaveT=()=>{
+    if(!tfm.nombre||!tfm.rut)return;
+    const rec={...tfm,id:tid||uid(),empresaId:eObj.id};
+    if(tid){setTrabajadores(p=>p.map(t=>t.id===tid?rec:t));aLog("Ficha de trabajador actualizada",tfm.nombre)}
+    else{setTrabajadores(p=>[...p,rec]);aLog("Trabajador creado",tfm.nombre)}
+    setVw("trabajadores");
+  };
+  const doDelT=id=>{
+    if(empRems.some(r=>r.trabajadorId===id)){alert("Este trabajador tiene liquidaciones guardadas -- no se puede eliminar su ficha. Si ya no trabaja en la empresa, marcalo como inactivo en vez de eliminarlo.");return}
+    setTrabajadores(p=>p.filter(t=>t.id!==id));
+  };
 
+  // ── Liquidaciones ──
+  const emptyF=()=>({trabajadorId:"",nombre:"",rut:"",cargo:"",afp:"habitat",isapre:"fonasa",contratoTipo:"indefinido",sueldoBase:0,gratificacion:0,bonos:0,horasExtra:0,colacion:0,movilizacion:0,periodo:new Date().toISOString().slice(0,7)});
+  const elegirTrabajador=idT=>{
+    const t=empTrabajadores.find(x=>x.id===idT);
+    if(!t){setFm(p=>({...p,trabajadorId:""}));return}
+    setFm(p=>({...p,trabajadorId:idT,nombre:t.nombre+(t.apellido?" "+t.apellido:""),rut:t.rut,cargo:t.cargo||"",afp:t.afp||"habitat",isapre:t.isapre||"fonasa",contratoTipo:t.contratoTipo||"indefinido",sueldoBase:t.sueldoBase||0,gratificacion:t.gratificacion||0,colacion:t.colacion||0,movilizacion:t.movilizacion||0}));
+  };
   const openNew=()=>{setFm(emptyF());setEid(null);setVw("form")};
   const openEdit=r=>{setFm({...emptyF(),...r});setEid(r.id);setVw("form")};
 
@@ -2214,9 +2273,15 @@ function RemP({eObj,rems,setRems,empRems,entries,setEntries,empEntries,leafAccts
     <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28}}>
       <h2 style={{fontSize:18,fontWeight:700,marginBottom:24}}>{eid?"Editar":"Nueva"} Liquidacion</h2>
       <Sc t="Trabajador"><FG>
-        <Fi l="Nombre completo" v={fm.nombre} s={v=>setFm(p=>({...p,nombre:v}))}/>
-        <Fi l="RUT" v={fm.rut} s={v=>setFm(p=>({...p,rut:v}))}/>
-        <Fi l="Cargo" v={fm.cargo} s={v=>setFm(p=>({...p,cargo:v}))}/>
+        <div style={{gridColumn:"1/-1"}}>
+          <label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Trabajador</label>
+          <select value={fm.trabajadorId} onChange={e=>elegirTrabajador(e.target.value)}>
+            <option value="">— Selecciona un trabajador —</option>
+            {empTrabajadores.filter(t=>t.activo!==false).map(t=><option key={t.id} value={t.id}>{t.nombre}{t.apellido?" "+t.apellido:""} · {t.rut}</option>)}
+          </select>
+          {empTrabajadores.length===0&&<div style={{fontSize:11,color:"var(--tx3)",marginTop:6}}>Todavia no tienes trabajadores creados. <button type="button" onClick={openNewT} style={{background:"none",border:"none",color:"var(--cy)",padding:0,cursor:"pointer",fontSize:11,textDecoration:"underline"}}>Crear el primero</button></div>}
+        </div>
+        <Fi l="Cargo (este periodo)" v={fm.cargo} s={v=>setFm(p=>({...p,cargo:v}))}/>
         <Fi l="Periodo" v={fm.periodo} s={v=>setFm(p=>({...p,periodo:v}))} t="month"/>
       </FG></Sc>
       <Sc t="Prevision"><FG>
@@ -2253,6 +2318,64 @@ function RemP({eObj,rems,setRems,empRems,entries,setEntries,empEntries,leafAccts
 
       <div style={{display:"flex",gap:12}}><Bt onClick={doSave} p={true}>{eid?"Guardar":"Crear Liquidacion"}</Bt><Bt onClick={()=>setVw("list")}>Cancelar</Bt></div>
     </div>
+  </div>);
+
+  if(vw==="trabajadorForm")return(<div style={{maxWidth:700,margin:"0 auto"}}>
+    <Bk onClick={()=>setVw("trabajadores")}>Volver</Bk>
+    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28}}>
+      <h2 style={{fontSize:18,fontWeight:700,marginBottom:4}}>{tid?"Editar":"Nuevo"} Trabajador</h2>
+      <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:24,fontSize:12,color:"var(--tx2)",cursor:"pointer"}}><input type="checkbox" checked={tfm.activo!==false} onChange={e=>setTfm(p=>({...p,activo:e.target.checked}))}/>Trabajador activo</label>
+
+      <Sc t="Datos Personales"><FG>
+        <Fi l="Nombre" v={tfm.nombre} s={v=>setTfm(p=>({...p,nombre:v}))}/>
+        <Fi l="Apellido" v={tfm.apellido} s={v=>setTfm(p=>({...p,apellido:v}))}/>
+        <Fi l="Segundo Apellido" v={tfm.segundoApellido} s={v=>setTfm(p=>({...p,segundoApellido:v}))}/>
+        <Fi l="RUT" v={tfm.rut} s={v=>setTfm(p=>({...p,rut:v}))}/>
+        <Fi l="Fecha de Nacimiento" v={tfm.fechaNacimiento} s={v=>setTfm(p=>({...p,fechaNacimiento:v}))} t="date"/>
+        <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Sexo</label><select value={tfm.sexo} onChange={e=>setTfm(p=>({...p,sexo:e.target.value}))}><option value="">Sin especificar</option><option value="F">Femenino</option><option value="M">Masculino</option><option value="otro">Otro</option></select></div>
+        <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Estado Civil</label><select value={tfm.estadoCivil} onChange={e=>setTfm(p=>({...p,estadoCivil:e.target.value}))}><option value="">Sin especificar</option><option value="soltero">Soltero/a</option><option value="casado">Casado/a</option><option value="divorciado">Divorciado/a</option><option value="viudo">Viudo/a</option></select></div>
+        <Fi l="Telefono" v={tfm.telefono} s={v=>setTfm(p=>({...p,telefono:v}))}/>
+        <Fi l="Email" v={tfm.email} s={v=>setTfm(p=>({...p,email:v}))}/>
+        <Fi l="Direccion" v={tfm.direccion} s={v=>setTfm(p=>({...p,direccion:v}))}/>
+      </FG></Sc>
+
+      <Sc t="Datos Previsionales"><FG>
+        <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>AFP</label><select value={tfm.afp} onChange={e=>setTfm(p=>({...p,afp:e.target.value}))}>{Object.keys(params.afp).map(k=><option key={k} value={k}>{k.charAt(0).toUpperCase()+k.slice(1)} ({params.afp[k].r}%)</option>)}</select></div>
+        <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Salud</label><select value={tfm.isapre} onChange={e=>setTfm(p=>({...p,isapre:e.target.value}))}><option value="fonasa">Fonasa (7%)</option><option value="isapre">Isapre</option></select></div>
+        <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Contrato</label><select value={tfm.contratoTipo} onChange={e=>setTfm(p=>({...p,contratoTipo:e.target.value}))}><option value="indefinido">Indefinido</option><option value="fijo">Plazo Fijo</option></select></div>
+      </FG></Sc>
+
+      <Sc t="Datos del Trabajo"><FG>
+        <Fi l="Cargo" v={tfm.cargo} s={v=>setTfm(p=>({...p,cargo:v}))}/>
+        <Fi l="Fecha de Ingreso" v={tfm.fechaIngreso} s={v=>setTfm(p=>({...p,fechaIngreso:v}))} t="date"/>
+        <Fi l="Sueldo Base" v={tfm.sueldoBase} s={v=>setTfm(p=>({...p,sueldoBase:parseInt(v)||0}))} t="number"/>
+        <Fi l="Gratificacion" v={tfm.gratificacion} s={v=>setTfm(p=>({...p,gratificacion:parseInt(v)||0}))} t="number"/>
+        <Fi l="Colacion" v={tfm.colacion} s={v=>setTfm(p=>({...p,colacion:parseInt(v)||0}))} t="number"/>
+        <Fi l="Movilizacion" v={tfm.movilizacion} s={v=>setTfm(p=>({...p,movilizacion:parseInt(v)||0}))} t="number"/>
+        {ccostos?.length>0&&<div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Centro de Costo</label><select value={tfm.centroCosto} onChange={e=>setTfm(p=>({...p,centroCosto:e.target.value}))}><option value="">Sin centro de costo</option>{ccostos.map(c=><option key={c.id} value={c.id}>{c.nombre}</option>)}</select></div>}
+      </FG></Sc>
+
+      <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:16,marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
+        <div><div style={{fontSize:12,fontWeight:600,color:"var(--tx2)"}}>Portal del trabajador</div><div style={{fontSize:11,color:"var(--tx3)"}}>Que el trabajador vea su propia liquidacion con su propio login.</div></div>
+        <span style={{fontSize:10,background:"var(--bd)",padding:"3px 10px",borderRadius:4,color:"var(--tx3)",fontWeight:600}}>Proximamente</span>
+      </div>
+
+      <div style={{display:"flex",gap:12}}><Bt onClick={doSaveT} p={true}>{tid?"Guardar":"Crear Trabajador"}</Bt><Bt onClick={()=>setVw("trabajadores")}>Cancelar</Bt></div>
+    </div>
+  </div>);
+
+  if(vw==="trabajadores")return(<div style={{maxWidth:900,margin:"0 auto"}}>
+    <div style={{display:"flex",flexWrap:"wrap",gap:12,marginBottom:20,alignItems:"center",justifyContent:"space-between"}}>
+      <div><div style={{fontSize:15,fontWeight:600}}>Trabajadores - {eObj.name}</div><div style={{fontSize:12,color:"var(--tx3)",marginTop:2}}>{empTrabajadores.length} trabajador{empTrabajadores.length!==1?"es":""}</div></div>
+      <div style={{display:"flex",gap:8}}><Bt onClick={()=>setVw("list")}>Ver liquidaciones</Bt><Bt onClick={openNewT} p={true}>{IC.plus} Nuevo Trabajador</Bt></div>
+    </div>
+    {empTrabajadores.length===0?<Ey i="👥" t="Sin trabajadores" d="Crea la ficha de tu primer trabajador."><Bt onClick={openNewT} p={true}>Crear trabajador</Bt></Ey>
+    :<div style={{display:"flex",flexDirection:"column",gap:8}}>{empTrabajadores.map(t=><div key={t.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16,cursor:"pointer",opacity:t.activo===false?.5:1}} onClick={()=>openEditT(t)}>
+      <div style={{width:40,height:40,borderRadius:10,background:"var(--sf2)",border:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"var(--tx2)",flexShrink:0}}>{(t.nombre||"?").slice(0,2).toUpperCase()}</div>
+      <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:600}}>{t.nombre} {t.apellido}</div><div style={{fontSize:11,color:"var(--tx3)"}}>{t.cargo||"Sin cargo"} · {t.rut}{t.activo===false?" · Inactivo":""}</div></div>
+      <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(t.sueldoBase||0)}</div><div style={{fontSize:10,color:"var(--tx3)"}}>Sueldo base</div></div>
+      <button onClick={e=>{e.stopPropagation();if(confirm("Eliminar la ficha de "+t.nombre+"?"))doDelT(t.id)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5,padding:4}}>x</button>
+    </div>)}</div>}
   </div>);
 
   if(vw==="params")return(<div style={{maxWidth:700,margin:"0 auto"}}>
@@ -2299,13 +2422,13 @@ function RemP({eObj,rems,setRems,empRems,entries,setEntries,empEntries,leafAccts
   const totCosto=empRems.reduce((s,r)=>s+(r.costoEmpresa||0),0);
   return(<div style={{maxWidth:900,margin:"0 auto"}}>
     <div style={{display:"flex",flexWrap:"wrap",gap:12,marginBottom:20,alignItems:"center",justifyContent:"space-between"}}>
-      <div><div style={{fontSize:15,fontWeight:600}}>Remuneraciones - {eObj.name}</div><div style={{fontSize:12,color:"var(--tx3)",marginTop:2}}>{empRems.length} trabajador{empRems.length!==1?"es":""}</div></div>
-      <div style={{display:"flex",gap:8}}><Bt onClick={()=>setVw("params")}>Parametros Previsionales</Bt>{empRems.length>0&&<Bt onClick={genAsiento}>Centralizar</Bt>}<Bt onClick={openNew} p={true}>{IC.plus} Nueva Liquidacion</Bt></div>
+      <div><div style={{fontSize:15,fontWeight:600}}>Remuneraciones - {eObj.name}</div><div style={{fontSize:12,color:"var(--tx3)",marginTop:2}}>{empRems.length} liquidacion{empRems.length!==1?"es":""} · {empTrabajadores.length} trabajador{empTrabajadores.length!==1?"es":""}</div></div>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}><Bt onClick={()=>setVw("trabajadores")}>Trabajadores</Bt><Bt onClick={()=>setVw("params")}>Parametros Previsionales</Bt>{empRems.length>0&&<Bt onClick={genAsiento}>Centralizar</Bt>}<Bt onClick={openNew} p={true}>{IC.plus} Nueva Liquidacion</Bt></div>
     </div>
     {empRems.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12,marginBottom:16}}>
       <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4}}>Total Liquido</div><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2,color:"var(--gn)"}}>${fmt(totLiq)}</div></div>
       <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4}}>Costo Empresa</div><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2,color:"var(--am)"}}>${fmt(totCosto)}</div></div>
-      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4}}>Trabajadores</div><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2}}>{empRems.length}</div></div>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4}}>Trabajadores</div><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2}}>{empTrabajadores.length}</div></div>
     </div>}
     {empRems.length===0?<Ey i="👥" t="Sin liquidaciones" d="Crea tu primera liquidacion de sueldo."><Bt onClick={openNew} p={true}>Crear liquidacion</Bt></Ey>
     :<div style={{display:"flex",flexDirection:"column",gap:8}}>{empRems.map(r=><div key={r.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16,cursor:"pointer"}} onClick={()=>openEdit(r)}>
