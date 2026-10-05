@@ -2395,11 +2395,27 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
         <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4}}>Liquido Promedio</div><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2}}>${fmt(Math.round(totLiqHist/hist.length))}</div></div>
       </div>}
       {hist.length===0?<Ey i="📄" t="Sin liquidaciones" d="Este trabajador todavia no tiene liquidaciones registradas."/>
-      :<div style={{display:"flex",flexDirection:"column",gap:8}}>{hist.map(r=><div key={r.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16,cursor:"pointer"}} onClick={()=>openEdit(r)}>
-        <div style={{width:72,flexShrink:0}}><div style={{fontSize:13,fontWeight:600}}>{r.periodo}</div><div style={{fontSize:10,color:"var(--tx3)"}}>Periodo</div></div>
-        <div style={{flex:1,minWidth:0}}><div style={{fontSize:12,color:"var(--tx2)"}}>Haberes ${fmt(r.totalHaberes||0)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Descuentos ${fmt(r.totalDescuentos||0)}</div></div>
-        <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,color:"var(--gn)"}}>${fmt(r.liquido||0)}</div><div style={{fontSize:10,color:"var(--tx3)"}}>Liquido</div></div>
-      </div>)}</div>}
+      :[...new Set(hist.map(r=>(r.periodo||"").slice(0,4)))].sort((a,b)=>b.localeCompare(a)).map(y=>{
+        const rowsY=hist.filter(r=>(r.periodo||"").slice(0,4)===y);
+        const tImpY=rowsY.reduce((s,r)=>s+(r.totalImponible||0),0);
+        const tImpUnicoY=rowsY.reduce((s,r)=>s+(r.impUnico||0),0);
+        const tLiqY=rowsY.reduce((s,r)=>s+(r.liquido||0),0);
+        return(<div key={y} style={{marginBottom:20}}>
+          <div style={{display:"flex",flexWrap:"wrap",gap:12,alignItems:"baseline",justifyContent:"space-between",marginBottom:8,paddingBottom:8,borderBottom:"1px solid var(--bd)"}}>
+            <div style={{fontSize:13,fontWeight:700}}>{y} <span style={{fontSize:11,fontWeight:400,color:"var(--tx3)"}}>· {rowsY.length} mes{rowsY.length!==1?"es":""} · base para DJ 1887</span></div>
+            <div style={{display:"flex",gap:16,fontSize:11,color:"var(--tx3)",flexWrap:"wrap"}}>
+              <span>Imponible anual <b style={{color:"var(--tx2)"}}>${fmt(tImpY)}</b></span>
+              <span>Imp. Unico retenido <b style={{color:"var(--tx2)"}}>${fmt(tImpUnicoY)}</b></span>
+              <span>Liquido <b style={{color:"var(--gn)"}}>${fmt(tLiqY)}</b></span>
+            </div>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>{rowsY.map(r=><div key={r.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16,cursor:"pointer"}} onClick={()=>openEdit(r)}>
+            <div style={{width:72,flexShrink:0}}><div style={{fontSize:13,fontWeight:600}}>{r.periodo}</div><div style={{fontSize:10,color:"var(--tx3)"}}>Periodo</div></div>
+            <div style={{flex:1,minWidth:0}}><div style={{fontSize:12,color:"var(--tx2)"}}>Haberes ${fmt(r.totalHaberes||0)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Descuentos ${fmt(r.totalDescuentos||0)}</div></div>
+            <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,color:"var(--gn)"}}>${fmt(r.liquido||0)}</div><div style={{fontSize:10,color:"var(--tx3)"}}>Liquido</div></div>
+          </div>)}</div>
+        </div>);
+      })}
     </div>);
   }
 
