@@ -7,6 +7,7 @@ import { yaContabilizado, sugerirContraparte, armarAsiento, buscarReglaPorRut, b
 
 const ST = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;0,700;1,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#EDEAD9;--sf:#F7F5EA;--sf2:#FFFFFF;--bd:#D9D4BE;--bd2:#C5BFA2;--tx:#1C1B12;--tx2:#4A4836;--tx3:#817C5F;--cy:#6B7408;--cy2:#4D5306;--cyg:rgba(107,116,8,.12);--cy-fill:#D4F000;--gn:#0D8A5F;--am:#B45309;--rd:#DC2626;--pu:#5F6B4A;--r:12px;--rs:8px;--shadow:0 1px 0 rgba(255,255,255,.6) inset,0 10px 24px -10px rgba(40,35,10,.18),0 2px 6px -2px rgba(40,35,10,.12);--glass:rgba(250,249,240,.72);--grad:linear-gradient(135deg,#5C6B04,#8FA300);--grad-gn:linear-gradient(135deg,#0D8A5F,#059669);--grad-am:linear-gradient(135deg,#B45309,#D97706);--grad-pu:linear-gradient(135deg,#4A5538,#6B7A52)}
 body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--tx)}
@@ -821,9 +822,9 @@ function ActivosFijos({activos,setActivos,empEntries,setEntries,leafAccts,eObj,a
           <button onClick={()=>eliminar(a.id,a.nombre)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.6,fontSize:11}}>eliminar</button>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:10,marginTop:12,marginBottom:12}}>
-          <div><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase"}}>Dep. mensual</div><div style={{fontSize:13,fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",fontWeight:600}}>${fmt(Math.round(a.depMensual))}</div></div>
-          <div><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase"}}>Acumulada</div><div style={{fontSize:13,fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",fontWeight:600,color:"var(--am)"}}>${fmt(Math.round(a.acumulada))}</div></div>
-          <div><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase"}}>Valor libro</div><div style={{fontSize:13,fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",fontWeight:600,color:"var(--gn)"}}>${fmt(Math.round(a.valorLibro))}</div></div>
+          <div><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase"}}>Dep. mensual</div><div style={{fontSize:13,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontWeight:600}}>${fmt(Math.round(a.depMensual))}</div></div>
+          <div><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase"}}>Acumulada</div><div style={{fontSize:13,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontWeight:600,color:"var(--am)"}}>${fmt(Math.round(a.acumulada))}</div></div>
+          <div><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase"}}>Valor libro</div><div style={{fontSize:13,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontWeight:600,color:"var(--gn)"}}>${fmt(Math.round(a.valorLibro))}</div></div>
         </div>
         <button onClick={()=>generarDepreciacion(a)} disabled={a.generadoEsteMes||a.valorLibro<=0} style={{padding:"6px 16px",borderRadius:"var(--rs)",border:"none",background:(a.generadoEsteMes||a.valorLibro<=0)?"var(--sf2)":"var(--cy-fill)",color:(a.generadoEsteMes||a.valorLibro<=0)?"var(--tx3)":"#1C1B12",fontSize:11,fontWeight:600,cursor:(a.generadoEsteMes||a.valorLibro<=0)?"default":"pointer"}}>{a.valorLibro<=0?"Totalmente depreciado":a.generadoEsteMes?"Ya generado este mes":"Generar depreciacion de "+mesActual}</button>
       </div>
@@ -885,7 +886,7 @@ function TopContrapartes({empEntries,tipoDoc,titulo}){
     {top.length===0?<div style={{fontSize:12,color:"var(--tx3)"}}>Sin datos.</div>:
     <div style={{display:"flex",flexDirection:"column",gap:10}}>{top.map((t,i)=>
       <div key={i}>
-        <div style={{display:"flex",justifyContent:"space-between",gap:8,fontSize:12,marginBottom:3}}><span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.razonSocial}</span><span style={{fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",fontWeight:600,whiteSpace:"nowrap"}}>${fmt(t.total)}</span></div>
+        <div style={{display:"flex",justifyContent:"space-between",gap:8,fontSize:12,marginBottom:3}}><span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.razonSocial}</span><span style={{fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontWeight:600,whiteSpace:"nowrap"}}>${fmt(t.total)}</span></div>
         <div style={{height:5,background:"var(--sf2)",borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",width:(t.total/max*100)+"%",background:tipoDoc==="venta"?"var(--gn)":"var(--am)",borderRadius:3}}/></div>
       </div>
     )}</div>}
@@ -965,7 +966,7 @@ function PlanCtas({accts,setAccts,aLog}){
     <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden"}}><div style={{maxHeight:"65vh",overflowY:"auto"}}>
       <table style={{width:"100%",fontSize:13,borderCollapse:"collapse"}}><thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:11,color:"var(--tx3)",position:"sticky",top:0,background:"var(--sf2)",zIndex:1}}><th style={{textAlign:"left",padding:"10px 16px",fontWeight:500,width:140}}>Codigo</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Nombre</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500,width:80}}>Tipo</th><th style={{textAlign:"center",padding:"10px 8px",fontWeight:500,width:30}}>Nv</th><th style={{width:70}}></th></tr></thead>
         <tbody>{accts.map(a=><tr key={a.cd} style={{borderBottom:"1px solid "+(a.lv===1?"var(--bd2)":"var(--bd)"),background:a.lv===1?"var(--sf2)":"transparent"}}>
-          <td style={{padding:"7px 16px",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",fontSize:11,color:a.lv<=2?"var(--cy)":"var(--tx2)"}}>{a.cd}</td>
+          <td style={{padding:"7px 16px",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontSize:11,color:a.lv<=2?"var(--cy)":"var(--tx2)"}}>{a.cd}</td>
           <td style={{padding:"7px 8px",paddingLeft:lvPad[a.lv]||56,fontWeight:lvWeight[a.lv]||400,fontSize:lvSize[a.lv]||11}}>
             {editCd===a.cd?<div style={{display:"flex",gap:6,alignItems:"center"}}><input value={editNm} onChange={e=>setEditNm(e.target.value)} style={{padding:"4px 8px",fontSize:12,background:"var(--sf2)",width:"100%"}} onKeyDown={e=>e.key==="Enter"&&saveEdit()}/><button onClick={saveEdit} style={{background:"var(--cy-fill)",color:"#1C1B12",border:"none",borderRadius:4,padding:"4px 10px",fontSize:10,whiteSpace:"nowrap"}}>OK</button><button onClick={()=>setEditCd(null)} style={{background:"none",border:"none",color:"var(--tx3)",fontSize:10}}>x</button></div>:a.nm}
           </td>
@@ -1046,15 +1047,15 @@ function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog,ccostos,res
         <div style={{display:"grid",gridTemplateColumns:"1fr 90px 90px 32px",gap:8,fontSize:10,color:"var(--tx3)",fontWeight:500,padding:"0 4px"}}><span>Cuenta</span><span style={{textAlign:"right"}}>Debe</span><span style={{textAlign:"right"}}>Haber</span><span></span></div>
         {fm.lines.map((ln,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 90px 90px 32px",gap:8}}>
           <select value={ln.ac} onChange={e=>uLine(i,"ac",e.target.value)} style={{fontSize:12}}><option value="">Cuenta...</option>{leafAccts.map(a=><option key={a.cd} value={a.cd}>{a.cd} {a.nm}</option>)}</select>
-          <input type="number" min="0" value={ln.db||""} placeholder="0" onChange={e=>uLine(i,"db",e.target.value)} style={{textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",fontSize:12}}/>
-          <input type="number" min="0" value={ln.cr||""} placeholder="0" onChange={e=>uLine(i,"cr",e.target.value)} style={{textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",fontSize:12}}/>
+          <input type="number" min="0" value={ln.db||""} placeholder="0" onChange={e=>uLine(i,"db",e.target.value)} style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontSize:12}}/>
+          <input type="number" min="0" value={ln.cr||""} placeholder="0" onChange={e=>uLine(i,"cr",e.target.value)} style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontSize:12}}/>
           <button onClick={()=>rmL(i)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",fontSize:14}}>x</button>
         </div>)}
       </div>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:12,paddingTop:12,borderTop:"1px solid var(--bd)"}}>
         <button onClick={addL} style={{background:"none",border:"none",color:"var(--cy)",fontSize:12,fontWeight:600,cursor:"pointer"}}>+ Linea</button>
         <div style={{display:"flex",alignItems:"center",gap:16,fontSize:12}}>
-          <span style={{fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>D: ${fmt(tD)}</span><span style={{fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>H: ${fmt(tC)}</span>
+          <span style={{fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>D: ${fmt(tD)}</span><span style={{fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>H: ${fmt(tC)}</span>
           <span style={{padding:"3px 10px",borderRadius:4,fontSize:11,fontWeight:600,background:bal?"rgba(16,185,129,.15)":"rgba(239,68,68,.15)",color:bal?"var(--gn)":"var(--rd)"}}>{bal?"Cuadrado":"Descuadrado"}</span>
         </div>
       </div>
@@ -1069,8 +1070,8 @@ function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog,ccostos,res
         </div>);})}</div>
     </div>}
     <div style={{display:"flex",flexDirection:"column",gap:8}}>{[...empEntries].sort((a,b)=>b.date.localeCompare(a.date)).map(e=><div key={e.id} id={"asiento-"+e.id} style={{background:"var(--sf)",border:"1px solid "+(resaltadoId===e.id?"var(--am)":editId===e.id?"var(--cy)":"var(--bd)"),boxShadow:resaltadoId===e.id?"0 0 0 3px rgba(251,191,36,.25), var(--shadow)":"var(--shadow)",borderRadius:"var(--r)",padding:16,transition:"box-shadow .3s,border-color .3s"}}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:10,fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",background:"var(--sf2)",padding:"2px 8px",borderRadius:4}}>N {e.num}</span><span style={{fontSize:13,fontWeight:500}}>{e.desc}</span>{e.centroCosto&&ccNombre[e.centroCosto]&&<span style={{fontSize:10,background:"var(--cyg)",color:"var(--cy)",padding:"2px 8px",borderRadius:4}}>{ccNombre[e.centroCosto]}</span>}{e.recurrente&&<span style={{fontSize:10,background:"rgba(155,168,136,.15)",color:"var(--pu)",padding:"2px 8px",borderRadius:4}}>↻ Recurrente</span>}</div><div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:11,color:"var(--tx3)"}}>{fD(e.date)}</span><button onClick={()=>openEdit(e)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.6,fontSize:11}}>editar</button><button onClick={()=>{if(confirm("Eliminar este asiento?"))delE(e.id)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5}}>x</button></div></div>
-      <div style={{fontSize:11}}>{e.lines.map((l,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 80px 80px",gap:8,padding:"2px 0"}}><span style={{color:"var(--tx2)",paddingLeft:l.cr>0?20:0}}>{l.ac} {leafAccts.find(a=>a.cd===l.ac)?.nm||""}</span><span style={{textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>{l.db>0?"$"+fmt(l.db):""}</span><span style={{textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>{l.cr>0?"$"+fmt(l.cr):""}</span></div>)}</div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:10,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",background:"var(--sf2)",padding:"2px 8px",borderRadius:4}}>N {e.num}</span><span style={{fontSize:13,fontWeight:500}}>{e.desc}</span>{e.centroCosto&&ccNombre[e.centroCosto]&&<span style={{fontSize:10,background:"var(--cyg)",color:"var(--cy)",padding:"2px 8px",borderRadius:4}}>{ccNombre[e.centroCosto]}</span>}{e.recurrente&&<span style={{fontSize:10,background:"rgba(155,168,136,.15)",color:"var(--pu)",padding:"2px 8px",borderRadius:4}}>↻ Recurrente</span>}</div><div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:11,color:"var(--tx3)"}}>{fD(e.date)}</span><button onClick={()=>openEdit(e)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.6,fontSize:11}}>editar</button><button onClick={()=>{if(confirm("Eliminar este asiento?"))delE(e.id)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5}}>x</button></div></div>
+      <div style={{fontSize:11}}>{e.lines.map((l,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 80px 80px",gap:8,padding:"2px 0"}}><span style={{color:"var(--tx2)",paddingLeft:l.cr>0?20:0}}>{l.ac} {leafAccts.find(a=>a.cd===l.ac)?.nm||""}</span><span style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{l.db>0?"$"+fmt(l.db):""}</span><span style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{l.cr>0?"$"+fmt(l.cr):""}</span></div>)}</div>
     </div>)}</div>
   </div>);
 }
@@ -1102,13 +1103,13 @@ function LDiario({empEntries,accts,eObj,ccostos,irAAsiento}){
     <div style={{overflowX:"auto"}}><table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}><thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:10,color:"var(--tx3)",background:"var(--sf2)"}}><th style={{textAlign:"left",padding:"8px 12px",fontWeight:500}}>Fecha</th><th style={{textAlign:"left",padding:"8px 4px",fontWeight:500}}>N</th><th style={{textAlign:"left",padding:"8px 4px",fontWeight:500}}>Cod</th><th style={{textAlign:"left",padding:"8px 4px",fontWeight:500}}>Cuenta / Glosa</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Debe</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Haber</th></tr></thead>
       <tbody>{sorted.map(e=>e.lines.map((l,i)=><tr key={e.id+"-"+i} onClick={()=>irAAsiento?.(e.id)} title="Ver asiento" style={{borderBottom:"1px solid var(--bd)",cursor:irAAsiento?"pointer":"default"}}>
         <td style={{padding:"6px 12px",fontSize:11}}>{i===0?fD(e.date):""}</td>
-        <td style={{padding:"6px 4px",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",fontSize:10}}>{i===0?e.num:""}</td>
-        <td style={{padding:"6px 4px",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",fontSize:10}}>{l.ac}</td>
+        <td style={{padding:"6px 4px",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontSize:10}}>{i===0?e.num:""}</td>
+        <td style={{padding:"6px 4px",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontSize:10}}>{l.ac}</td>
         <td style={{padding:"6px 4px",paddingLeft:l.cr>0?20:4}}>{am[l.ac]||"?"}{i===0&&<div style={{fontSize:10,color:"var(--tx3)",fontStyle:"italic"}}>{e.desc}</div>}</td>
-        <td style={{padding:"6px 12px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>{l.db>0?"$"+fmt(l.db):""}</td>
-        <td style={{padding:"6px 12px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>{l.cr>0?"$"+fmt(l.cr):""}</td>
+        <td style={{padding:"6px 12px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{l.db>0?"$"+fmt(l.db):""}</td>
+        <td style={{padding:"6px 12px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{l.cr>0?"$"+fmt(l.cr):""}</td>
       </tr>))}
-        <tr style={{borderTop:"2px solid var(--bd2)",background:"var(--sf2)",fontWeight:700}}><td colSpan={4} style={{padding:"10px 12px",textAlign:"right",fontSize:11,textTransform:"uppercase",letterSpacing:1}}>Totales</td><td style={{padding:"10px 12px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>${fmt(tD)}</td><td style={{padding:"10px 12px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>${fmt(tC)}</td></tr>
+        <tr style={{borderTop:"2px solid var(--bd2)",background:"var(--sf2)",fontWeight:700}}><td colSpan={4} style={{padding:"10px 12px",textAlign:"right",fontSize:11,textTransform:"uppercase",letterSpacing:1}}>Totales</td><td style={{padding:"10px 12px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(tD)}</td><td style={{padding:"10px 12px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(tC)}</td></tr>
       </tbody></table></div>
   </div>);
 }
@@ -1125,10 +1126,10 @@ function Balance({empEntries,accts,leafAccts,eObj,irACuenta}){
 
   const BSec=({title,groups,total,color})=><div><div style={{fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:12,color}}>{title}</div>
     {groups.map((g,i)=><div key={i} style={{marginBottom:12}}><div style={{fontSize:11,fontWeight:600,color:"var(--tx2)",marginBottom:4,paddingLeft:8}}>{g.grp}</div>
-      {g.items.map((it,j)=><div key={j} onClick={()=>irACuenta?.(it.cd)} title={irACuenta?"Ver en Libro Mayor":undefined} style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:12,paddingLeft:24,padding:"3px 0 3px 24px",cursor:irACuenta?"pointer":"default"}}><span style={{color:"var(--tx2)"}}>{it.nm}</span><span style={{textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>${fmt(it.bal)}</span></div>)}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:12,paddingLeft:24,padding:"6px 0 6px 24px",borderTop:"1px solid var(--bd)",marginTop:4,fontWeight:600}}><span>Subtotal {g.grp}</span><span style={{textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>${fmt(g.sub)}</span></div>
+      {g.items.map((it,j)=><div key={j} onClick={()=>irACuenta?.(it.cd)} title={irACuenta?"Ver en Libro Mayor":undefined} style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:12,paddingLeft:24,padding:"3px 0 3px 24px",cursor:irACuenta?"pointer":"default"}}><span style={{color:"var(--tx2)"}}>{it.nm}</span><span style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(it.bal)}</span></div>)}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:12,paddingLeft:24,padding:"6px 0 6px 24px",borderTop:"1px solid var(--bd)",marginTop:4,fontWeight:600}}><span>Subtotal {g.grp}</span><span style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(g.sub)}</span></div>
     </div>)}
-    <div style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:13,fontWeight:700,padding:"10px 0",borderTop:"2px solid var(--bd2)",marginTop:4}}><span>TOTAL {title.toUpperCase()}</span><span style={{textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>${fmt(total)}</span></div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:13,fontWeight:700,padding:"10px 0",borderTop:"2px solid var(--bd2)",marginTop:4}}><span>TOTAL {title.toUpperCase()}</span><span style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(total)}</span></div>
   </div>;
 
   return(<div className="report" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28,maxWidth:700}}>
@@ -1150,7 +1151,7 @@ function Balance({empEntries,accts,leafAccts,eObj,irACuenta}){
       <BSec title="Activos" groups={assets} total={tA} color="var(--cy)"/>
       <BSec title="Pasivos" groups={liabs} total={tL} color="var(--rd)"/>
       <BSec title="Patrimonio" groups={eq} total={tE} color="var(--pu)"/>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:14,fontWeight:700,padding:"12px 0",borderTop:"3px double var(--bd2)",color:Math.abs(tA-tPE)<1?"var(--gn)":"var(--rd)"}}><span>TOTAL PASIVOS + PATRIMONIO</span><span style={{textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>${fmt(tPE)}</span></div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:14,fontWeight:700,padding:"12px 0",borderTop:"3px double var(--bd2)",color:Math.abs(tA-tPE)<1?"var(--gn)":"var(--rd)"}}><span>TOTAL PASIVOS + PATRIMONIO</span><span style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(tPE)}</span></div>
       {Math.abs(tA-tPE)>=1&&<div style={{background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.2)",borderRadius:"var(--rs)",padding:12,fontSize:11,color:"var(--rd)"}}>Descuadre: Activos (${fmt(tA)}) vs Pasivos+Patrimonio (${fmt(tPE)}). Diferencia: ${fmt(tA-tPE)}</div>}
     </div>
   </div>);
@@ -1203,23 +1204,23 @@ function EERR({empEntries,accts,leafAccts,eObj,ccostos,irACuenta}){
     <div className="no-print" style={{textAlign:"center",marginBottom:24}}><div style={{fontSize:18,fontWeight:700}}>{eObj?.name}</div><div style={{fontSize:13,color:"var(--tx3)"}}>Estado de Resultados{ccNombre?" — "+ccNombre:""}</div><div style={{fontSize:11,color:"var(--tx3)"}}>{anio==="todos"?"Todo el historial":"Año "+anio}</div></div>
     <div><div style={{fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:12,color:"var(--gn)"}}>Ingresos</div>
       {inc.map((g,i)=><div key={i} style={{marginBottom:8}}><div style={{fontSize:11,fontWeight:600,color:"var(--tx2)",paddingLeft:8,marginBottom:4}}>{g.grp}</div>
-        {g.items.map((it,j)=><div key={j} onClick={()=>irACuenta?.(it.cd)} title={irACuenta?"Ver en Libro Mayor":undefined} style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:12,padding:"3px 0 3px 24px",cursor:irACuenta?"pointer":"default"}}><span style={{color:"var(--tx2)"}}>{it.nm}</span><span style={{textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>${fmt(it.bal)}</span></div>)}</div>)}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:13,fontWeight:700,padding:"10px 0",borderTop:"2px solid var(--bd2)"}}><span>TOTAL INGRESOS</span><span style={{textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>${fmt(tI)}</span></div>
+        {g.items.map((it,j)=><div key={j} onClick={()=>irACuenta?.(it.cd)} title={irACuenta?"Ver en Libro Mayor":undefined} style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:12,padding:"3px 0 3px 24px",cursor:irACuenta?"pointer":"default"}}><span style={{color:"var(--tx2)"}}>{it.nm}</span><span style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(it.bal)}</span></div>)}</div>)}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:13,fontWeight:700,padding:"10px 0",borderTop:"2px solid var(--bd2)"}}><span>TOTAL INGRESOS</span><span style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(tI)}</span></div>
     </div>
     <div style={{marginTop:16}}><div style={{fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:12,color:"var(--am)"}}>Costos y Gastos</div>
       {exp.map((g,i)=><div key={i} style={{marginBottom:8}}><div style={{fontSize:11,fontWeight:600,color:"var(--tx2)",paddingLeft:8,marginBottom:4}}>{g.grp}</div>
-        {g.items.map((it,j)=><div key={j} onClick={()=>irACuenta?.(it.cd)} title={irACuenta?"Ver en Libro Mayor":undefined} style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:12,padding:"3px 0 3px 24px",cursor:irACuenta?"pointer":"default"}}><span style={{color:"var(--tx2)"}}>{it.nm}</span><span style={{textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>(${fmt(it.bal)})</span></div>)}</div>)}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:13,fontWeight:700,padding:"10px 0",borderTop:"2px solid var(--bd2)"}}><span>TOTAL COSTOS Y GASTOS</span><span style={{textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>(${fmt(tE)})</span></div>
+        {g.items.map((it,j)=><div key={j} onClick={()=>irACuenta?.(it.cd)} title={irACuenta?"Ver en Libro Mayor":undefined} style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:12,padding:"3px 0 3px 24px",cursor:irACuenta?"pointer":"default"}}><span style={{color:"var(--tx2)"}}>{it.nm}</span><span style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>(${fmt(it.bal)})</span></div>)}</div>)}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:13,fontWeight:700,padding:"10px 0",borderTop:"2px solid var(--bd2)"}}><span>TOTAL COSTOS Y GASTOS</span><span style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>(${fmt(tE)})</span></div>
     </div>
-    <div style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:15,fontWeight:700,padding:"14px 0",borderTop:"3px double var(--bd2)",marginTop:16,color:net>=0?"var(--gn)":"var(--rd)"}}><span>{net>=0?"UTILIDAD":"PERDIDA"} DEL EJERCICIO</span><span style={{textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>${fmt(net)}</span></div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:15,fontWeight:700,padding:"14px 0",borderTop:"3px double var(--bd2)",marginTop:16,color:net>=0?"var(--gn)":"var(--rd)"}}><span>{net>=0?"UTILIDAD":"PERDIDA"} DEL EJERCICIO</span><span style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(net)}</span></div>
     {anterior&&<div style={{marginTop:28,paddingTop:20,borderTop:"1px solid var(--bd)"}}>
       <div style={{fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:12,color:"var(--tx3)"}}>Comparativo {anio} vs {anioAnterior}</div>
       <div style={{overflowX:"auto"}}><table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
         <thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:10,color:"var(--tx3)"}}><th style={{textAlign:"left",padding:"6px 8px"}}></th><th style={{textAlign:"right",padding:"6px 8px"}}>{anio}</th><th style={{textAlign:"right",padding:"6px 8px"}}>{anioAnterior}</th><th style={{textAlign:"right",padding:"6px 8px"}}>Variacion</th></tr></thead>
         <tbody>
-          <tr style={{borderBottom:"1px solid var(--bd)"}}><td style={{padding:"6px 8px"}}>Ingresos</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>${fmt(tI)}</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>${fmt(anterior.tI)}</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",color:tI>=anterior.tI?"var(--gn)":"var(--rd)"}}>{fmtVar(variacion(tI,anterior.tI))}</td></tr>
-          <tr style={{borderBottom:"1px solid var(--bd)"}}><td style={{padding:"6px 8px"}}>Costos y Gastos</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>${fmt(tE)}</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>${fmt(anterior.tE)}</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",color:tE<=anterior.tE?"var(--gn)":"var(--rd)"}}>{fmtVar(variacion(tE,anterior.tE))}</td></tr>
-          <tr style={{fontWeight:700}}><td style={{padding:"6px 8px"}}>{net>=0?"Utilidad":"Perdida"}</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>${fmt(net)}</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>${fmt(anterior.net)}</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",color:net>=anterior.net?"var(--gn)":"var(--rd)"}}>{fmtVar(variacion(net,anterior.net))}</td></tr>
+          <tr style={{borderBottom:"1px solid var(--bd)"}}><td style={{padding:"6px 8px"}}>Ingresos</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(tI)}</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(anterior.tI)}</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:tI>=anterior.tI?"var(--gn)":"var(--rd)"}}>{fmtVar(variacion(tI,anterior.tI))}</td></tr>
+          <tr style={{borderBottom:"1px solid var(--bd)"}}><td style={{padding:"6px 8px"}}>Costos y Gastos</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(tE)}</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(anterior.tE)}</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:tE<=anterior.tE?"var(--gn)":"var(--rd)"}}>{fmtVar(variacion(tE,anterior.tE))}</td></tr>
+          <tr style={{fontWeight:700}}><td style={{padding:"6px 8px"}}>{net>=0?"Utilidad":"Perdida"}</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(net)}</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(anterior.net)}</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:net>=anterior.net?"var(--gn)":"var(--rd)"}}>{fmtVar(variacion(net,anterior.net))}</td></tr>
         </tbody>
       </table></div>
     </div>}
@@ -1255,7 +1256,7 @@ function LMayor({empEntries,accts,leafAccts,eObj,irAAsiento,cuentaInicial}){
       </div>
       {movesWithBal.length===0?<div style={{padding:24,textAlign:"center",color:"var(--tx3)",fontSize:13}}>Sin movimientos.</div>
       :<div style={{overflowX:"auto"}}><table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}><thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:10,color:"var(--tx3)",background:"var(--sf2)"}}><th style={{textAlign:"left",padding:"8px 12px",fontWeight:500}}>Fecha</th><th style={{textAlign:"left",padding:"8px 4px",fontWeight:500}}>N</th><th style={{textAlign:"left",padding:"8px 4px",fontWeight:500}}>Glosa</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Debe</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Haber</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Saldo</th></tr></thead>
-        <tbody>{movesWithBal.map((m,i)=><tr key={i} onClick={()=>irAAsiento?.(m.id)} title="Ver asiento" style={{borderBottom:"1px solid var(--bd)",cursor:irAAsiento?"pointer":"default"}}><td style={{padding:"6px 12px",fontSize:11}}>{fD(m.date)}</td><td style={{padding:"6px 4px",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",fontSize:10}}>{m.num}</td><td style={{padding:"6px 4px"}}>{m.desc}</td><td style={{padding:"6px 12px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>{m.db>0?"$"+fmt(m.db):""}</td><td style={{padding:"6px 12px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>{m.cr>0?"$"+fmt(m.cr):""}</td><td style={{padding:"6px 12px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",fontWeight:600,color:m.bal<0?"var(--rd)":"var(--tx)"}}>${fmt(m.bal)}</td></tr>)}</tbody></table></div>}
+        <tbody>{movesWithBal.map((m,i)=><tr key={i} onClick={()=>irAAsiento?.(m.id)} title="Ver asiento" style={{borderBottom:"1px solid var(--bd)",cursor:irAAsiento?"pointer":"default"}}><td style={{padding:"6px 12px",fontSize:11}}>{fD(m.date)}</td><td style={{padding:"6px 4px",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontSize:10}}>{m.num}</td><td style={{padding:"6px 4px"}}>{m.desc}</td><td style={{padding:"6px 12px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{m.db>0?"$"+fmt(m.db):""}</td><td style={{padding:"6px 12px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{m.cr>0?"$"+fmt(m.cr):""}</td><td style={{padding:"6px 12px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontWeight:600,color:m.bal<0?"var(--rd)":"var(--tx)"}}>${fmt(m.bal)}</td></tr>)}</tbody></table></div>}
     </div>}
   </div>);
 }
@@ -1304,8 +1305,8 @@ function LibroAuxiliar({empEntries,eObj,irAAsiento}){
       <div style={{display:"flex",flexDirection:"column",gap:4,maxHeight:260,overflowY:"auto"}}>
         {filtradas.map(c=>{const key=normRut(c.rut);return(
         <button key={key} onClick={()=>setRutSel(key)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,padding:"8px 12px",borderRadius:"var(--rs)",border:"1px solid "+(rutSel===key?"var(--cy)":"var(--bd)"),background:rutSel===key?"var(--cyg)":"var(--sf2)",color:rutSel===key?"var(--cy)":"var(--tx2)",fontSize:12,textAlign:"left",cursor:"pointer"}}>
-          <span>{c.razonSocial||"(sin razon social)"} <span style={{fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",opacity:.7}}>{c.rut}</span></span>
-          <span style={{fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",fontSize:11,whiteSpace:"nowrap"}}>{c.docs} doc. · ${fmt(c.compras+c.ventas)}</span>
+          <span>{c.razonSocial||"(sin razon social)"} <span style={{fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",opacity:.7}}>{c.rut}</span></span>
+          <span style={{fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontSize:11,whiteSpace:"nowrap"}}>{c.docs} doc. · ${fmt(c.compras+c.ventas)}</span>
         </button>);})}
       </div>}
     </div>
@@ -1334,13 +1335,13 @@ function LibroAuxiliar({empEntries,eObj,irAAsiento}){
         <tbody>{movsSel.map(e=><tr key={e.id} onClick={()=>irAAsiento?.(e.id)} title="Ver asiento" style={{borderBottom:"1px solid var(--bd)",cursor:irAAsiento?"pointer":"default"}}>
           <td style={{padding:"6px 12px",fontSize:11}}>{fD(e.date)}</td>
           <td style={{padding:"6px 8px",fontSize:11}}>{e.tipoDoc==="compra"?"Compra":e.tipoDoc==="venta"?"Venta":"—"}</td>
-          <td style={{padding:"6px 8px",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",fontSize:11}}>{e.folio||"—"}</td>
+          <td style={{padding:"6px 8px",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontSize:11}}>{e.folio||"—"}</td>
           <td style={{padding:"6px 8px"}}>{e.desc}</td>
-          <td style={{padding:"6px 12px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",fontWeight:600}}>${fmt(e.total||0)}</td>
+          <td style={{padding:"6px 12px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontWeight:600}}>${fmt(e.total||0)}</td>
         </tr>)}</tbody>
         <tfoot><tr style={{borderTop:"2px solid var(--bd2)",fontWeight:700}}>
           <td colSpan={4} style={{padding:"8px 12px",textAlign:"right",fontSize:11,textTransform:"uppercase",letterSpacing:1}}>Total</td>
-          <td style={{padding:"8px 12px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>${fmt(movsSel.reduce((s,e)=>s+(e.total||0),0))}</td>
+          <td style={{padding:"8px 12px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(movsSel.reduce((s,e)=>s+(e.total||0),0))}</td>
         </tr></tfoot>
       </table></div>}
     </div>}
@@ -1695,11 +1696,11 @@ function LibroCV({empEntries,tipo,eObj,irAAsiento}){
         </tr></thead>
         <tbody>{rcvOficial.rows.map(r=><tr key={r.codigo} style={{borderBottom:"1px solid var(--bd)"}}>
           <td style={{padding:"6px 8px"}}>{r.descripcion||"—"} ({r.codigo})</td>
-          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>{r.documentos}</td>
-          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>${fmt(r.exento)}</td>
-          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>${fmt(r.neto)}</td>
-          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>${fmt(r.iva)}</td>
-          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",fontWeight:600}}>${fmt(r.total)}</td>
+          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{r.documentos}</td>
+          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(r.exento)}</td>
+          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(r.neto)}</td>
+          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(r.iva)}</td>
+          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontWeight:600}}>${fmt(r.total)}</td>
         </tr>)}</tbody>
       </table></div>
       <div style={{background:coincide?"rgba(16,185,129,.1)":"rgba(251,191,36,.1)",border:"1px solid "+(coincide?"rgba(16,185,129,.3)":"rgba(251,191,36,.3)"),borderRadius:"var(--rs)",padding:16,fontSize:13,color:coincide?"var(--gn)":"var(--yl,#B45309)"}}>
@@ -1729,21 +1730,21 @@ function LibroCV({empEntries,tipo,eObj,irAAsiento}){
         </tr></thead>
         <tbody>{g.rows.map(r=><tr key={r.id} onClick={()=>irAAsiento?.(r.id)} title="Ver asiento" style={{borderBottom:"1px solid var(--bd)",cursor:irAAsiento?"pointer":"default"}}>
           <td style={{padding:"6px 8px"}}>{fD(r.date)}</td>
-          <td style={{padding:"6px 8px",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>{r.folio}</td>
-          <td style={{padding:"6px 8px",fontSize:11,fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}} title={r.tipoDocCod?fmtTipoDoc(r.tipoDocCod):""}>{r.tipoDocCod||"—"}</td>
-          <td style={{padding:"6px 8px",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>{r.rut}</td>
+          <td style={{padding:"6px 8px",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{r.folio}</td>
+          <td style={{padding:"6px 8px",fontSize:11,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}} title={r.tipoDocCod?fmtTipoDoc(r.tipoDocCod):""}>{r.tipoDocCod||"—"}</td>
+          <td style={{padding:"6px 8px",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{r.rut}</td>
           <td style={{padding:"6px 8px"}}>{r.razonSocial}{facturaRelacionada.has(r.id)&&<div style={{fontSize:10,color:"var(--tx3)",marginTop:2}}>↳ posible factura relacionada: F{facturaRelacionada.get(r.id).folio}</div>}</td>
-          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>${fmt(r.exento||0)}</td>
-          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>${fmt(r.neto||0)}</td>
-          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>${fmt(r.iva||0)}</td>
-          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",fontWeight:600}}>${fmt(r.total||0)}</td>
+          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(r.exento||0)}</td>
+          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(r.neto||0)}</td>
+          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(r.iva||0)}</td>
+          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontWeight:600}}>${fmt(r.total||0)}</td>
         </tr>)}</tbody>
         <tfoot><tr style={{borderTop:"2px solid var(--bd)",fontWeight:700}}>
           <td colSpan={5} style={{padding:"6px 8px"}}>Total {fmtPeriodo(g.periodo)}</td>
-          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>${fmt(g.exento)}</td>
-          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>${fmt(g.neto)}</td>
-          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>${fmt(g.iva)}</td>
-          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>${fmt(g.total)}</td>
+          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(g.exento)}</td>
+          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(g.neto)}</td>
+          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(g.iva)}</td>
+          <td style={{padding:"6px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(g.total)}</td>
         </tr></tfoot>
       </table></div>}
     </div>)})}
@@ -1829,7 +1830,7 @@ function ConciliacionP({entries,setEntries,leafAccts,eObj,empEntries,aLog,reglas
             return<tr key={mov.id} style={{borderBottom:"1px solid var(--bd)"}}>
               <td style={{padding:"8px 12px",whiteSpace:"nowrap"}}>{fD(mov.fecha)}</td>
               <td style={{padding:"8px 8px"}}>{mov.descripcion}</td>
-              <td style={{padding:"8px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>${fmt(mov.monto)}</td>
+              <td style={{padding:"8px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(mov.monto)}</td>
               <td style={{padding:"8px 8px",textAlign:"center"}}>{mov.cargoAbono==="C"?"Cargo":"Abono"}</td>
               <td style={{padding:"8px 12px"}}>
                 {sugerencia.estado==="ambiguo"?
@@ -1855,7 +1856,7 @@ function ConciliacionP({entries,setEntries,leafAccts,eObj,empEntries,aLog,reglas
         <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden",marginTop:8}}>
           {analisis.contab.length===0?<div style={{padding:16,textAlign:"center",color:"var(--tx3)",fontSize:12}}>Ninguno.</div>:
           <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}><tbody>{analisis.contab.map(({mov,asiento})=><tr key={mov.id} style={{borderBottom:"1px solid var(--bd)"}}>
-            <td style={{padding:"6px 12px",whiteSpace:"nowrap"}}>{fD(mov.fecha)}</td><td style={{padding:"6px 8px"}}>{mov.descripcion}</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>${fmt(mov.monto)}</td><td style={{padding:"6px 12px",fontSize:11,color:"var(--tx3)"}}>Asiento N {asiento.num}</td>
+            <td style={{padding:"6px 12px",whiteSpace:"nowrap"}}>{fD(mov.fecha)}</td><td style={{padding:"6px 8px"}}>{mov.descripcion}</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(mov.monto)}</td><td style={{padding:"6px 12px",fontSize:11,color:"var(--tx3)"}}>Asiento N {asiento.num}</td>
           </tr>)}</tbody></table>}
         </div>
       </details>
@@ -1959,10 +1960,10 @@ function PorClasificar({empEntries,setEntries,leafAccts,eObj,aLog,reglas,setRegl
           return<tr key={e.id} style={{borderBottom:"1px solid var(--bd)"}}>
             <td style={{padding:"8px 12px"}}><input type="checkbox" checked={sel.has(e.id)} onChange={()=>toggleSel(e.id)}/></td>
             <td onClick={()=>irAAsiento?.(e.id)} title="Ver asiento" style={{padding:"8px 8px",whiteSpace:"nowrap",cursor:irAAsiento?"pointer":"default"}}>{fD(e.date)}</td>
-            <td onClick={()=>irAAsiento?.(e.id)} title="Ver asiento" style={{padding:"8px 8px",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",cursor:irAAsiento?"pointer":"default"}}>{e.folio||"—"}</td>
-            <td onClick={()=>irAAsiento?.(e.id)} title="Ver asiento" style={{padding:"8px 8px",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",cursor:irAAsiento?"pointer":"default"}}>{e.rut||"—"}</td>
+            <td onClick={()=>irAAsiento?.(e.id)} title="Ver asiento" style={{padding:"8px 8px",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",cursor:irAAsiento?"pointer":"default"}}>{e.folio||"—"}</td>
+            <td onClick={()=>irAAsiento?.(e.id)} title="Ver asiento" style={{padding:"8px 8px",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",cursor:irAAsiento?"pointer":"default"}}>{e.rut||"—"}</td>
             <td onClick={()=>irAAsiento?.(e.id)} title="Ver asiento" style={{padding:"8px 8px",cursor:irAAsiento?"pointer":"default"}}>{e.razonSocial||e.desc}</td>
-            <td onClick={()=>irAAsiento?.(e.id)} title="Ver asiento" style={{padding:"8px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",cursor:irAAsiento?"pointer":"default"}}>${fmt(monto)}</td>
+            <td onClick={()=>irAAsiento?.(e.id)} title="Ver asiento" style={{padding:"8px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",cursor:irAAsiento?"pointer":"default"}}>${fmt(monto)}</td>
             <td style={{padding:"8px 12px"}}>
               <div style={{display:"flex",gap:6}}>
                 <select value={porFila[e.id]||""} onChange={ev=>setPorFila(p=>({...p,[e.id]:ev.target.value}))} style={{fontSize:11}}>
@@ -2048,26 +2049,26 @@ function B8Col({empEntries,accts,leafAccts,eObj,irACuenta}){
       </tr></thead>
       <tbody>
         {rows.map(r=><tr key={r.cd} style={{borderBottom:"1px solid var(--bd)"}}>
-          <td onClick={()=>irACuenta?.(r.cd)} title={irACuenta?"Ver en Libro Mayor":undefined} style={{padding:"5px 12px",borderRight:"1px solid var(--bd)",whiteSpace:"nowrap",cursor:irACuenta?"pointer":"default"}}><span style={{fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",fontSize:10,marginRight:6}}>{r.cd}</span>{r.nm}</td>
-          <td style={{padding:"5px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",borderRight:"1px solid var(--bd)"}}>{r.sumDb?fmt(r.sumDb):""}</td>
-          <td style={{padding:"5px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",borderRight:"1px solid var(--bd)"}}>{r.sumCr?fmt(r.sumCr):""}</td>
-          <td style={{padding:"5px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",borderRight:"1px solid var(--bd)"}}>{r.salDb?fmt(r.salDb):""}</td>
-          <td style={{padding:"5px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",borderRight:"1px solid var(--bd)"}}>{r.salCr?fmt(r.salCr):""}</td>
-          <td style={{padding:"5px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",borderRight:"1px solid var(--bd)"}}>{r.invDb?fmt(r.invDb):""}</td>
-          <td style={{padding:"5px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",borderRight:"1px solid var(--bd)"}}>{r.invCre?fmt(r.invCre):""}</td>
-          <td style={{padding:"5px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>{r.resDb?fmt(r.resDb):""}</td>
-          <td style={{padding:"5px 8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>{r.resCre?fmt(r.resCre):""}</td>
+          <td onClick={()=>irACuenta?.(r.cd)} title={irACuenta?"Ver en Libro Mayor":undefined} style={{padding:"5px 12px",borderRight:"1px solid var(--bd)",whiteSpace:"nowrap",cursor:irACuenta?"pointer":"default"}}><span style={{fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontSize:10,marginRight:6}}>{r.cd}</span>{r.nm}</td>
+          <td style={{padding:"5px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",borderRight:"1px solid var(--bd)"}}>{r.sumDb?fmt(r.sumDb):""}</td>
+          <td style={{padding:"5px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",borderRight:"1px solid var(--bd)"}}>{r.sumCr?fmt(r.sumCr):""}</td>
+          <td style={{padding:"5px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",borderRight:"1px solid var(--bd)"}}>{r.salDb?fmt(r.salDb):""}</td>
+          <td style={{padding:"5px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",borderRight:"1px solid var(--bd)"}}>{r.salCr?fmt(r.salCr):""}</td>
+          <td style={{padding:"5px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",borderRight:"1px solid var(--bd)"}}>{r.invDb?fmt(r.invDb):""}</td>
+          <td style={{padding:"5px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",borderRight:"1px solid var(--bd)"}}>{r.invCre?fmt(r.invCre):""}</td>
+          <td style={{padding:"5px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{r.resDb?fmt(r.resDb):""}</td>
+          <td style={{padding:"5px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{r.resCre?fmt(r.resCre):""}</td>
         </tr>)}
         <tr style={{borderTop:"2px solid var(--bd2)",background:"var(--sf2)",fontWeight:700}}>
           <td style={{padding:"8px 12px",borderRight:"1px solid var(--bd)"}}>TOTALES</td>
-          <td style={{padding:"8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",borderRight:"1px solid var(--bd)"}}>{fmt(tot("sumDb"))}</td>
-          <td style={{padding:"8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",borderRight:"1px solid var(--bd)"}}>{fmt(tot("sumCr"))}</td>
-          <td style={{padding:"8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",borderRight:"1px solid var(--bd)"}}>{fmt(tot("salDb"))}</td>
-          <td style={{padding:"8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",borderRight:"1px solid var(--bd)"}}>{fmt(tot("salCr"))}</td>
-          <td style={{padding:"8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",borderRight:"1px solid var(--bd)"}}>{fmt(tot("invDb"))}</td>
-          <td style={{padding:"8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",borderRight:"1px solid var(--bd)"}}>{fmt(tot("invCre"))}</td>
-          <td style={{padding:"8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>{fmt(tot("resDb"))}</td>
-          <td style={{padding:"8px",textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>{fmt(tot("resCre"))}</td>
+          <td style={{padding:"8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",borderRight:"1px solid var(--bd)"}}>{fmt(tot("sumDb"))}</td>
+          <td style={{padding:"8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",borderRight:"1px solid var(--bd)"}}>{fmt(tot("sumCr"))}</td>
+          <td style={{padding:"8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",borderRight:"1px solid var(--bd)"}}>{fmt(tot("salDb"))}</td>
+          <td style={{padding:"8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",borderRight:"1px solid var(--bd)"}}>{fmt(tot("salCr"))}</td>
+          <td style={{padding:"8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",borderRight:"1px solid var(--bd)"}}>{fmt(tot("invDb"))}</td>
+          <td style={{padding:"8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",borderRight:"1px solid var(--bd)"}}>{fmt(tot("invCre"))}</td>
+          <td style={{padding:"8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{fmt(tot("resDb"))}</td>
+          <td style={{padding:"8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{fmt(tot("resCre"))}</td>
         </tr>
       </tbody>
     </table></div>
@@ -2188,16 +2189,16 @@ function RemP({eObj,rems,setRems,empRems,entries,setEntries,empEntries,leafAccts
       {preview&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:20,marginBottom:20}}>
         <div style={{fontSize:11,fontWeight:600,textTransform:"uppercase",letterSpacing:1,color:"var(--cy)",marginBottom:12}}>Preview Liquidacion</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,fontSize:12}}>
-          <div style={{color:"var(--tx2)"}}>Total Imponible</div><div style={{textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>${fmt(preview.totalImponible)}</div>
-          <div style={{color:"var(--tx2)"}}>Total No Imponible</div><div style={{textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace"}}>${fmt(preview.totalNoImponible)}</div>
-          <div style={{fontWeight:600}}>Total Haberes</div><div style={{textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",fontWeight:600}}>${fmt(preview.totalHaberes)}</div>
-          <div style={{borderTop:"1px solid var(--bd)",paddingTop:8,color:"var(--rd)"}}>AFP ({fm.afp})</div><div style={{borderTop:"1px solid var(--bd)",paddingTop:8,textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",color:"var(--rd)"}}>-${fmt(preview.afpMonto)}</div>
-          <div style={{color:"var(--rd)"}}>Salud (7%)</div><div style={{textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",color:"var(--rd)"}}>-${fmt(preview.saludMonto)}</div>
-          <div style={{color:"var(--rd)"}}>Seg. Cesantia (0.6%)</div><div style={{textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",color:"var(--rd)"}}>-${fmt(preview.cesantiaTrab)}</div>
-          <div style={{color:"var(--rd)"}}>Impuesto Unico</div><div style={{textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",color:"var(--rd)"}}>-${fmt(preview.impUnico)}</div>
-          <div style={{fontWeight:600,color:"var(--rd)"}}>Total Descuentos</div><div style={{textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",fontWeight:600,color:"var(--rd)"}}>-${fmt(preview.totalDescuentos)}</div>
-          <div style={{borderTop:"2px solid var(--bd2)",paddingTop:8,fontSize:14,fontWeight:700,color:"var(--gn)"}}>LIQUIDO</div><div style={{borderTop:"2px solid var(--bd2)",paddingTop:8,textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",fontSize:14,fontWeight:700,color:"var(--gn)"}}>${fmt(preview.liquido)}</div>
-          <div style={{borderTop:"1px solid var(--bd)",paddingTop:8,color:"var(--tx3)",fontSize:11}}>Costo empresa (incl. SIS + cesantia emp.)</div><div style={{borderTop:"1px solid var(--bd)",paddingTop:8,textAlign:"right",fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",fontSize:11,color:"var(--tx3)"}}>${fmt(preview.costoEmpresa)}</div>
+          <div style={{color:"var(--tx2)"}}>Total Imponible</div><div style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(preview.totalImponible)}</div>
+          <div style={{color:"var(--tx2)"}}>Total No Imponible</div><div style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(preview.totalNoImponible)}</div>
+          <div style={{fontWeight:600}}>Total Haberes</div><div style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontWeight:600}}>${fmt(preview.totalHaberes)}</div>
+          <div style={{borderTop:"1px solid var(--bd)",paddingTop:8,color:"var(--rd)"}}>AFP ({fm.afp})</div><div style={{borderTop:"1px solid var(--bd)",paddingTop:8,textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:"var(--rd)"}}>-${fmt(preview.afpMonto)}</div>
+          <div style={{color:"var(--rd)"}}>Salud (7%)</div><div style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:"var(--rd)"}}>-${fmt(preview.saludMonto)}</div>
+          <div style={{color:"var(--rd)"}}>Seg. Cesantia (0.6%)</div><div style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:"var(--rd)"}}>-${fmt(preview.cesantiaTrab)}</div>
+          <div style={{color:"var(--rd)"}}>Impuesto Unico</div><div style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:"var(--rd)"}}>-${fmt(preview.impUnico)}</div>
+          <div style={{fontWeight:600,color:"var(--rd)"}}>Total Descuentos</div><div style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontWeight:600,color:"var(--rd)"}}>-${fmt(preview.totalDescuentos)}</div>
+          <div style={{borderTop:"2px solid var(--bd2)",paddingTop:8,fontSize:14,fontWeight:700,color:"var(--gn)"}}>LIQUIDO</div><div style={{borderTop:"2px solid var(--bd2)",paddingTop:8,textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontSize:14,fontWeight:700,color:"var(--gn)"}}>${fmt(preview.liquido)}</div>
+          <div style={{borderTop:"1px solid var(--bd)",paddingTop:8,color:"var(--tx3)",fontSize:11}}>Costo empresa (incl. SIS + cesantia emp.)</div><div style={{borderTop:"1px solid var(--bd)",paddingTop:8,textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontSize:11,color:"var(--tx3)"}}>${fmt(preview.costoEmpresa)}</div>
         </div>
       </div>}
 
@@ -2725,7 +2726,7 @@ function PortalP({eObj,empEntries,empDocs,empRems,eEvs,accts,leafAccts,go}){
         :empRems.slice(-5).map(r=><div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:"1px solid var(--bd)",fontSize:12}}>
           <div style={{width:28,height:28,borderRadius:8,background:"var(--sf2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:"var(--tx2)"}}>{(r.nombre||"?").slice(0,2).toUpperCase()}</div>
           <div style={{flex:1}}><div style={{fontWeight:500}}>{r.nombre}</div><div style={{fontSize:10,color:"var(--tx3)"}}>{r.cargo}</div></div>
-          <span style={{fontFamily:"ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace",fontSize:11,color:"var(--gn)"}}>${fmt(r.liquido||0)}</span>
+          <span style={{fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontSize:11,color:"var(--gn)"}}>${fmt(r.liquido||0)}</span>
         </div>)}
       </div>
     </div>
