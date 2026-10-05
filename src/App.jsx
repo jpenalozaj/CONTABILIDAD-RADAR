@@ -2159,6 +2159,7 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
   const [tid,setTid]=useState(null);
   const [tfm,setTfm]=useState({});
   const [ftab,setFtab]=useState("resumen");
+  const [filtroPeriodo,setFiltroPeriodo]=useState(null);
   const [params,setParamsSt]=useState(getParamsPrevired);
   const setParams=next=>{setParamsSt(next);sv("rd_param_previred",next)};
   // Los parametros previsionales (UF, UTM, tasas AFP) son valores legales
@@ -2350,15 +2351,16 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
     return(<div style={{maxWidth:700,margin:"0 auto"}}>
     <Bk onClick={()=>setVw("trabajadores")}>Volver</Bk>
 
-    <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:16}}>
-      <div style={{width:48,height:48,borderRadius:12,background:tfm.activo!==false?"var(--cy-fill)":"var(--sf2)",border:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,fontWeight:700,color:tfm.activo!==false?"#1B4D2E":"var(--tx2)",flexShrink:0}}>{(tfm.nombre||"?").slice(0,2).toUpperCase()}</div>
-      <div style={{minWidth:0}}>
-        <div style={{fontSize:17,fontWeight:700}}>{tid?(tfm.nombre+" "+(tfm.apellido||"")):"Nuevo Trabajador"}</div>
-        <div style={{fontSize:12,color:"var(--tx3)",marginTop:2}}>{tid?[tfm.cargo||"Sin cargo",tfm.rut,tfm.activo===false?"Inactivo":null].filter(Boolean).join(" · "):"Completa la ficha para crearlo"}</div>
+    <div style={{background:"linear-gradient(135deg,var(--cy-fill),#F2F6D9)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20,marginBottom:16,display:"flex",alignItems:"center",gap:16}}>
+      <div style={{width:56,height:56,borderRadius:14,background:"var(--sf)",border:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:700,color:"#1B4D2E",flexShrink:0}}>{(tfm.nombre||"?").slice(0,2).toUpperCase()}</div>
+      <div style={{minWidth:0,flex:1}}>
+        <div style={{fontSize:18,fontWeight:700,color:"#1B4D2E"}}>{tid?(tfm.nombre+" "+(tfm.apellido||"")):"Nuevo Trabajador"}</div>
+        <div style={{fontSize:12,color:"#4A4836",marginTop:2}}>{tid?[tfm.cargo||"Sin cargo",tfm.rut].filter(Boolean).join(" · "):"Completa la ficha para crearlo"}</div>
       </div>
+      {tid&&<span style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:.4,padding:"5px 12px",borderRadius:999,background:tfm.activo!==false?"#1B4D2E":"var(--sf)",color:tfm.activo!==false?"var(--cy-fill)":"var(--tx3)",flexShrink:0}}>{tfm.activo!==false?"Activo":"Inactivo"}</span>}
     </div>
 
-    {tid&&<div style={{display:"flex",gap:6,marginBottom:20,flexWrap:"wrap"}}>{fichaTabs.map(ft=><button key={ft.id} onClick={()=>setFtab(ft.id)} style={{padding:"8px 16px",borderRadius:"var(--rs)",border:"none",fontSize:12,fontWeight:ftab===ft.id?700:500,background:"var(--sf)",color:ftab===ft.id?"var(--cy)":"var(--tx2)",cursor:"pointer"}}>{ft.l}</button>)}</div>}
+    {tid&&<div style={{display:"flex",gap:16,marginBottom:20,flexWrap:"wrap",borderBottom:"1px solid var(--bd)"}}>{fichaTabs.map(ft=><button key={ft.id} onClick={()=>setFtab(ft.id)} style={{padding:"10px 2px",borderRadius:0,border:"none",borderBottom:"2px solid transparent",fontSize:12,fontWeight:ftab===ft.id?700:500,background:"none",color:ftab===ft.id?"var(--cy2)":"var(--tx3)",cursor:"pointer"}}><span style={{position:"relative"}}>{ft.l}{ftab===ft.id&&<svg aria-hidden viewBox="0 0 100 8" preserveAspectRatio="none" style={{position:"absolute",left:0,bottom:-10,width:"100%",height:6,overflow:"visible"}}><path d="M0,5 C10,0 20,0 30,5 C40,10 50,10 60,5 C70,0 80,0 90,5 C95,7.5 98,6 100,5" fill="none" stroke="var(--cy)" strokeWidth="1.6" strokeLinecap="round"/></svg>}</span></button>)}</div>}
 
     {(!tid||ftab==="resumen")&&<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28}}>
       <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:24,fontSize:12,color:"var(--tx2)",cursor:"pointer"}}><input type="checkbox" checked={tfm.activo!==false} onChange={e=>setTfm(p=>({...p,activo:e.target.checked}))}/>Trabajador activo</label>
@@ -2532,8 +2534,22 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
       </button>)}
     </div>
 
+    {periodos.length>0&&<div style={{display:"flex",gap:10,overflowX:"auto",paddingBottom:6,marginBottom:20}}>
+      {periodos.map(p=>{
+        const rowsP=empRems.filter(r=>r.periodo===p);
+        const totP=rowsP.reduce((s,r)=>s+(r.liquido||0),0);
+        const esActual=p===periodoActual;
+        const sel=filtroPeriodo===p;
+        return(<button key={p} onClick={()=>setFiltroPeriodo(sel?null:p)} className="rd-hover-lift" style={{textAlign:"left",flexShrink:0,minWidth:150,padding:"14px 16px",borderRadius:"var(--r)",border:sel?"2px solid var(--cy2)":"1px solid var(--bd)",background:esActual?"var(--cy-fill)":"var(--sf)",boxShadow:"var(--shadow)",cursor:"pointer"}}>
+          <div style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:.4,color:esActual?"#1B4D2E":"var(--tx3)",marginBottom:4}}>{esActual?"Periodo actual":"Periodo"}</div>
+          <div style={{fontSize:13,fontWeight:700,textTransform:"capitalize",color:esActual?"#1B4D2E":"var(--tx)"}}>{labelPeriodo(p)}</div>
+          <div style={{fontSize:11,color:esActual?"#1B4D2E":"var(--tx3)",marginTop:4}}>{rowsP.length} liq. · ${fmt(totP)}</div>
+        </button>);
+      })}
+    </div>}
+
     {empRems.length===0?<Ey i="👥" t="Sin liquidaciones" d="Crea tu primera liquidacion de sueldo."><Bt onClick={openNew} p={true}>Crear liquidacion</Bt></Ey>
-    :periodos.map(p=>{
+    :(filtroPeriodo?[filtroPeriodo]:periodos).map(p=>{
       const rowsP=empRems.filter(r=>r.periodo===p);
       const totP=rowsP.reduce((s,r)=>s+(r.liquido||0),0);
       const esActual=p===periodoActual;
@@ -2542,6 +2558,7 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
           <div style={{fontSize:13,fontWeight:700,textTransform:"capitalize"}}>{labelPeriodo(p)}</div>
           {esActual&&<span style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:.4,color:"#1B4D2E",background:"var(--cy-fill)",padding:"3px 8px",borderRadius:999}}>Periodo actual</span>}
           <span style={{fontSize:11,color:"var(--tx3)"}}>{rowsP.length} liquidacion{rowsP.length!==1?"es":""} · ${fmt(totP)} liquido</span>
+          {filtroPeriodo&&<button onClick={()=>setFiltroPeriodo(null)} style={{marginLeft:"auto",background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",fontSize:11,textDecoration:"underline"}}>Ver todos los periodos</button>}
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:8}}>{rowsP.map(r=><div key={r.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16,cursor:"pointer"}} onClick={()=>openEdit(r)}>
           <div style={{width:40,height:40,borderRadius:10,background:"var(--sf2)",border:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"var(--tx2)",flexShrink:0}}>{(r.nombre||"?").slice(0,2).toUpperCase()}</div>
