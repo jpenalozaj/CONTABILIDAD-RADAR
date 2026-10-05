@@ -5,7 +5,8 @@ import { normRut } from "./lib/rut";
 import { parseCartolaSantander, decodeRutFromGlosa } from "./lib/cartola";
 import { yaContabilizado, sugerirContraparte, armarAsiento, buscarReglaPorRut, buscarReglaPorPalabra } from "./lib/conciliacion";
 
-const ST = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fraunces:ital,wght@0,600;0,700;1,600&display=swap');
+const ST = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;0,700;1,600&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#EDEAD9;--sf:#F7F5EA;--sf2:#FFFFFF;--bd:#D9D4BE;--bd2:#C5BFA2;--tx:#1C1B12;--tx2:#4A4836;--tx3:#817C5F;--cy:#6B7408;--cy2:#4D5306;--cyg:rgba(107,116,8,.12);--cy-fill:#D4F000;--gn:#0D8A5F;--am:#B45309;--rd:#DC2626;--pu:#5F6B4A;--r:12px;--rs:8px;--shadow:0 1px 0 rgba(255,255,255,.6) inset,0 10px 24px -10px rgba(40,35,10,.18),0 2px 6px -2px rgba(40,35,10,.12);--glass:rgba(250,249,240,.72);--grad:linear-gradient(135deg,#5C6B04,#8FA300);--grad-gn:linear-gradient(135deg,#0D8A5F,#059669);--grad-am:linear-gradient(135deg,#B45309,#D97706);--grad-pu:linear-gradient(135deg,#4A5538,#6B7A52)}
 body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--tx)}
