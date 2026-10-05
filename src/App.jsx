@@ -7,7 +7,7 @@ import { yaContabilizado, sugerirContraparte, armarAsiento, buscarReglaPorRut, b
 
 const ST = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#050A18;--sf:#0C1425;--sf2:#111D35;--bd:#1A2744;--bd2:#243352;--tx:#E2E8F0;--tx2:#94A3B8;--tx3:#64748B;--cy:#06B6D4;--cy2:#0E7490;--cyg:rgba(6,182,212,.15);--gn:#10B981;--am:#F59E0B;--rd:#EF4444;--pu:#8B5CF6;--r:12px;--rs:8px}
+:root{--bg:#050A18;--sf:#0C1425;--sf2:#111D35;--bd:#1A2744;--bd2:#243352;--tx:#E2E8F0;--tx2:#94A3B8;--tx3:#64748B;--cy:#06B6D4;--cy2:#0E7490;--cyg:rgba(6,182,212,.15);--gn:#10B981;--am:#F59E0B;--rd:#EF4444;--pu:#8B5CF6;--r:12px;--rs:8px;--shadow:0 1px 0 rgba(255,255,255,.04) inset,0 10px 24px -8px rgba(0,0,0,.55),0 2px 6px -2px rgba(0,0,0,.35);--glass:rgba(12,20,37,.72)}
 body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--tx)}
 input,select,textarea{font-family:inherit;background:var(--sf);border:1px solid var(--bd);color:var(--tx);border-radius:var(--rs);padding:10px 14px;font-size:13px;outline:none;width:100%;transition:border-color .2s}
 input:focus,select:focus,textarea:focus{border-color:var(--cy);box-shadow:0 0 0 3px var(--cyg)}
@@ -22,6 +22,12 @@ button:active:not(:disabled){transform:scale(.97)}
 @media (prefers-reduced-motion: reduce){
   *{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
   button:active:not(:disabled){transform:none}
+}
+/* Vidrio esmerilado para el chrome fijo (sidebar y header), como las
+   barras translucidas de macOS/iOS -- el contenido corre por debajo. */
+.rd-glass{background:var(--glass);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%)}
+@media (prefers-reduced-transparency: reduce){
+  .rd-glass{background:var(--sf);backdrop-filter:none;-webkit-backdrop-filter:none}
 }
 .rpt-print-head{display:none}
 /* El look formal (papel blanco, encabezado tipo carta) solo se ve al
@@ -278,7 +284,7 @@ function Dashboard({session}){
   if(!rdy)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#050A18"}}><div style={{textAlign:"center",color:"#06B6D4"}}><div style={{fontSize:24,fontWeight:800,letterSpacing:6}}>RADAR</div><div style={{fontSize:12,color:"#64748B",marginTop:8}}>Cargando...</div></div></div>;
   return(<><style>{ST}</style><div style={{display:"flex",height:"100vh",overflow:"hidden",background:"var(--bg)"}}>
     {sb&&<div onClick={()=>setSb(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:40}}/>}
-    <aside className="rsb" style={{position:"fixed",zIndex:50,top:0,bottom:0,left:0,width:260,background:"var(--sf)",borderRight:"1px solid var(--bd)",display:"flex",flexDirection:"column",transform:sb?"translateX(0)":"translateX(-100%)",transition:"transform .25s"}}>
+    <aside className="rsb rd-glass" style={{position:"fixed",zIndex:50,top:0,bottom:0,left:0,width:260,borderRight:"1px solid var(--bd)",display:"flex",flexDirection:"column",transform:sb?"translateX(0)":"translateX(-100%)",transition:"transform .25s"}}>
       <div style={{padding:"24px 20px 20px",borderBottom:"1px solid var(--bd)"}}><div style={{display:"flex",alignItems:"center",gap:12}}><div style={{color:"var(--cy)"}}>{IC.radar}</div><div><div style={{fontSize:18,fontWeight:800,letterSpacing:4,color:"var(--cy)"}}>RADAR</div><div style={{fontSize:10,color:"var(--tx3)",letterSpacing:1}}>INTELIGENCIA EMPRESARIAL</div></div></div></div>
       {emps.length>0&&<div style={{padding:"16px 16px 8px"}}><div style={{fontSize:10,textTransform:"uppercase",letterSpacing:1.5,color:"var(--tx3)",marginBottom:8,paddingLeft:4}}>Empresa Activa</div><select value={aEmp||""} onChange={e=>setAEmp(e.target.value)} style={{fontSize:12,padding:"8px 12px",background:"var(--sf2)"}}>{emps.map(e=><option key={e.id} value={e.id}>{e.name}</option>)}</select></div>}
       <nav style={{flex:1,padding:12,overflowY:"auto"}}><div style={{display:"flex",flexDirection:"column",gap:2}}>{nav.map(n=><button key={n.id} onClick={()=>go(n.id)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:"var(--rs)",border:"none",width:"100%",textAlign:"left",fontSize:13,fontWeight:pg===n.id?600:400,background:pg===n.id?"var(--cyg)":"transparent",color:pg===n.id?"var(--cy)":n.soon?"var(--tx3)":"var(--tx2)",opacity:n.soon?.5:1,cursor:n.soon?"default":"pointer"}}>{n.icon}<span>{n.label}</span>{n.soon&&<span style={{marginLeft:"auto",fontSize:9,background:"var(--bd)",padding:"2px 6px",borderRadius:4,color:"var(--tx3)"}}>Pronto</span>}</button>)}</div></nav>
@@ -288,7 +294,7 @@ function Dashboard({session}){
       </div>
     </aside>
     <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
-      <header style={{display:"flex",alignItems:"center",gap:12,padding:"0 20px",height:56,minHeight:56,background:"var(--sf)",borderBottom:"1px solid var(--bd)"}}><button onClick={()=>setSb(true)} style={{background:"none",border:"none",color:"var(--tx2)",padding:4}}>{IC.menu}</button><h1 style={{fontSize:15,fontWeight:600}}>{nav.find(n=>n.id===pg)?.label||"RADAR"}</h1>{eObj&&pg!=="empresas"&&pg!=="inicio"&&<span style={{marginLeft:"auto",fontSize:11,padding:"4px 14px",borderRadius:20,background:"var(--cyg)",color:"var(--cy)",border:"1px solid var(--cy2)",fontWeight:500}}>{eObj.name}</span>}</header>
+      <header className="rd-glass" style={{position:"relative",zIndex:10,display:"flex",alignItems:"center",gap:12,padding:"0 20px",height:56,minHeight:56,borderBottom:"1px solid var(--bd)"}}><button onClick={()=>setSb(true)} style={{background:"none",border:"none",color:"var(--tx2)",padding:4}}>{IC.menu}</button><h1 style={{fontSize:15,fontWeight:600}}>{nav.find(n=>n.id===pg)?.label||"RADAR"}</h1>{eObj&&pg!=="empresas"&&pg!=="inicio"&&<span style={{marginLeft:"auto",fontSize:11,padding:"4px 14px",borderRadius:20,background:"var(--cyg)",color:"var(--cy)",border:"1px solid var(--cy2)",fontWeight:500}}>{eObj.name}</span>}</header>
       <div style={{flex:1,overflowY:"auto",padding:"24px 20px"}}>
         {pg==="inicio"&&<HomeP emps={emps} eObj={eObj} evs={evs} log={log}/>}
         {pg==="empresas"&&<EmpP emps={emps} setEmps={setEmps} aEmp={aEmp} setAEmp={setAEmp} aLog={aLog}/>}
@@ -327,7 +333,7 @@ function AuthScreen(){
   };
   return(<><style>{ST}</style>
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)"}}>
-      <form onSubmit={submit} style={{width:340,background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:28}}>
+      <form onSubmit={submit} style={{width:340,background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:24,color:"var(--cy)"}}>{IC.radar}<div style={{fontSize:18,fontWeight:800,letterSpacing:4}}>RADAR</div></div>
         {mode!=="forgot"&&<div style={{display:"flex",gap:6,marginBottom:20,background:"var(--sf2)",borderRadius:"var(--rs)",padding:4}}>
           <button type="button" onClick={()=>{setMode("login");setMsg(null)}} style={{flex:1,padding:"8px 0",borderRadius:6,border:"none",fontSize:12,fontWeight:600,background:mode==="login"?"var(--cy)":"transparent",color:mode==="login"?"#fff":"var(--tx2)"}}>Iniciar sesion</button>
@@ -360,7 +366,7 @@ function ResetPasswordScreen({onDone}){
   };
   return(<><style>{ST}</style>
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)"}}>
-      <form onSubmit={submit} style={{width:340,background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:28}}>
+      <form onSubmit={submit} style={{width:340,background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:24,color:"var(--cy)"}}>{IC.radar}<div style={{fontSize:18,fontWeight:800,letterSpacing:4}}>RADAR</div></div>
         <div style={{fontSize:14,fontWeight:600,marginBottom:4}}>Define tu nueva contrasena</div>
         <div style={{fontSize:12,color:"var(--tx3)",marginBottom:16}}>Veniste desde el link de recuperacion que enviamos a tu correo.</div>
@@ -377,7 +383,7 @@ function ResetPasswordScreen({onDone}){
 function ConfigMissing(){
   return(<><style>{ST}</style>
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",padding:20}}>
-      <div style={{maxWidth:480,background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:28}}>
+      <div style={{maxWidth:480,background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16,color:"var(--cy)"}}>{IC.radar}<div style={{fontSize:18,fontWeight:800,letterSpacing:4}}>RADAR</div></div>
         <div style={{fontSize:14,fontWeight:600,marginBottom:10}}>Falta configurar Supabase</div>
         <div style={{fontSize:13,color:"var(--tx2)",lineHeight:1.6,marginBottom:14}}>
@@ -446,7 +452,7 @@ function RecordatoriosTrib(){
   return(<div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:24}}>
     {items.map(it=>{
       const color=it.dias<=5?"var(--rd)":it.dias<=15?"var(--am)":"var(--cy)";
-      return(<div key={it.clave} style={{display:"flex",alignItems:"center",gap:14,background:"var(--sf)",border:"1px solid var(--bd)",borderLeft:"3px solid "+color,borderRadius:"var(--r)",padding:"14px 18px",flexWrap:"wrap"}}>
+      return(<div key={it.clave} style={{display:"flex",alignItems:"center",gap:14,background:"var(--sf)",border:"1px solid var(--bd)",borderLeft:"3px solid "+color,borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:"14px 18px",flexWrap:"wrap"}}>
         <div style={{fontSize:22}}>⏰</div>
         <div style={{flex:1,minWidth:200}}>
           <div style={{fontSize:13,fontWeight:600}}>{it.titulo}</div>
@@ -460,12 +466,12 @@ function RecordatoriosTrib(){
 
 function HomeP({emps,eObj,evs,log}){
   return(<div style={{maxWidth:900,margin:"0 auto"}}>
-    <div style={{background:"linear-gradient(135deg,var(--sf2),var(--sf))",borderRadius:"var(--r)",border:"1px solid var(--bd)",padding:"32px 28px",marginBottom:24,position:"relative",overflow:"hidden"}}><div style={{fontSize:12,color:"var(--tx3)",marginBottom:4}}>Bienvenido a</div><div style={{fontSize:28,fontWeight:800,letterSpacing:3,color:"var(--cy)",marginBottom:8}}>RADAR</div><div style={{fontSize:13,color:"var(--tx2)",maxWidth:500}}>Plataforma de Inteligencia Empresarial</div></div>
+    <div style={{background:"linear-gradient(135deg,var(--sf2),var(--sf))",borderRadius:"var(--r)",boxShadow:"var(--shadow)",border:"1px solid var(--bd)",padding:"32px 28px",marginBottom:24,position:"relative",overflow:"hidden"}}><div style={{fontSize:12,color:"var(--tx3)",marginBottom:4}}>Bienvenido a</div><div style={{fontSize:28,fontWeight:800,letterSpacing:3,color:"var(--cy)",marginBottom:8}}>RADAR</div><div style={{fontSize:13,color:"var(--tx2)",maxWidth:500}}>Plataforma de Inteligencia Empresarial</div></div>
     <RecordatoriosTrib/>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:24}}>
-      {[{l:"Empresas",v:emps.length,c:"var(--cy)"},{l:"Evaluaciones",v:evs.length,c:"var(--pu)"},{l:"Contabilidad",v:emps.filter(e=>e.services?.includes("contabilidad")).length,c:"var(--gn)"}].map((s,i)=><div key={i} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:"20px 18px"}}><div style={{fontSize:10,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:8}}>{s.l}</div><div style={{fontSize:28,fontWeight:700,color:s.c}}>{s.v}</div></div>)}
+      {[{l:"Empresas",v:emps.length,c:"var(--cy)"},{l:"Evaluaciones",v:evs.length,c:"var(--pu)"},{l:"Contabilidad",v:emps.filter(e=>e.services?.includes("contabilidad")).length,c:"var(--gn)"}].map((s,i)=><div key={i} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:"20px 18px"}}><div style={{fontSize:10,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:8}}>{s.l}</div><div style={{fontSize:28,fontWeight:700,letterSpacing:-.5,lineHeight:1.1,color:s.c}}>{s.v}</div></div>)}
     </div>
-    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:24}}><div style={{fontSize:13,fontWeight:600,marginBottom:16}}>Actividad reciente</div>
+    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:24}}><div style={{fontSize:13,fontWeight:600,marginBottom:16}}>Actividad reciente</div>
       {log.length===0?<div style={{textAlign:"center",padding:"32px 0",color:"var(--tx3)",fontSize:13}}>Sin actividad.</div>
       :<div>{log.slice(0,8).map((l,i)=><div key={l.id} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"10px 0",borderBottom:i<7?"1px solid var(--bd)":"none"}}><div style={{width:6,height:6,borderRadius:"50%",background:"var(--cy)",marginTop:6,flexShrink:0}}/><div style={{flex:1}}><div style={{fontSize:12,fontWeight:500}}>{l.action}</div><div style={{fontSize:11,color:"var(--tx3)",marginTop:2}}>{l.detail}</div></div><div style={{fontSize:10,color:"var(--tx3)"}}>{new Date(l.time).toLocaleDateString("es-CL")}</div></div>)}</div>}
     </div>
@@ -482,16 +488,16 @@ function EmpP({emps,setEmps,aEmp,setAEmp,aLog}){
   const det=eid?emps.find(e=>e.id===eid):null;
   if(vw==="list")return(<div style={{maxWidth:900,margin:"0 auto"}}><div style={{display:"flex",flexWrap:"wrap",gap:12,marginBottom:20,alignItems:"center"}}><div style={{flex:1,minWidth:200,position:"relative"}}><div style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:"var(--tx3)"}}>{IC.search}</div><input placeholder="Buscar..." value={sr} onChange={e=>setSr(e.target.value)} style={{paddingLeft:36}}/></div><Bt onClick={()=>{setFm(mt());setEid(null);setVw("form")}} p={true}>{IC.plus} Nueva Empresa</Bt></div>
     {fl.length===0?<Ey i="🏢" t="Sin empresas" d="Crea tu primera empresa."/>
-    :<div style={{display:"flex",flexDirection:"column",gap:8}}>{fl.map(e=><div key={e.id} onClick={()=>{setEid(e.id);setVw("detail")}} style={{background:"var(--sf)",border:"1px solid "+(e.id===aEmp?"var(--cy2)":"var(--bd)"),borderRadius:"var(--r)",padding:"16px 20px",display:"flex",alignItems:"center",gap:16,cursor:"pointer"}}><div style={{width:44,height:44,borderRadius:10,background:e.id===aEmp?"var(--cyg)":"var(--sf2)",border:"1px solid "+(e.id===aEmp?"var(--cy2)":"var(--bd)"),display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:e.id===aEmp?"var(--cy)":"var(--tx2)",flexShrink:0}}>{e.name.slice(0,2).toUpperCase()}</div><div style={{flex:1,minWidth:0}}><div style={{fontSize:14,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.name}</div><div style={{fontSize:11,color:"var(--tx3)",marginTop:2}}>{e.rut}</div></div><div style={{display:"flex",gap:4}}>{(e.services||[]).slice(0,3).map(s=>{const sv=SVCS.find(x=>x.id===s);return sv?<span key={s} style={{fontSize:14}} title={sv.label}>{sv.icon}</span>:null})}</div>{IC.arrow}</div>)}</div>}
+    :<div style={{display:"flex",flexDirection:"column",gap:8}}>{fl.map(e=><div key={e.id} onClick={()=>{setEid(e.id);setVw("detail")}} style={{background:"var(--sf)",border:"1px solid "+(e.id===aEmp?"var(--cy2)":"var(--bd)"),borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:"16px 20px",display:"flex",alignItems:"center",gap:16,cursor:"pointer"}}><div style={{width:44,height:44,borderRadius:10,background:e.id===aEmp?"var(--cyg)":"var(--sf2)",border:"1px solid "+(e.id===aEmp?"var(--cy2)":"var(--bd)"),display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:e.id===aEmp?"var(--cy)":"var(--tx2)",flexShrink:0}}>{e.name.slice(0,2).toUpperCase()}</div><div style={{flex:1,minWidth:0}}><div style={{fontSize:14,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.name}</div><div style={{fontSize:11,color:"var(--tx3)",marginTop:2}}>{e.rut}</div></div><div style={{display:"flex",gap:4}}>{(e.services||[]).slice(0,3).map(s=>{const sv=SVCS.find(x=>x.id===s);return sv?<span key={s} style={{fontSize:14}} title={sv.label}>{sv.icon}</span>:null})}</div>{IC.arrow}</div>)}</div>}
   </div>);
   if(vw==="detail"&&det)return(<div style={{maxWidth:900,margin:"0 auto"}}><Bk onClick={()=>setVw("list")}>Volver</Bk>
-    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:28,marginBottom:16}}><div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap",gap:16}}><div><div style={{fontSize:22,fontWeight:700}}>{det.name}</div><div style={{fontSize:12,color:"var(--tx3)",marginTop:4}}>{det.rut}</div></div><div style={{display:"flex",gap:8}}><Bt onClick={()=>{setFm({...mt(),...det});setEid(det.id);setVw("form")}}>{IC.edit} Editar</Bt><Bt onClick={()=>{setAEmp(det.id);aLog("Empresa activada",det.name)}} p={det.id!==aEmp}>{det.id===aEmp?"Activa":"Activar"}</Bt></div></div>
+    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28,marginBottom:16}}><div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap",gap:16}}><div><div style={{fontSize:22,fontWeight:700,letterSpacing:-.3,lineHeight:1.15}}>{det.name}</div><div style={{fontSize:12,color:"var(--tx3)",marginTop:4}}>{det.rut}</div></div><div style={{display:"flex",gap:8}}><Bt onClick={()=>{setFm({...mt(),...det});setEid(det.id);setVw("form")}}>{IC.edit} Editar</Bt><Bt onClick={()=>{setAEmp(det.id);aLog("Empresa activada",det.name)}} p={det.id!==aEmp}>{det.id===aEmp?"Activa":"Activar"}</Bt></div></div>
       <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:20}}>{(det.services||[]).map(s=>{const sv=SVCS.find(x=>x.id===s);return sv?<Tg key={s} c={sv.color}>{sv.icon} {sv.label}</Tg>:null})}</div></div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:16}}><IC2 t="General" items={[{l:"Giro",v:det.giro},{l:"Regimen",v:det.regimen},{l:"Inicio Act.",v:det.fechaInicioAct}]}/><IC2 t="Contacto" items={[{l:"Direccion",v:det.address},{l:"Region/Comuna",v:[det.region,det.comuna].filter(Boolean).join(", ")},{l:"Telefono",v:det.phone},{l:"Email",v:det.email}]}/><IC2 t="Rep. Legal" items={[{l:"Nombre",v:det.repLegalName},{l:"RUT",v:det.repLegalRut}]}/></div>
     <div style={{marginTop:24,padding:"16px 20px",borderRadius:"var(--rs)",border:"1px solid rgba(239,68,68,.2)",background:"rgba(239,68,68,.05)",display:"flex",alignItems:"center",justifyContent:"space-between"}}><div style={{fontSize:12,fontWeight:600,color:"var(--rd)"}}>Eliminar empresa</div><button onClick={()=>{if(confirm("Eliminar?"))doDel(det.id)}} style={{background:"transparent",border:"1px solid var(--rd)",color:"var(--rd)",borderRadius:"var(--rs)",padding:"6px 16px",fontSize:12}}>Eliminar</button></div>
   </div>);
   return(<div style={{maxWidth:700,margin:"0 auto"}}><Bk onClick={()=>setVw("list")}>Volver</Bk>
-    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:28}}><h2 style={{fontSize:18,fontWeight:700,marginBottom:24}}>{eid?"Editar":"Nueva"} Empresa</h2>
+    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28}}><h2 style={{fontSize:18,fontWeight:700,marginBottom:24}}>{eid?"Editar":"Nueva"} Empresa</h2>
       <Sc t="Identificacion"><FG><Fi l="Razon Social *" v={fm.name} s={v=>setFm(p=>({...p,name:v}))}/><Fi l="RUT *" v={fm.rut} s={v=>setFm(p=>({...p,rut:v}))}/><Fi l="Fantasía" v={fm.fantasyName} s={v=>setFm(p=>({...p,fantasyName:v}))}/><Fi l="Giro" v={fm.giro} s={v=>setFm(p=>({...p,giro:v}))}/></FG></Sc>
       <Sc t="Tributario"><FG><div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Regimen</label><select value={fm.regimen||""} onChange={e=>setFm(p=>({...p,regimen:e.target.value}))}><option value="">Seleccionar...</option>{REGS.map(r=><option key={r} value={r}>{r}</option>)}</select></div><Fi l="Inicio Act." v={fm.fechaInicioAct} s={v=>setFm(p=>({...p,fechaInicioAct:v}))} t="date"/></FG></Sc>
       <Sc t="Contacto"><FG><Fi l="Direccion" v={fm.address} s={v=>setFm(p=>({...p,address:v}))}/><Fi l="Region" v={fm.region} s={v=>setFm(p=>({...p,region:v}))}/><Fi l="Comuna" v={fm.comuna} s={v=>setFm(p=>({...p,comuna:v}))}/><Fi l="Telefono" v={fm.phone} s={v=>setFm(p=>({...p,phone:v}))}/><Fi l="Email" v={fm.email} s={v=>setFm(p=>({...p,email:v}))}/></FG></Sc>
@@ -510,10 +516,10 @@ function RadP({eObj,evs,setEvs,eEvs,aLog,go}){
   const upd=(id,u)=>setEvs(p=>p.map(e=>e.id===id?{...e,...u}:e));
   if(vw==="list")return(<div style={{maxWidth:900,margin:"0 auto"}}><div style={{display:"flex",flexWrap:"wrap",gap:12,marginBottom:20,alignItems:"center",justifyContent:"space-between"}}><div><div style={{fontSize:15,fontWeight:600}}>Evaluaciones - {eObj.name}</div><div style={{fontSize:12,color:"var(--tx3)",marginTop:2}}>{eEvs.length} evaluacion{eEvs.length!==1?"es":""}</div></div><Bt onClick={()=>setVw("new")} p={true}>{IC.plus} Nueva Evaluacion</Bt></div>
     {eEvs.length===0?<Ey i="🎯" t="Sin evaluaciones" d="Crea tu primera evaluacion RADAR."><Bt onClick={()=>setVw("new")} p={true}>Crear</Bt></Ey>
-    :<div style={{display:"flex",flexDirection:"column",gap:8}}>{eEvs.map(ev=>{const et=ETYPES.find(t=>t.id===ev.type);const ans=Object.keys(ev.responses||{}).length;return<div key={ev.id} onClick={()=>{setEid(ev.id);setVw("eval")}} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:"18px 20px",cursor:"pointer",display:"flex",alignItems:"center",gap:16}}><div style={{fontSize:28}}>{et?.icon||"📋"}</div><div style={{flex:1}}><div style={{fontSize:14,fontWeight:600}}>{ev.label}</div><div style={{fontSize:11,color:"var(--tx3)",marginTop:2}}>{new Date(ev.createdAt).toLocaleDateString("es-CL")} - {ans} respuestas</div></div><span style={{fontSize:10,padding:"4px 12px",borderRadius:20,fontWeight:600,background:ev.status==="completada"?"rgba(16,185,129,.15)":"rgba(245,158,11,.15)",color:ev.status==="completada"?"var(--gn)":"var(--am)"}}>{ev.status==="completada"?"Completada":"En proceso"}</span>{IC.arrow}</div>})}</div>}
+    :<div style={{display:"flex",flexDirection:"column",gap:8}}>{eEvs.map(ev=>{const et=ETYPES.find(t=>t.id===ev.type);const ans=Object.keys(ev.responses||{}).length;return<div key={ev.id} onClick={()=>{setEid(ev.id);setVw("eval")}} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:"18px 20px",cursor:"pointer",display:"flex",alignItems:"center",gap:16}}><div style={{fontSize:28}}>{et?.icon||"📋"}</div><div style={{flex:1}}><div style={{fontSize:14,fontWeight:600}}>{ev.label}</div><div style={{fontSize:11,color:"var(--tx3)",marginTop:2}}>{new Date(ev.createdAt).toLocaleDateString("es-CL")} - {ans} respuestas</div></div><span style={{fontSize:10,padding:"4px 12px",borderRadius:20,fontWeight:600,background:ev.status==="completada"?"rgba(16,185,129,.15)":"rgba(245,158,11,.15)",color:ev.status==="completada"?"var(--gn)":"var(--am)"}}>{ev.status==="completada"?"Completada":"En proceso"}</span>{IC.arrow}</div>})}</div>}
   </div>);
   if(vw==="new")return(<div style={{maxWidth:700,margin:"0 auto"}}><Bk onClick={()=>setVw("list")}>Volver</Bk><h2 style={{fontSize:18,fontWeight:700,marginBottom:24}}>Nueva Evaluacion - {eObj.name}</h2>
-    <div style={{display:"flex",flexDirection:"column",gap:10}}>{ETYPES.map(et=><button key={et.id} onClick={()=>!et.soon&&create(et.id)} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:"20px 24px",textAlign:"left",display:"flex",alignItems:"center",gap:16,opacity:et.soon?.4:1,cursor:et.soon?"default":"pointer"}}><span style={{fontSize:32}}>{et.icon}</span><div style={{flex:1}}><div style={{fontSize:14,fontWeight:600,color:et.color}}>{et.label}</div><div style={{fontSize:12,color:"var(--tx3)",marginTop:4}}>{et.desc}</div></div>{et.soon?<span style={{fontSize:9,background:"var(--bd)",padding:"3px 8px",borderRadius:4,color:"var(--tx3)"}}>Pronto</span>:IC.arrow}</button>)}</div></div>);
+    <div style={{display:"flex",flexDirection:"column",gap:10}}>{ETYPES.map(et=><button key={et.id} onClick={()=>!et.soon&&create(et.id)} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:"20px 24px",textAlign:"left",display:"flex",alignItems:"center",gap:16,opacity:et.soon?.4:1,cursor:et.soon?"default":"pointer"}}><span style={{fontSize:32}}>{et.icon}</span><div style={{flex:1}}><div style={{fontSize:14,fontWeight:600,color:et.color}}>{et.label}</div><div style={{fontSize:12,color:"var(--tx3)",marginTop:4}}>{et.desc}</div></div>{et.soon?<span style={{fontSize:9,background:"var(--bd)",padding:"3px 8px",borderRadius:4,color:"var(--tx3)"}}>Pronto</span>:IC.arrow}</button>)}</div></div>);
   if(vw==="eval"&&ae){
     if(ae.type==="tributario")return<TribV ev={ae} upd={u=>upd(ae.id,u)} del={()=>del(ae.id)} emp={eObj} back={()=>setVw("list")}/>;
     if(ae.type==="financiero")return<FinV ev={ae} upd={u=>upd(ae.id,u)} del={()=>del(ae.id)} emp={eObj} back={()=>setVw("list")}/>;
@@ -587,13 +593,13 @@ function F22V({ev,upd,del,emp,back}){
   };
 
   if(showS)return(<div style={{maxWidth:800,margin:"0 auto"}}><Bk onClick={()=>setShowS(false)}>Volver a evaluacion</Bk>
-    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:32}}>
-      <div style={{textAlign:"center",marginBottom:32}}><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:2}}>Evaluacion RADAR</div><div style={{fontSize:22,fontWeight:700,marginTop:4}}>{emp.name}</div><div style={{fontSize:13,color:"var(--pu)",fontWeight:600,marginTop:4}}>Programa de Revision de Renta (F22)</div><div style={{fontSize:11,color:"var(--tx3)",marginTop:4}}>Ultimos 5 anos - {new Date().toLocaleDateString("es-CL")}</div></div>
+    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:32}}>
+      <div style={{textAlign:"center",marginBottom:32}}><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:2}}>Evaluacion RADAR</div><div style={{fontSize:22,fontWeight:700,letterSpacing:-.3,lineHeight:1.15,marginTop:4}}>{emp.name}</div><div style={{fontSize:13,color:"var(--pu)",fontWeight:600,marginTop:4}}>Programa de Revision de Renta (F22)</div><div style={{fontSize:11,color:"var(--tx3)",marginTop:4}}>Ultimos 5 anos - {new Date().toLocaleDateString("es-CL")}</div></div>
       <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:28}}>{ysts.map(ys=>{const ct=parseInt(r["cont_"+ys.year])||0;const ob=r["obs_"+ys.year]||"";return<div key={ys.year} style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:16}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}><div style={{display:"flex",alignItems:"center",gap:10}}><div style={{width:10,height:10,borderRadius:"50%",background:ys.c}}/><span style={{fontSize:14,fontWeight:600}}>AT {ys.year}</span></div><div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:12,color:ys.c,fontWeight:500}}>{ys.l}</span>{ct>0&&<span style={{fontSize:11,color:"var(--rd)",fontWeight:600}}>Cont: ${ct.toLocaleString("es-CL")}</span>}</div></div>{ob&&<div style={{fontSize:12,color:"var(--tx2)",marginTop:8,paddingLeft:20,borderLeft:"2px solid var(--bd2)",fontStyle:"italic"}}>{ob}</div>}</div>})}</div>
       <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:20,marginBottom:24}}><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:16}}>
-        <div><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase",marginBottom:4}}>Revisados</div><div style={{fontSize:20,fontWeight:700}}>{cY}/5</div></div>
-        <div><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase",marginBottom:4}}>Observados</div><div style={{fontSize:20,fontWeight:700,color:"var(--am)"}}>{oY}</div></div>
-        <div><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase",marginBottom:4}}>Contingencia</div><div style={{fontSize:20,fontWeight:700,color:tCont>0?"var(--rd)":"var(--gn)"}}>${tCont.toLocaleString("es-CL")}</div></div>
+        <div><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase",marginBottom:4}}>Revisados</div><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2}}>{cY}/5</div></div>
+        <div><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase",marginBottom:4}}>Observados</div><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2,color:"var(--am)"}}>{oY}</div></div>
+        <div><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase",marginBottom:4}}>Contingencia</div><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2,color:tCont>0?"var(--rd)":"var(--gn)"}}>${tCont.toLocaleString("es-CL")}</div></div>
       </div></div>
       <Sc t="Conclusion del Profesional"><textarea value={ev.conclusionGeneral||""} onChange={e=>upd({conclusionGeneral:e.target.value})} placeholder="Analisis, conclusiones y recomendaciones..." style={{minHeight:120}}/></Sc>
       <div style={{borderTop:"1px solid var(--bd)",paddingTop:24,marginTop:8}}>
@@ -607,10 +613,10 @@ function F22V({ev,upd,del,emp,back}){
     </div></div>);
 
   return(<div style={{maxWidth:900,margin:"0 auto"}}><Bk onClick={back}>Volver a evaluaciones</Bk>
-    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:"20px 24px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}><div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:28}}>📋</span><div><div style={{fontSize:15,fontWeight:600}}>RADAR Renta (F22)</div><div style={{fontSize:12,color:"var(--tx3)"}}>{emp.name}</div></div></div><div style={{display:"flex",gap:8}}><Bt onClick={()=>setShowS(true)}>Resumen</Bt><Bt onClick={()=>upd({status:ev.status==="completada"?"en_proceso":"completada"})} p={ev.status!=="completada"}>{ev.status==="completada"?"Completada":"Completar"}</Bt></div></div>
+    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:"20px 24px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}><div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:28}}>📋</span><div><div style={{fontSize:15,fontWeight:600}}>RADAR Renta (F22)</div><div style={{fontSize:12,color:"var(--tx3)"}}>{emp.name}</div></div></div><div style={{display:"flex",gap:8}}><Bt onClick={()=>setShowS(true)}>Resumen</Bt><Bt onClick={()=>upd({status:ev.status==="completada"?"en_proceso":"completada"})} p={ev.status!=="completada"}>{ev.status==="completada"?"Completada":"Completar"}</Bt></div></div>
     <div style={{display:"flex",gap:6,marginBottom:20,flexWrap:"wrap"}}>{ysts.map(ys=><button key={ys.year} onClick={()=>setAy(ys.year)} style={{padding:"10px 18px",borderRadius:"var(--rs)",border:"none",fontSize:13,fontWeight:ay===ys.year?700:500,background:ay===ys.year?"var(--cyg)":"var(--sf)",color:ay===ys.year?"var(--cy)":"var(--tx2)",position:"relative"}}>AT {ys.year}<div style={{position:"absolute",top:4,right:4,width:8,height:8,borderRadius:"50%",background:ys.c}}/></button>)}</div>
     <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16,padding:"10px 16px",background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--rs)"}}><div style={{width:10,height:10,borderRadius:"50%",background:ysts.find(y=>y.year===ay)?.c||"var(--tx3)"}}/><span style={{fontSize:13,fontWeight:500}}>{ysts.find(y=>y.year===ay)?.l}</span><span style={{fontSize:11,color:"var(--tx3)",marginLeft:"auto"}}>{vqs.length} preguntas</span></div>
-    <div style={{display:"flex",flexDirection:"column",gap:12}}>{vqs.map((q,i)=><div key={q.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:"20px 24px",borderLeft:"3px solid "+(r[q.id]!==undefined&&r[q.id]!==""?"var(--cy)":"var(--bd2)")}}>
+    <div style={{display:"flex",flexDirection:"column",gap:12}}>{vqs.map((q,i)=><div key={q.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:"20px 24px",borderLeft:"3px solid "+(r[q.id]!==undefined&&r[q.id]!==""?"var(--cy)":"var(--bd2)")}}>
       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}><span style={{fontSize:10,color:"var(--tx3)",background:"var(--sf2)",padding:"2px 8px",borderRadius:4,fontWeight:600}}>P{i+1}</span><span style={{fontSize:13,fontWeight:600}}>{q.text}</span></div>
       {q.type==="select"&&<div style={{display:"flex",flexDirection:"column",gap:6}}>{q.opts.map(o=><button key={o.v} onClick={()=>setR(q.id,o.v)} style={{padding:"10px 16px",borderRadius:"var(--rs)",border:"1px solid "+(r[q.id]===o.v?"var(--cy)":"var(--bd)"),background:r[q.id]===o.v?"var(--cyg)":"var(--sf2)",color:r[q.id]===o.v?"var(--cy)":"var(--tx2)",fontSize:13,textAlign:"left",fontWeight:r[q.id]===o.v?600:400,display:"flex",alignItems:"center",gap:8}}><div style={{width:18,height:18,borderRadius:"50%",border:"2px solid "+(r[q.id]===o.v?"var(--cy)":"var(--bd2)"),display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{r[q.id]===o.v&&<div style={{width:10,height:10,borderRadius:"50%",background:"var(--cy)"}}/>}</div>{o.l}</button>)}</div>}
       {q.type==="text"&&<input value={r[q.id]||""} onChange={e=>setR(q.id,e.target.value)} placeholder="Escriba aqui..." style={{background:"var(--sf2)"}}/>}
@@ -764,7 +770,7 @@ function ActivosFijos({activos,setActivos,empEntries,setEntries,leafAccts,eObj,a
       </div>
       <Bt onClick={()=>showF?setShowF(false):(setFm(blankFm()),setShowF(true))} p={true}>{IC.plus} Nuevo Activo</Bt>
     </div>
-    {showF&&<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:20,marginBottom:16}}>
+    {showF&&<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20,marginBottom:16}}>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
         <input placeholder="Nombre del activo" value={fm.nombre} onChange={e=>setFm(p=>({...p,nombre:e.target.value}))}/>
         <select value={fm.cuentaActivo} onChange={e=>setFm(p=>({...p,cuentaActivo:e.target.value}))}><option value="">Cuenta de activo...</option>{cuentasDepreciables.map(a=><option key={a.cd} value={a.cd}>{a.cd} {a.nm}</option>)}</select>
@@ -778,7 +784,7 @@ function ActivosFijos({activos,setActivos,empEntries,setEntries,leafAccts,eObj,a
     </div>}
     {conCalculo.length===0?<Ey i="🏗️" t="Sin activos fijos" d="Agrega un activo para calcular su depreciacion mensual."/>:
     <div style={{display:"flex",flexDirection:"column",gap:10}}>{conCalculo.map(a=>
-      <div key={a.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:16}}>
+      <div key={a.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
           <div>
             <div style={{fontSize:13,fontWeight:600}}>{a.nombre}</div>
@@ -846,7 +852,7 @@ function TopContrapartes({empEntries,tipoDoc,titulo}){
     return[...m.values()].sort((a,b)=>b.total-a.total).slice(0,5);
   },[empEntries,tipoDoc]);
   const max=Math.max(1,...top.map(t=>t.total));
-  return(<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:18}}>
+  return(<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:18}}>
     <div style={{fontSize:11,fontWeight:600,marginBottom:14,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:.5}}>{titulo}</div>
     {top.length===0?<div style={{fontSize:12,color:"var(--tx3)"}}>Sin datos.</div>:
     <div style={{display:"flex",flexDirection:"column",gap:10}}>{top.map((t,i)=>
@@ -884,17 +890,17 @@ function DashboardFin({empEntries,leafAccts,eObj}){
     <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Dashboard Financiero</div>
     <div style={{fontSize:12,color:"var(--tx3)",marginBottom:20}}>Ultimos {mesesData.length} meses con movimientos — {eObj?.name}.</div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:20}}>
-      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:6}}>Ingresos</div><div style={{fontSize:20,fontWeight:700,color:"var(--gn)"}}>${fmt(tIngresos)}</div></div>
-      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:6}}>Gastos</div><div style={{fontSize:20,fontWeight:700,color:"var(--am)"}}>${fmt(tGastos)}</div></div>
-      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:6}}>Resultado</div><div style={{fontSize:20,fontWeight:700,color:tIngresos-tGastos>=0?"var(--gn)":"var(--rd)"}}>${fmt(tIngresos-tGastos)}</div></div>
-      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:6}}>Flujo de caja neto</div><div style={{fontSize:20,fontWeight:700,color:tFlujo>=0?"var(--gn)":"var(--rd)"}}>${fmt(tFlujo)}</div></div>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:6}}>Ingresos</div><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2,color:"var(--gn)"}}>${fmt(tIngresos)}</div></div>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:6}}>Gastos</div><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2,color:"var(--am)"}}>${fmt(tGastos)}</div></div>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:6}}>Resultado</div><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2,color:tIngresos-tGastos>=0?"var(--gn)":"var(--rd)"}}>${fmt(tIngresos-tGastos)}</div></div>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:6}}>Flujo de caja neto</div><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2,color:tFlujo>=0?"var(--gn)":"var(--rd)"}}>${fmt(tFlujo)}</div></div>
     </div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(320px,1fr))",gap:16,marginBottom:16}}>
-      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:18}}>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:18}}>
         <div style={{fontSize:11,fontWeight:600,marginBottom:14,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:.5}}>Ingresos vs Gastos por mes</div>
         {mesesData.length===0?<div style={{fontSize:12,color:"var(--tx3)"}}>Sin datos.</div>:<ChartIngresosGastos data={mesesData}/>}
       </div>
-      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:18}}>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:18}}>
         <div style={{fontSize:11,fontWeight:600,marginBottom:14,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:.5}}>Flujo de caja mensual (bancos)</div>
         {mesesData.length===0?<div style={{fontSize:12,color:"var(--tx3)"}}>Sin datos.</div>:<ChartFlujoCaja data={mesesData}/>}
       </div>
@@ -921,7 +927,7 @@ function PlanCtas({accts,setAccts,aLog}){
   const lvSize={1:13,2:12,3:12,4:11};
   return(<div>
     <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:16,justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:12,color:"var(--tx3)"}}>{accts.length} cuentas · 4 niveles (Clase / Grupo / Clasificacion / Cuenta)</span><div style={{display:"flex",gap:8}}><Bt onClick={reset}>Restaurar</Bt><Bt onClick={()=>setShowAdd(!showAdd)} p={true}>{IC.plus} Agregar</Bt></div></div>
-    {showAdd&&<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:20,marginBottom:16}}>
+    {showAdd&&<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20,marginBottom:16}}>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12}}>
         <Fi l="Codigo" v={na.cd} s={v=>setNa(p=>({...p,cd:v}))} ph="1.1.01.001"/>
         <Fi l="Nombre" v={na.nm} s={v=>setNa(p=>({...p,nm:v}))}/>
@@ -930,7 +936,7 @@ function PlanCtas({accts,setAccts,aLog}){
       </div>
       <div style={{display:"flex",gap:8,marginTop:12}}><Bt onClick={addA} p={true}>Agregar</Bt><Bt onClick={()=>setShowAdd(false)}>Cancelar</Bt></div>
     </div>}
-    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",overflow:"hidden"}}><div style={{maxHeight:"65vh",overflowY:"auto"}}>
+    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden"}}><div style={{maxHeight:"65vh",overflowY:"auto"}}>
       <table style={{width:"100%",fontSize:13,borderCollapse:"collapse"}}><thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:11,color:"var(--tx3)",position:"sticky",top:0,background:"var(--sf2)",zIndex:1}}><th style={{textAlign:"left",padding:"10px 16px",fontWeight:500,width:140}}>Codigo</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Nombre</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500,width:80}}>Tipo</th><th style={{textAlign:"center",padding:"10px 8px",fontWeight:500,width:30}}>Nv</th><th style={{width:70}}></th></tr></thead>
         <tbody>{accts.map(a=><tr key={a.cd} style={{borderBottom:"1px solid "+(a.lv===1?"var(--bd2)":"var(--bd)"),background:a.lv===1?"var(--sf2)":"transparent"}}>
           <td style={{padding:"7px 16px",fontFamily:"monospace",fontSize:11,color:a.lv<=2?"var(--cy)":"var(--tx2)"}}>{a.cd}</td>
@@ -1005,7 +1011,7 @@ function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog,ccostos,res
   return(<div>
     <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:16,justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:12,color:"var(--tx3)"}}>{empEntries.length} asientos</span><div style={{display:"flex",gap:8}}><label style={{display:"flex",alignItems:"center",gap:8,background:"var(--sf2)",color:"var(--tx2)",border:"1px solid var(--bd)",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,cursor:"pointer"}}>CSV<input type="file" accept=".csv,.txt" onChange={handleCSV} style={{display:"none"}}/></label><Bt onClick={()=>showF?setShowF(false):openNew()} p={true}>{IC.plus} Nuevo Asiento</Bt></div></div>
     <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:12,marginBottom:16,fontSize:11,color:"var(--tx3)"}}><b>CSV:</b> Fecha, Glosa, CodigoCuenta, Debe, Haber</div>
-    {showF&&<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:20,marginBottom:16}}>
+    {showF&&<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20,marginBottom:16}}>
       <div style={{fontSize:13,fontWeight:600,marginBottom:12}}>{editId?"Editar Asiento N "+(empEntries.find(e=>e.id===editId)?.num||""):"Asiento N "+nxt}</div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}><input type="date" value={fm.date} onChange={e=>setFm(p=>({...p,date:e.target.value}))}/><input placeholder="Glosa / Descripcion" value={fm.desc} onChange={e=>setFm(p=>({...p,desc:e.target.value}))}/></div>
       {ccostos?.length>0&&<div style={{marginBottom:16}}><select value={fm.centroCosto} onChange={e=>setFm(p=>({...p,centroCosto:e.target.value}))} style={{maxWidth:300}}><option value="">Sin centro de costo</option>{ccostos.map(c=><option key={c.id} value={c.id}>{c.nombre}</option>)}</select></div>}
@@ -1028,7 +1034,7 @@ function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog,ccostos,res
       </div>
       <div style={{display:"flex",gap:8,marginTop:12}}><Bt onClick={doSave} p={bal}>{bal?(editId?"Guardar cambios":"Guardar"):"Descuadrado"}</Bt><Bt onClick={()=>{setShowF(false);setEditId(null)}}>Cancelar</Bt></div>
     </div>}
-    {recurrentes.length>0&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:16,marginBottom:16}}>
+    {recurrentes.length>0&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,marginBottom:16}}>
       <div style={{fontSize:12,fontWeight:600,marginBottom:10,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:.5}}>Asientos recurrentes</div>
       <div style={{display:"flex",flexDirection:"column",gap:8}}>{recurrentes.map(t=>{const generado=yaGeneradoEsteMes.has(t.id);return(
         <div key={t.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:"10px 14px",flexWrap:"wrap"}}>
@@ -1036,7 +1042,7 @@ function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog,ccostos,res
           <button onClick={()=>generarRecurrente(t)} disabled={generado} style={{padding:"6px 14px",borderRadius:"var(--rs)",border:"none",background:generado?"var(--sf2)":"var(--cy)",color:generado?"var(--tx3)":"#fff",fontSize:11,fontWeight:600,cursor:generado?"default":"pointer"}}>{generado?"Ya generado este mes":"Generar para "+mesActual}</button>
         </div>);})}</div>
     </div>}
-    <div style={{display:"flex",flexDirection:"column",gap:8}}>{[...empEntries].sort((a,b)=>b.date.localeCompare(a.date)).map(e=><div key={e.id} id={"asiento-"+e.id} style={{background:"var(--sf)",border:"1px solid "+(resaltadoId===e.id?"var(--am)":editId===e.id?"var(--cy)":"var(--bd)"),boxShadow:resaltadoId===e.id?"0 0 0 3px rgba(245,158,11,.25)":"none",borderRadius:"var(--r)",padding:16,transition:"box-shadow .3s,border-color .3s"}}>
+    <div style={{display:"flex",flexDirection:"column",gap:8}}>{[...empEntries].sort((a,b)=>b.date.localeCompare(a.date)).map(e=><div key={e.id} id={"asiento-"+e.id} style={{background:"var(--sf)",border:"1px solid "+(resaltadoId===e.id?"var(--am)":editId===e.id?"var(--cy)":"var(--bd)"),boxShadow:resaltadoId===e.id?"0 0 0 3px rgba(245,158,11,.25), var(--shadow)":"var(--shadow)",borderRadius:"var(--r)",padding:16,transition:"box-shadow .3s,border-color .3s"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:10,fontFamily:"monospace",background:"var(--sf2)",padding:"2px 8px",borderRadius:4}}>N {e.num}</span><span style={{fontSize:13,fontWeight:500}}>{e.desc}</span>{e.centroCosto&&ccNombre[e.centroCosto]&&<span style={{fontSize:10,background:"var(--cyg)",color:"var(--cy)",padding:"2px 8px",borderRadius:4}}>{ccNombre[e.centroCosto]}</span>}{e.recurrente&&<span style={{fontSize:10,background:"rgba(139,92,246,.15)",color:"var(--pu)",padding:"2px 8px",borderRadius:4}}>↻ Recurrente</span>}</div><div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:11,color:"var(--tx3)"}}>{fD(e.date)}</span><button onClick={()=>openEdit(e)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.6,fontSize:11}}>editar</button><button onClick={()=>{if(confirm("Eliminar este asiento?"))delE(e.id)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5}}>x</button></div></div>
       <div style={{fontSize:11}}>{e.lines.map((l,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 80px 80px",gap:8,padding:"2px 0"}}><span style={{color:"var(--tx2)",paddingLeft:l.cr>0?20:0}}>{l.ac} {leafAccts.find(a=>a.cd===l.ac)?.nm||""}</span><span style={{textAlign:"right",fontFamily:"monospace"}}>{l.db>0?"$"+fmt(l.db):""}</span><span style={{textAlign:"right",fontFamily:"monospace"}}>{l.cr>0?"$"+fmt(l.cr):""}</span></div>)}</div>
     </div>)}</div>
@@ -1052,7 +1058,7 @@ function LDiario({empEntries,accts,eObj,ccostos,irAAsiento}){
   if(!empEntries.length)return<Ey i="📖" t="Sin asientos" d="Registra asientos para ver el Libro Diario."/>;
   const tD=sorted.reduce((s,e)=>s+e.lines.reduce((ss,l)=>ss+(l.db||0),0),0);
   const tC=sorted.reduce((s,e)=>s+e.lines.reduce((ss,l)=>ss+(l.cr||0),0),0);
-  return(<div className="report" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",overflow:"hidden"}}>
+  return(<div className="report" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden"}}>
     <ReportHeader eObj={eObj} title="Libro Diario" subtitle={(ccNombre?"Centro de costo: "+ccNombre+" — ":"")+"Al "+new Date().toLocaleDateString("es-CL")}/>
     <div className="no-print" style={{padding:"16px 20px",borderBottom:"1px solid var(--bd)",background:"var(--sf2)",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
       <span style={{fontSize:13,fontWeight:600}}>Libro Diario</span>
@@ -1099,7 +1105,7 @@ function Balance({empEntries,accts,leafAccts,eObj,irACuenta}){
     <div style={{display:"grid",gridTemplateColumns:"1fr 120px",fontSize:13,fontWeight:700,padding:"10px 0",borderTop:"2px solid var(--bd2)",marginTop:4}}><span>TOTAL {title.toUpperCase()}</span><span style={{textAlign:"right",fontFamily:"monospace"}}>${fmt(total)}</span></div>
   </div>;
 
-  return(<div className="report" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:28,maxWidth:700}}>
+  return(<div className="report" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28,maxWidth:700}}>
     <ReportHeader eObj={eObj} title="Balance General" subtitle={"Al "+fD(fechaCorte)}/>
     <div className="no-print" style={{display:"flex",justifyContent:"flex-end",gap:8,marginBottom:8,alignItems:"center"}}>
       <label style={{fontSize:11,color:"var(--tx3)"}}>Fecha de corte</label>
@@ -1151,7 +1157,7 @@ function EERR({empEntries,accts,leafAccts,eObj,ccostos,irACuenta}){
   const fmtVar=v=>v===null?"—":(v>=0?"+":"")+v.toFixed(1)+"%";
   const{inc,exp,tI,tE,net}=actual;
 
-  return(<div className="report" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:28,maxWidth:700}}>
+  return(<div className="report" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28,maxWidth:700}}>
     <ReportHeader eObj={eObj} title="Estado de Resultados" subtitle={(ccNombre?"Centro de costo: "+ccNombre+" — ":"")+(anio==="todos"?"Todo el historial":"Año "+anio)}/>
     <div className="no-print" style={{display:"flex",justifyContent:"flex-end",gap:8,marginBottom:8,flexWrap:"wrap",alignItems:"center"}}>
       <select value={anio} onChange={e=>setAnio(e.target.value)} style={{fontSize:11,padding:"6px 10px",maxWidth:160}}><option value="todos">Todo el historial</option>{anios.map(a=><option key={a} value={a}>{a}</option>)}</select>
@@ -1204,11 +1210,11 @@ function LMayor({empEntries,accts,leafAccts,eObj,irAAsiento,cuentaInicial}){
   const isDeb=acctType==="asset"||acctType==="expense";
   const movesWithBal=useMemo(()=>{if(!sel)return[];const m=[];empEntries.forEach(e=>e.lines.forEach(l=>{if(l.ac===sel)m.push({id:e.id,date:e.date,num:e.num,desc:e.desc,db:l.db||0,cr:l.cr||0})}));m.sort((a,b)=>a.date.localeCompare(b.date));let bal=0;return m.map(mv=>{bal+=isDeb?(mv.db-mv.cr):(mv.cr-mv.db);return{...mv,bal}})},[sel,empEntries,isDeb]);
   return(<div>
-    <div className="no-print" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:16,marginBottom:16}}>
+    <div className="no-print" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,marginBottom:16}}>
       <label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:8,fontWeight:500}}>Seleccionar cuenta</label>
       <select value={sel} onChange={e=>setSel(e.target.value)} style={{maxWidth:400}}><option value="">-- Seleccionar --</option>{used.map(a=><option key={a.cd} value={a.cd}>{a.cd} - {a.nm}</option>)}</select>
     </div>
-    {sel&&<div className="report" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",overflow:"hidden"}}>
+    {sel&&<div className="report" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden"}}>
       <ReportHeader eObj={eObj} title="Libro Mayor" subtitle={sel+" — "+am[sel]+" · Naturaleza "+(isDeb?"Deudora":"Acreedora")}/>
       <div className="no-print" style={{padding:"12px 20px",borderBottom:"1px solid var(--bd)",background:"var(--sf2)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div><div style={{fontSize:13,fontWeight:600}}>{sel} — {am[sel]}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Naturaleza: {isDeb?"Deudora":"Acreedora"}</div></div>
@@ -1265,7 +1271,7 @@ function LibroAuxiliar({empEntries,eObj,irAAsiento}){
   },[empEntries,rutSel]);
 
   return(<div>
-    <div className="no-print" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:16,marginBottom:16}}>
+    <div className="no-print" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,marginBottom:16}}>
       <label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:8,fontWeight:500}}>Buscar contraparte (RUT o razon social)</label>
       <input value={busqueda} onChange={e=>setBusqueda(e.target.value)} placeholder="Ej: 76282386 o Inmobiliaria" style={{maxWidth:400,marginBottom:10}}/>
       {contrapartes.length===0?<div style={{fontSize:12,color:"var(--tx3)"}}>Sin documentos con RUT importados todavia.</div>:
@@ -1277,7 +1283,7 @@ function LibroAuxiliar({empEntries,eObj,irAAsiento}){
         </button>);})}
       </div>}
     </div>
-    {rutSel&&<div className="report" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",overflow:"hidden"}}>
+    {rutSel&&<div className="report" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden"}}>
       <ReportHeader eObj={eObj} title="Libro Auxiliar por Contraparte" subtitle={(seleccionada?.razonSocial||"")+" — RUT "+(seleccionada?.rut||"")}/>
       <div className="no-print" style={{padding:"12px 20px",borderBottom:"1px solid var(--bd)",background:"var(--sf2)",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
         <div><div style={{fontSize:13,fontWeight:600}}>{seleccionada?.razonSocial||"(sin razon social)"}</div><div style={{fontSize:11,color:"var(--tx3)"}}>RUT {seleccionada?.rut} · Compras ${fmt(seleccionada?.compras||0)} · Ventas ${fmt(seleccionada?.ventas||0)}</div></div>
@@ -1408,12 +1414,12 @@ function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog,reglas}){
   };
 
   return(<div>
-    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:24,marginBottom:16}}>
+    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:24,marginBottom:16}}>
       <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Periodo tributario</div>
       <div style={{fontSize:12,color:"var(--tx3)",marginBottom:12}}>El mes que corresponde este libro ante el SII (AAAAMM) — no siempre es el mismo mes de la fecha de emision de cada documento. Se usa tanto para importar automatico como para la carga manual, y define en que mes queda cada documento dentro del Libro de Compras/Libro de Ventas.</div>
       <input value={periodo} onChange={e=>setPeriodo(e.target.value.replace(/\D/g,"").slice(0,6))} placeholder="Periodo AAAAMM, ej: 202605" style={{padding:"8px 12px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx)",fontSize:13,width:200}}/>
     </div>
-    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:24,marginBottom:16}}>
+    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:24,marginBottom:16}}>
       <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Importar automatico desde el SII</div>
       <div style={{fontSize:12,color:"var(--tx3)",marginBottom:16}}>Requiere el puente local corriendo en tu computador: <code>node tools/sii-local-server.mjs</code> (despues de <code>sii auth login</code>). Ver <code>tools/README.md</code> para instalarlo.</div>
       <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap"}}>
@@ -1422,12 +1428,12 @@ function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog,reglas}){
       </div>
       <div style={{fontSize:11,color:"var(--tx3)",marginTop:12}}>Si reimportas el mismo periodo, reemplaza los asientos con el mismo folio+RUT en vez de duplicarlos.</div>
     </div>
-    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:24,marginBottom:16}}>
+    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:24,marginBottom:16}}>
       <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Limpieza</div>
       <div style={{fontSize:12,color:"var(--tx3)",marginBottom:12}}>Si algo quedo duplicado de una importacion anterior (ej. de antes de este arreglo), esto elimina las copias sin monto y deja solo una por documento (folio+RUT).</div>
       <button onClick={limpiarDuplicados} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"transparent",color:"var(--tx2)",fontSize:12,fontWeight:600,cursor:"pointer"}}>Eliminar duplicados</button>
     </div>
-    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:24,marginBottom:16}}>
+    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:24,marginBottom:16}}>
       <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Carga manual de Libros SII</div>
       <div style={{fontSize:12,color:"var(--tx3)",marginBottom:20}}>O sube el CSV descargado del SII a mano (con el periodo de arriba ya puesto). Las compras se contabilizan como: Gastos por Clasificar (debe) + IVA CF (debe) / Proveedores (haber). Las ventas como: Clientes (debe) / Ventas (haber) + IVA DF (haber).</div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
@@ -1640,16 +1646,16 @@ function LibroCV({empEntries,tipo,eObj,irAAsiento}){
     <ReportHeader eObj={eObj} title={tipo==="compra"?"Libro de Compras":"Libro de Ventas"} subtitle={periodoSel?fmtPeriodo(periodoSel):"Todos los periodos"}/>
 
     {grupos.length>0&&<div className="rpt-stats" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12,marginBottom:20}}>
-      <div className="rpt-stat" style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700}}>{granTotal.docs}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Documentos</div></div>
-      <div className="rpt-stat" style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700}}>${fmt(granTotal.exento)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Exento</div></div>
-      <div className="rpt-stat" style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700}}>${fmt(granTotal.neto)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Neto</div></div>
-      <div className="rpt-stat" style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700}}>${fmt(granTotal.iva)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>IVA</div></div>
-      <div className="rpt-stat" style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700,color:"var(--cy)"}}>${fmt(granTotal.total)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Total</div></div>
+      <div className="rpt-stat" style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2}}>{granTotal.docs}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Documentos</div></div>
+      <div className="rpt-stat" style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2}}>${fmt(granTotal.exento)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Exento</div></div>
+      <div className="rpt-stat" style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2}}>${fmt(granTotal.neto)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Neto</div></div>
+      <div className="rpt-stat" style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2}}>${fmt(granTotal.iva)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>IVA</div></div>
+      <div className="rpt-stat" style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:14,textAlign:"center"}}><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2,color:"var(--cy)"}}>${fmt(granTotal.total)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Total</div></div>
     </div>}
 
     {rcvErr&&<div style={{background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.3)",borderRadius:"var(--rs)",padding:16,fontSize:13,color:"var(--rd)",marginBottom:16}}>✗ {rcvErr}</div>}
 
-    {rcvOficial&&<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:20,marginBottom:20}}>
+    {rcvOficial&&<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20,marginBottom:20}}>
       <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>Resumen Registro de {tipo==="compra"?"Compras":"Ventas"} {fmtPeriodo(periodoSel)} — segun el SII</div>
       <div style={{fontSize:11,color:"var(--tx3)",marginBottom:12}}>Resumen por tipo de documento, tal como lo entrega el SII para este periodo.</div>
       <div style={{overflowX:"auto"}}><table style={{width:"100%",fontSize:12,borderCollapse:"collapse",marginBottom:16}}>
@@ -1678,7 +1684,7 @@ function LibroCV({empEntries,tipo,eObj,irAAsiento}){
 
     {grupos.length===0?<Ey i="📚" t="Sin documentos" d={docsBase.length===0?("Importa "+(tipo==="compra"?"compras":"ventas")+" del SII en la pestaña 'Compras/Ventas SII'."):"No hay documentos que calcen con los filtros elegidos."}/>:
     grupos.map(g=>{const abierto=!cerrados.has(g.periodo);return(
-    <div key={g.periodo} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:20,marginBottom:16}}>
+    <div key={g.periodo} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20,marginBottom:16}}>
       <div onClick={()=>toggle(g.periodo)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
         <div style={{fontSize:13,fontWeight:700,color:"var(--cy)"}}>{abierto?"▾":"▸"} {fmtPeriodo(g.periodo)} — {g.rows.length} documentos</div>
         <div style={{fontSize:13,fontWeight:700}}>${fmt(g.total)}</div>
@@ -1768,7 +1774,7 @@ function ConciliacionP({entries,setEntries,leafAccts,eObj,empEntries,aLog,reglas
   const fmtRut=r=>{const n=normRut(r);return n?n.slice(0,-1)+"-"+n.slice(-1):""};
 
   return(<div>
-    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:24,marginBottom:16}}>
+    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:24,marginBottom:16}}>
       <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Conciliacion Bancaria</div>
       <div style={{fontSize:12,color:"var(--tx3)",marginBottom:16}}>Sube la cartola del banco (Santander, formato Historica/Provisoria). Primero se detecta que movimientos ya tienen un asiento contabilizado; para el resto se sugiere la contracuenta cruzando con Compras/Ventas SII ya importadas.</div>
       <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:12,alignItems:"end"}}>
@@ -1783,11 +1789,11 @@ function ConciliacionP({entries,setEntries,leafAccts,eObj,empEntries,aLog,reglas
 
     {analisis&&<>
       <div style={{display:"flex",gap:12,marginBottom:16}}>
-        <div style={{flex:1,background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:16,textAlign:"center"}}><div style={{fontSize:24,fontWeight:700,color:"var(--gn)"}}>{analisis.contab.length}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Ya contabilizados</div></div>
-        <div style={{flex:1,background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:16,textAlign:"center"}}><div style={{fontSize:24,fontWeight:700,color:"var(--am)"}}>{analisis.pend.length}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Pendientes de clasificar</div></div>
+        <div style={{flex:1,background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,textAlign:"center"}}><div style={{fontSize:24,fontWeight:700,letterSpacing:-.4,lineHeight:1.15,color:"var(--gn)"}}>{analisis.contab.length}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Ya contabilizados</div></div>
+        <div style={{flex:1,background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,textAlign:"center"}}><div style={{fontSize:24,fontWeight:700,letterSpacing:-.4,lineHeight:1.15,color:"var(--am)"}}>{analisis.pend.length}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Pendientes de clasificar</div></div>
       </div>
 
-      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",overflow:"hidden",marginBottom:16}}>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden",marginBottom:16}}>
         <div style={{padding:"14px 20px",borderBottom:"1px solid var(--bd)",background:"var(--sf2)",fontSize:13,fontWeight:600}}>Pendientes de clasificar</div>
         {analisis.pend.length===0?<div style={{padding:24,textAlign:"center",color:"var(--tx3)",fontSize:13}}>Todo lo de esta cartola ya esta contabilizado.</div>:
         <div style={{overflowX:"auto"}}><table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
@@ -1820,7 +1826,7 @@ function ConciliacionP({entries,setEntries,leafAccts,eObj,empEntries,aLog,reglas
 
       <details style={{marginBottom:16}}>
         <summary style={{cursor:"pointer",fontSize:13,fontWeight:600,padding:"10px 0"}}>Ya contabilizados ({analisis.contab.length}) — verificacion</summary>
-        <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",overflow:"hidden",marginTop:8}}>
+        <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden",marginTop:8}}>
           {analisis.contab.length===0?<div style={{padding:16,textAlign:"center",color:"var(--tx3)",fontSize:12}}>Ninguno.</div>:
           <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}><tbody>{analisis.contab.map(({mov,asiento})=><tr key={mov.id} style={{borderBottom:"1px solid var(--bd)"}}>
             <td style={{padding:"6px 12px",whiteSpace:"nowrap"}}>{fD(mov.fecha)}</td><td style={{padding:"6px 8px"}}>{mov.descripcion}</td><td style={{padding:"6px 8px",textAlign:"right",fontFamily:"monospace"}}>${fmt(mov.monto)}</td><td style={{padding:"6px 12px",fontSize:11,color:"var(--tx3)"}}>Asiento N {asiento.num}</td>
@@ -1910,7 +1916,7 @@ function PorClasificar({empEntries,setEntries,leafAccts,eObj,aLog,reglas,setRegl
       <button onClick={aplicarLote} disabled={!cuentaLote||sel.size===0} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--cy)",color:"#fff",fontSize:12,fontWeight:600,cursor:(!cuentaLote||sel.size===0)?"default":"pointer",opacity:(!cuentaLote||sel.size===0)?.5:1}}>Reclasificar seleccionados</button>
     </div>
 
-    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",overflow:"hidden",marginBottom:24}}>
+    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden",marginBottom:24}}>
       <div style={{overflowX:"auto"}}><table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
         <thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:10,color:"var(--tx3)",background:"var(--sf2)"}}>
           <th style={{padding:"8px 12px"}}><input type="checkbox" checked={sel.size===pendientes.length&&pendientes.length>0} onChange={toggleAll}/></th>
@@ -1948,7 +1954,7 @@ function PorClasificar({empEntries,setEntries,leafAccts,eObj,aLog,reglas,setRegl
 
     <details>
       <summary style={{cursor:"pointer",fontSize:13,fontWeight:600,padding:"10px 0"}}>Reglas de categorizacion guardadas ({reglas.length})</summary>
-      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:16,marginTop:8}}>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,marginTop:8}}>
         <div style={{fontSize:11,color:"var(--tx3)",marginBottom:12}}>Las reglas por RUT se aprenden solas al reclasificar arriba. Las reglas por palabra clave son para movimientos de Conciliacion Bancaria sin documento asociado (ej. "comision" → Gastos Bancarios) — agregalas a mano.</div>
         <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
           <input value={nuevaPalabra} onChange={e=>setNuevaPalabra(e.target.value)} placeholder="Palabra clave (ej: comision)" style={{maxWidth:220}}/>
@@ -1987,7 +1993,7 @@ function B8Col({empEntries,accts,leafAccts,eObj,irACuenta}){
     }).filter(Boolean);
   },[empEntries,leafAccts]);
   const tot=(f)=>rows.reduce((s,r)=>s+(r[f]||0),0);
-  return(<div className="report" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",overflow:"hidden"}}>
+  return(<div className="report" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden"}}>
     <ReportHeader eObj={eObj} title="Balance de 8 Columnas" subtitle={"Al "+new Date().toLocaleDateString("es-CL")}/>
     <div className="no-print" style={{padding:"16px 20px",borderBottom:"1px solid var(--bd)",background:"var(--sf2)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
       <div><div style={{fontSize:14,fontWeight:600}}>{eObj?.name} — Balance de 8 Columnas</div><div style={{fontSize:11,color:"var(--tx3)"}}>Al {new Date().toLocaleDateString("es-CL")}</div></div>
@@ -2129,7 +2135,7 @@ function RemP({eObj,rems,setRems,empRems,entries,setEntries,empEntries,leafAccts
 
   if(vw==="form")return(<div style={{maxWidth:700,margin:"0 auto"}}>
     <Bk onClick={()=>setVw("list")}>Volver</Bk>
-    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:28}}>
+    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28}}>
       <h2 style={{fontSize:18,fontWeight:700,marginBottom:24}}>{eid?"Editar":"Nueva"} Liquidacion</h2>
       <Sc t="Trabajador"><FG>
         <Fi l="Nombre completo" v={fm.nombre} s={v=>setFm(p=>({...p,nombre:v}))}/>
@@ -2182,12 +2188,12 @@ function RemP({eObj,rems,setRems,empRems,entries,setEntries,empEntries,leafAccts
       <div style={{display:"flex",gap:8}}>{empRems.length>0&&<Bt onClick={genAsiento}>Centralizar</Bt>}<Bt onClick={openNew} p={true}>{IC.plus} Nueva Liquidacion</Bt></div>
     </div>
     {empRems.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12,marginBottom:16}}>
-      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4}}>Total Liquido</div><div style={{fontSize:20,fontWeight:700,color:"var(--gn)"}}>${fmt(totLiq)}</div></div>
-      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4}}>Costo Empresa</div><div style={{fontSize:20,fontWeight:700,color:"var(--am)"}}>${fmt(totCosto)}</div></div>
-      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4}}>Trabajadores</div><div style={{fontSize:20,fontWeight:700}}>{empRems.length}</div></div>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4}}>Total Liquido</div><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2,color:"var(--gn)"}}>${fmt(totLiq)}</div></div>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4}}>Costo Empresa</div><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2,color:"var(--am)"}}>${fmt(totCosto)}</div></div>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4}}>Trabajadores</div><div style={{fontSize:20,fontWeight:700,letterSpacing:-.2,lineHeight:1.2}}>{empRems.length}</div></div>
     </div>}
     {empRems.length===0?<Ey i="👥" t="Sin liquidaciones" d="Crea tu primera liquidacion de sueldo."><Bt onClick={openNew} p={true}>Crear liquidacion</Bt></Ey>
-    :<div style={{display:"flex",flexDirection:"column",gap:8}}>{empRems.map(r=><div key={r.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:16,display:"flex",alignItems:"center",gap:16,cursor:"pointer"}} onClick={()=>openEdit(r)}>
+    :<div style={{display:"flex",flexDirection:"column",gap:8}}>{empRems.map(r=><div key={r.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16,cursor:"pointer"}} onClick={()=>openEdit(r)}>
       <div style={{width:40,height:40,borderRadius:10,background:"var(--sf2)",border:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"var(--tx2)",flexShrink:0}}>{(r.nombre||"?").slice(0,2).toUpperCase()}</div>
       <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:600}}>{r.nombre}</div><div style={{fontSize:11,color:"var(--tx3)"}}>{r.cargo||"Sin cargo"} - {r.periodo}</div></div>
       <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,color:"var(--gn)"}}>${fmt(r.liquido||0)}</div><div style={{fontSize:10,color:"var(--tx3)"}}>Liquido</div></div>
@@ -2265,8 +2271,8 @@ function TribV({ev,upd,del,emp,back}){
   };
 
   if(showS)return(<div style={{maxWidth:800,margin:"0 auto"}}><Bk onClick={()=>setShowS(false)}>Volver a evaluacion</Bk>
-    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:32}}>
-      <div style={{textAlign:"center",marginBottom:24}}><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:2}}>Evaluacion RADAR</div><div style={{fontSize:22,fontWeight:700,marginTop:4}}>{emp.name}</div><div style={{fontSize:13,color:"var(--cy)",fontWeight:600,marginTop:4}}>RADAR Tributario</div></div>
+    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:32}}>
+      <div style={{textAlign:"center",marginBottom:24}}><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:2}}>Evaluacion RADAR</div><div style={{fontSize:22,fontWeight:700,letterSpacing:-.3,lineHeight:1.15,marginTop:4}}>{emp.name}</div><div style={{fontSize:13,color:"var(--cy)",fontWeight:600,marginTop:4}}>RADAR Tributario</div></div>
       {TRIB_SECTIONS.map((sc,si)=><div key={sc.id} style={{marginBottom:20}}>
         <div style={{fontSize:12,fontWeight:700,color:"var(--cy)",textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>{sc.title}</div>
         {sc.questions.map(q=>{const val=r[q.id];if(!val||val==="")return null;const optLabel=q.opts?.find(o=>o.v===val)?.l||val;
@@ -2286,7 +2292,7 @@ function TribV({ev,upd,del,emp,back}){
     </div></div>);
 
   return(<div style={{maxWidth:900,margin:"0 auto"}}><Bk onClick={back}>Volver a evaluaciones</Bk>
-    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:"20px 24px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
+    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:"20px 24px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
       <div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:28}}>⚖️</span><div><div style={{fontSize:15,fontWeight:600}}>RADAR Tributario</div><div style={{fontSize:12,color:"var(--tx3)"}}>{emp.name} - {answered}/{totalQ} respuestas</div></div></div>
       <div style={{display:"flex",gap:8}}><Bt onClick={()=>setShowS(true)}>Resumen</Bt><Bt onClick={()=>upd({status:ev.status==="completada"?"en_proceso":"completada"})} p={ev.status!=="completada"}>{ev.status==="completada"?"Completada":"Completar"}</Bt></div>
     </div>
@@ -2297,7 +2303,7 @@ function TribV({ev,upd,del,emp,back}){
     {/* Questions */}
     <div style={{display:"flex",flexDirection:"column",gap:12}}>
       <div style={{fontSize:13,fontWeight:600,color:"var(--cy)",marginBottom:4}}>{sec.title}</div>
-      {sec.questions.map((q,i)=><div key={q.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:"20px 24px",borderLeft:"3px solid "+(r[q.id]&&r[q.id]!==""?"var(--cy)":"var(--bd2)")}}>
+      {sec.questions.map((q,i)=><div key={q.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:"20px 24px",borderLeft:"3px solid "+(r[q.id]&&r[q.id]!==""?"var(--cy)":"var(--bd2)")}}>
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}><span style={{fontSize:10,color:"var(--tx3)",background:"var(--sf2)",padding:"2px 8px",borderRadius:4,fontWeight:600}}>P{i+1}</span><span style={{fontSize:13,fontWeight:600}}>{q.text}</span></div>
         {q.type==="select"&&<div style={{display:"flex",flexDirection:"column",gap:6}}>{q.opts.map(o=><button key={o.v} onClick={()=>setR(q.id,o.v)} style={{padding:"10px 16px",borderRadius:"var(--rs)",border:"1px solid "+(r[q.id]===o.v?"var(--cy)":"var(--bd)"),background:r[q.id]===o.v?"var(--cyg)":"var(--sf2)",color:r[q.id]===o.v?"var(--cy)":"var(--tx2)",fontSize:13,textAlign:"left",fontWeight:r[q.id]===o.v?600:400,display:"flex",alignItems:"center",gap:8}}><div style={{width:18,height:18,borderRadius:"50%",border:"2px solid "+(r[q.id]===o.v?"var(--cy)":"var(--bd2)"),display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{r[q.id]===o.v&&<div style={{width:10,height:10,borderRadius:"50%",background:"var(--cy)"}}/>}</div>{o.l}</button>)}</div>}
         {q.type==="text"&&<input value={r[q.id]||""} onChange={e=>setR(q.id,e.target.value)} placeholder="Escriba aqui..." style={{background:"var(--sf2)"}}/>}
@@ -2359,7 +2365,7 @@ function DocsP({eObj,docs,setDocs,empDocs,aLog,go}){
       {catCounts.filter(c=>c.count>0).map(c=><button key={c.id} onClick={()=>setFiltCat(c.id)} style={{background:filtCat===c.id?"var(--cyg)":"var(--sf)",border:"1px solid "+(filtCat===c.id?"var(--cy2)":"var(--bd)"),borderRadius:"var(--rs)",padding:"12px 10px",textAlign:"center",color:filtCat===c.id?"var(--cy)":"var(--tx2)",fontSize:11}}><div style={{fontSize:18}}>{c.icon}</div><div style={{marginTop:4,fontWeight:500}}>{c.l} ({c.count})</div></button>)}
     </div>
 
-    {showAdd&&<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:20,marginBottom:16}}>
+    {showAdd&&<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20,marginBottom:16}}>
       <div style={{fontSize:13,fontWeight:600,marginBottom:12}}>Registrar documento</div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12}}>
         <Fi l="Nombre del documento" v={fm.nombre} s={v=>setFm(p=>({...p,nombre:v}))}/>
@@ -2455,8 +2461,8 @@ function FinV({ev,upd,del,emp,back}){
   };
 
   if(showS)return(<div style={{maxWidth:800,margin:"0 auto"}}><Bk onClick={()=>setShowS(false)}>Volver</Bk>
-    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:32}}>
-      <div style={{textAlign:"center",marginBottom:24}}><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:2}}>Evaluacion RADAR</div><div style={{fontSize:22,fontWeight:700,marginTop:4}}>{emp.name}</div><div style={{fontSize:13,color:"var(--gn)",fontWeight:600,marginTop:4}}>RADAR Financiero</div></div>
+    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:32}}>
+      <div style={{textAlign:"center",marginBottom:24}}><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:2}}>Evaluacion RADAR</div><div style={{fontSize:22,fontWeight:700,letterSpacing:-.3,lineHeight:1.15,marginTop:4}}>{emp.name}</div><div style={{fontSize:13,color:"var(--gn)",fontWeight:600,marginTop:4}}>RADAR Financiero</div></div>
       {FIN_SECTIONS.map(sc=><div key={sc.id} style={{marginBottom:16}}><div style={{fontSize:12,fontWeight:700,color:"var(--gn)",textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>{sc.title}</div>
         {sc.questions.map(q=>{const val=r[q.id];if(!val||val==="")return null;const ol=q.opts?.find(o=>o.v===val)?.l||val;
           return<div key={q.id} style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,padding:"6px 0",borderBottom:"1px solid var(--bd)",fontSize:12}}><span style={{color:"var(--tx2)"}}>{q.text}</span><span style={{fontWeight:500}}>{ol}</span></div>})}</div>)}
@@ -2469,7 +2475,7 @@ function FinV({ev,upd,del,emp,back}){
     </div></div>);
 
   return(<div style={{maxWidth:900,margin:"0 auto"}}><Bk onClick={back}>Volver</Bk>
-    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:"20px 24px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
+    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:"20px 24px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
       <div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:28}}>📊</span><div><div style={{fontSize:15,fontWeight:600}}>RADAR Financiero</div><div style={{fontSize:12,color:"var(--tx3)"}}>{emp.name} - {answered}/{totalQ}</div></div></div>
       <div style={{display:"flex",gap:8}}><Bt onClick={()=>setShowS(true)}>Resumen</Bt><Bt onClick={()=>upd({status:ev.status==="completada"?"en_proceso":"completada"})} p={ev.status!=="completada"}>{ev.status==="completada"?"Completada":"Completar"}</Bt></div>
     </div>
@@ -2508,8 +2514,8 @@ function R360V({ev,upd,del,emp,back}){
   };
 
   if(showS)return(<div style={{maxWidth:800,margin:"0 auto"}}><Bk onClick={()=>setShowS(false)}>Volver</Bk>
-    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:32}}>
-      <div style={{textAlign:"center",marginBottom:24}}><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:2}}>Evaluacion RADAR</div><div style={{fontSize:22,fontWeight:700,marginTop:4}}>{emp.name}</div><div style={{fontSize:13,color:"var(--rd)",fontWeight:600,marginTop:4}}>RADAR 360 - Diagnostico Integral</div><div style={{fontSize:11,color:"var(--tx3)",marginTop:4}}>{answered}/{totalQ} respuestas</div></div>
+    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:32}}>
+      <div style={{textAlign:"center",marginBottom:24}}><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:2}}>Evaluacion RADAR</div><div style={{fontSize:22,fontWeight:700,letterSpacing:-.3,lineHeight:1.15,marginTop:4}}>{emp.name}</div><div style={{fontSize:13,color:"var(--rd)",fontWeight:600,marginTop:4}}>RADAR 360 - Diagnostico Integral</div><div style={{fontSize:11,color:"var(--tx3)",marginTop:4}}>{answered}/{totalQ} respuestas</div></div>
       <div style={{borderTop:"1px solid var(--bd)",paddingTop:24}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}><div style={{fontSize:13,fontWeight:700,color:"var(--cy)"}}>Informe 360 con IA</div>
           <button onClick={genAI} disabled={aiL} style={{background:aiL?"var(--sf2)":"linear-gradient(135deg,#EF4444,#8B5CF6)",color:"#fff",border:"none",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600,cursor:aiL?"wait":"pointer"}}>{aiL?"Generando...":aiR?"Regenerar":"Generar Informe 360"}</button></div>
@@ -2519,7 +2525,7 @@ function R360V({ev,upd,del,emp,back}){
     </div></div>);
 
   return(<div style={{maxWidth:900,margin:"0 auto"}}><Bk onClick={back}>Volver</Bk>
-    <div style={{background:"linear-gradient(135deg,rgba(239,68,68,.1),rgba(139,92,246,.1))",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:"20px 24px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
+    <div style={{background:"linear-gradient(135deg,rgba(239,68,68,.1),rgba(139,92,246,.1))",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:"20px 24px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
       <div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:28}}>🎯</span><div><div style={{fontSize:15,fontWeight:600}}>RADAR 360 - Diagnostico Integral</div><div style={{fontSize:12,color:"var(--tx3)"}}>{emp.name} - {answered}/{totalQ}</div></div></div>
       <div style={{display:"flex",gap:8}}><Bt onClick={()=>setShowS(true)}>Resumen</Bt><Bt onClick={()=>upd({status:ev.status==="completada"?"en_proceso":"completada"})} p={ev.status!=="completada"}>{ev.status==="completada"?"Completada":"Completar"}</Bt></div>
     </div>
@@ -2533,7 +2539,7 @@ function R360V({ev,upd,del,emp,back}){
 
 // Shared question card for section-based evaluations
 function QCard({q,i,r,setR}){
-  return<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:"20px 24px",borderLeft:"3px solid "+(r[q.id]&&r[q.id]!==""?"var(--cy)":"var(--bd2)")}}>
+  return<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:"20px 24px",borderLeft:"3px solid "+(r[q.id]&&r[q.id]!==""?"var(--cy)":"var(--bd2)")}}>
     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}><span style={{fontSize:10,color:"var(--tx3)",background:"var(--sf2)",padding:"2px 8px",borderRadius:4,fontWeight:600}}>P{i+1}</span><span style={{fontSize:13,fontWeight:600}}>{q.text}</span></div>
     {q.type==="select"&&<div style={{display:"flex",flexDirection:"column",gap:6}}>{q.opts.map(o=><button key={o.v} onClick={()=>setR(q.id,o.v)} style={{padding:"10px 16px",borderRadius:"var(--rs)",border:"1px solid "+(r[q.id]===o.v?"var(--cy)":"var(--bd)"),background:r[q.id]===o.v?"var(--cyg)":"var(--sf2)",color:r[q.id]===o.v?"var(--cy)":"var(--tx2)",fontSize:13,textAlign:"left",fontWeight:r[q.id]===o.v?600:400,display:"flex",alignItems:"center",gap:8}}><div style={{width:18,height:18,borderRadius:"50%",border:"2px solid "+(r[q.id]===o.v?"var(--cy)":"var(--bd2)"),display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{r[q.id]===o.v&&<div style={{width:10,height:10,borderRadius:"50%",background:"var(--cy)"}}/>}</div>{o.l}</button>)}</div>}
     {q.type==="text"&&<input value={r[q.id]||""} onChange={e=>setR(q.id,e.target.value)} placeholder="Escriba aqui..." style={{background:"var(--sf2)"}}/>}
@@ -2574,7 +2580,7 @@ function PlanP({eObj,tareas,setTareas,empTareas,aLog,go}){
       {[{v:"pendiente",l:"Pendientes ("+pendCount+")"},{v:"completada",l:"Completadas ("+compCount+")"},{v:"todas",l:"Todas ("+empTareas.length+")"}].map(f=><button key={f.v} onClick={()=>setFiltro(f.v)} style={{padding:"10px",borderRadius:"var(--rs)",border:"none",fontSize:12,fontWeight:filtro===f.v?600:400,background:filtro===f.v?"var(--cyg)":"var(--sf)",color:filtro===f.v?"var(--cy)":"var(--tx2)"}}>{f.l}</button>)}
     </div>
 
-    {showAdd&&<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:20,marginBottom:16}}>
+    {showAdd&&<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20,marginBottom:16}}>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12}}>
         <Fi l="Titulo *" v={fm.titulo} s={v=>setFm(p=>({...p,titulo:v}))}/>
         <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Tipo</label><select value={fm.tipo} onChange={e=>setFm(p=>({...p,tipo:e.target.value}))}>{TAREA_TIPOS.map(t=><option key={t.v} value={t.v}>{t.l}</option>)}</select></div>
@@ -2624,12 +2630,12 @@ function PortalP({eObj,empEntries,empDocs,empRems,eEvs,accts,leafAccts,go}){
 
   return(<div style={{maxWidth:900,margin:"0 auto"}}>
     {/* Client header */}
-    <div style={{background:"linear-gradient(135deg,var(--sf2),var(--sf))",borderRadius:"var(--r)",border:"1px solid var(--bd)",padding:"28px 24px",marginBottom:20,position:"relative",overflow:"hidden"}}>
+    <div style={{background:"linear-gradient(135deg,var(--sf2),var(--sf))",borderRadius:"var(--r)",boxShadow:"var(--shadow)",border:"1px solid var(--bd)",padding:"28px 24px",marginBottom:20,position:"relative",overflow:"hidden"}}>
       <div style={{position:"absolute",top:-20,right:-20,width:100,height:100,borderRadius:"50%",background:"var(--cy)",opacity:.04}}/>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:16}}>
         <div>
           <div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:2}}>Portal Cliente</div>
-          <div style={{fontSize:22,fontWeight:700,marginTop:4}}>{eObj.name}</div>
+          <div style={{fontSize:22,fontWeight:700,letterSpacing:-.3,lineHeight:1.15,marginTop:4}}>{eObj.name}</div>
           <div style={{fontSize:12,color:"var(--tx3)",marginTop:4}}>{eObj.rut} - {eObj.giro||"Sin giro"}</div>
         </div>
         <div style={{width:72,height:72,borderRadius:"50%",background:"var(--cyg)",border:"2px solid var(--cy2)",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column"}}>
@@ -2648,7 +2654,7 @@ function PortalP({eObj,empEntries,empDocs,empRems,eEvs,accts,leafAccts,go}){
         {l:"Resultado",v:"$"+fmt(resultado),c:resultado>=0?"var(--gn)":"var(--rd)"},
         {l:"Liquidez",v:liquidez,c:parseFloat(liquidez)>=1?"var(--gn)":"var(--rd)"},
         {l:"Endeudamiento",v:endeudam+"%",c:parseFloat(endeudam)>70?"var(--rd)":"var(--gn)"},
-      ].map((k,i)=><div key={i} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:16}}>
+      ].map((k,i)=><div key={i} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}>
         <div style={{fontSize:10,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:6}}>{k.l}</div>
         <div style={{fontSize:18,fontWeight:700,color:k.c}}>{k.v}</div>
       </div>)}
@@ -2665,7 +2671,7 @@ function PortalP({eObj,empEntries,empDocs,empRems,eEvs,accts,leafAccts,go}){
 
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:16}}>
       {/* Recent documents */}
-      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:20}}>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20}}>
         <div style={{fontSize:12,fontWeight:600,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:14}}>Ultimos Documentos</div>
         {empDocs.length===0?<div style={{fontSize:12,color:"var(--tx3)",textAlign:"center",padding:"20px 0"}}>Sin documentos</div>
         :empDocs.slice(-5).reverse().map(d=><div key={d.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:"1px solid var(--bd)",fontSize:12}}>
@@ -2676,7 +2682,7 @@ function PortalP({eObj,empEntries,empDocs,empRems,eEvs,accts,leafAccts,go}){
       </div>
 
       {/* Evaluations */}
-      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:20}}>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20}}>
         <div style={{fontSize:12,fontWeight:600,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:14}}>Evaluaciones RADAR</div>
         {eEvs.length===0?<div style={{fontSize:12,color:"var(--tx3)",textAlign:"center",padding:"20px 0"}}>Sin evaluaciones</div>
         :eEvs.slice(-5).reverse().map(ev=>{const et=ETYPES.find(t=>t.id===ev.type);return<div key={ev.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:"1px solid var(--bd)",fontSize:12}}>
@@ -2687,7 +2693,7 @@ function PortalP({eObj,empEntries,empDocs,empRems,eEvs,accts,leafAccts,go}){
       </div>
 
       {/* Employees */}
-      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:20}}>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20}}>
         <div style={{fontSize:12,fontWeight:600,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:14}}>Remuneraciones</div>
         {empRems.length===0?<div style={{fontSize:12,color:"var(--tx3)",textAlign:"center",padding:"20px 0"}}>Sin liquidaciones</div>
         :empRems.slice(-5).map(r=><div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:"1px solid var(--bd)",fontSize:12}}>
@@ -2703,8 +2709,8 @@ function PortalP({eObj,empEntries,empDocs,empRems,eEvs,accts,leafAccts,go}){
 function Bt({children,onClick,p}){return<button onClick={onClick} style={{display:"flex",alignItems:"center",gap:8,background:p?"var(--cy)":"var(--sf2)",color:p?"#fff":"var(--tx2)",border:p?"none":"1px solid var(--bd)",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600}}>{children}</button>}
 function Bk({onClick,children}){return<button onClick={onClick} style={{background:"none",border:"none",color:"var(--tx3)",fontSize:12,display:"flex",alignItems:"center",gap:6,marginBottom:16,padding:0}}>{IC.back}{children}</button>}
 function Tg({children,c}){return<span style={{fontSize:12,padding:"6px 14px",borderRadius:20,background:c+"15",color:c,border:"1px solid "+c+"30",fontWeight:500}}>{children}</span>}
-function Ey({i,t,d,children}){return<div style={{textAlign:"center",padding:"60px 20px",background:"var(--sf)",borderRadius:"var(--r)",border:"1px solid var(--bd)"}}><div style={{fontSize:40,marginBottom:12}}>{i}</div><div style={{fontSize:15,fontWeight:600,marginBottom:6}}>{t}</div><div style={{fontSize:13,color:"var(--tx3)",marginBottom:20}}>{d}</div>{children}</div>}
-function IC2({t,items}){return<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:20}}><div style={{fontSize:11,fontWeight:600,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:14}}>{t}</div>{items.map((it,i)=><div key={i} style={{marginBottom:10}}><div style={{fontSize:10,color:"var(--tx3)",marginBottom:2}}>{it.l}</div><div style={{fontSize:13,fontWeight:500,color:it.v?"var(--tx)":"var(--tx3)"}}>{it.v||"\u2014"}</div></div>)}</div>}
+function Ey({i,t,d,children}){return<div style={{textAlign:"center",padding:"60px 20px",background:"var(--sf)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",border:"1px solid var(--bd)"}}><div style={{fontSize:40,marginBottom:12}}>{i}</div><div style={{fontSize:15,fontWeight:600,marginBottom:6}}>{t}</div><div style={{fontSize:13,color:"var(--tx3)",marginBottom:20}}>{d}</div>{children}</div>}
+function IC2({t,items}){return<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20}}><div style={{fontSize:11,fontWeight:600,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:14}}>{t}</div>{items.map((it,i)=><div key={i} style={{marginBottom:10}}><div style={{fontSize:10,color:"var(--tx3)",marginBottom:2}}>{it.l}</div><div style={{fontSize:13,fontWeight:500,color:it.v?"var(--tx)":"var(--tx3)"}}>{it.v||"\u2014"}</div></div>)}</div>}
 function Sc({t,children}){return<div style={{marginBottom:24}}><div style={{fontSize:11,fontWeight:600,textTransform:"uppercase",letterSpacing:1.5,color:"var(--cy)",marginBottom:14,paddingBottom:8,borderBottom:"1px solid var(--bd)"}}>{t}</div>{children}</div>}
 function FG({children}){return<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:14}}>{children}</div>}
 function Fi({l,v,s,ph,t="text"}){return<div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>{l}</label><input type={t} value={v||""} placeholder={ph||""} onChange={e=>s(e.target.value)}/></div>}
