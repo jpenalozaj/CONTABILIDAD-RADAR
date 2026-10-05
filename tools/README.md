@@ -72,16 +72,22 @@ A diferencia del SII, la pagina de indicadores previsionales de Previred es
 la lee y extrae UF, UTM, el tope imponible y las tasas de cada AFP para el
 periodo vigente.
 
-Se usa desde el mismo puente local de arriba: con
-`node tools/sii-local-server.mjs` corriendo, ve en RADAR a
-**Remuneraciones > Parametros Previsionales > "Actualizar tasas AFP desde
-Previred"**. El valor de UF/UTM del dia se trae aparte, directo desde el
-navegador, usando la API publica de [mindicador.cl](https://mindicador.cl)
-(no necesita el puente local).
+Esto corre solo, en segundo plano, apenas abres Remuneraciones -- no hay
+boton que apretar ni mensaje de error que ver. RADAR intenta una vez por
+dia: UF/UTM directo desde el navegador contra la API publica de
+[mindicador.cl](https://mindicador.cl) (no necesita el puente local), y las
+tasas AFP contra `node tools/sii-local-server.mjs` si lo tienes corriendo.
+Si alguna de las dos fuentes no responde (por ejemplo, el puente local no
+esta corriendo), RADAR simplemente se queda con los ultimos valores
+guardados hasta la proxima vez -- nunca lo muestra como un error ni bloquea
+nada. Puedes ver los valores vigentes (solo lectura) en **Remuneraciones >
+Parametros Previsionales**.
 
-**Importante:** si Previred cambia el formato de esa pagina en el futuro,
-la lectura puede fallar — en ese caso, actualiza las tasas a mano en el
-mismo panel de RADAR (estan en esa misma pagina de previred.com).
+**Por que no son editables a mano:** son valores legales, iguales para
+todas las empresas -- un numero mal escrito ahi descuadraria todas las
+liquidaciones. Si Previred cambia el formato de su pagina y la lectura
+automatica empieza a fallar, hay que corregir `tools/previred-core.mjs`,
+no el panel de RADAR.
 
 ### Por que son scripts aparte y no todo dentro de RADAR
 

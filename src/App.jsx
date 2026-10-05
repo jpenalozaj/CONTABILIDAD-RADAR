@@ -698,13 +698,28 @@ function ContabP({eObj,accts,setAccts,entries,setEntries,empEntries,leafAccts,aL
   const [navTarget,setNavTarget]=useState(null);
   if(!eObj)return<Ey i="🏢" t="Selecciona una empresa" d="Activa una empresa primero."><Bt onClick={()=>go("empresas")} p={true}>Ir a Empresas</Bt></Ey>;
   const porClasificarN=empEntries.filter(e=>e.lines.some(l=>l.ac==="1.1.05.001")).length;
-  const tabs=[{id:"dashboard",l:"Dashboard"},{id:"plan",l:"Plan de Cuentas"},{id:"asientos",l:"Asientos"},{id:"csv",l:"Compras/Ventas SII"},{id:"lcompras",l:"Libro de Compras"},{id:"lventas",l:"Libro de Ventas"},{id:"porclasificar",l:"Por Clasificar"+(porClasificarN>0?" ("+porClasificarN+")":"")},{id:"conciliacion",l:"Conciliacion Bancaria"},{id:"diario",l:"Libro Diario"},{id:"mayor",l:"Libro Mayor"},{id:"auxiliar",l:"Auxiliares"},{id:"ccostos",l:"Centros de Costo"},{id:"activos",l:"Activos Fijos"},{id:"balance",l:"Balance"},{id:"eerr",l:"Estado Resultados"},{id:"b8",l:"8 Columnas"}];
+  // Agrupado siguiendo el flujo real de un cierre contable (orden inspirado
+  // en como Nubox separa Contabilidad / Libros / Reportes en menus propios,
+  // en vez de una sola fila plana de 16 botones sin jerarquia):
+  // Resumen -> Registro (entra todo) -> Procesos (se ordena/concilia) ->
+  // Libros (registro legal) -> Reportes (salida) -> Configuracion.
+  const tabGroups=[
+    {g:"Resumen",items:[{id:"dashboard",l:"Dashboard"}]},
+    {g:"Registro",items:[{id:"asientos",l:"Asientos"},{id:"csv",l:"Compras/Ventas SII"},{id:"porclasificar",l:"Por Clasificar"+(porClasificarN>0?" ("+porClasificarN+")":"")}]},
+    {g:"Procesos",items:[{id:"conciliacion",l:"Conciliacion Bancaria"},{id:"ccostos",l:"Centros de Costo"},{id:"activos",l:"Activos Fijos"}]},
+    {g:"Libros",items:[{id:"diario",l:"Libro Diario"},{id:"mayor",l:"Libro Mayor"},{id:"lcompras",l:"Libro de Compras"},{id:"lventas",l:"Libro de Ventas"},{id:"auxiliar",l:"Auxiliares"}]},
+    {g:"Reportes",items:[{id:"balance",l:"Balance"},{id:"eerr",l:"Estado Resultados"},{id:"b8",l:"8 Columnas"}]},
+    {g:"Configuracion",items:[{id:"plan",l:"Plan de Cuentas"}]},
+  ];
   // Trazabilidad: click en una cuenta -> Libro Mayor filtrado en esa cuenta;
   // click en un movimiento -> Asientos, resaltando ese asiento puntual.
   const irACuenta=cd=>{setNavTarget({tipo:"cuenta",valor:cd,ts:Date.now()});setTab("mayor")};
   const irAAsiento=id=>{setNavTarget({tipo:"asiento",valor:id,ts:Date.now()});setTab("asientos")};
   return(<div style={{maxWidth:960,margin:"0 auto"}}>
-    <div style={{display:"flex",gap:6,marginBottom:20,flexWrap:"wrap"}}>{tabs.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{padding:"10px 18px",borderRadius:"var(--rs)",border:"none",fontSize:13,fontWeight:tab===t.id?700:500,background:"var(--sf)",color:tab===t.id?"var(--cy)":"var(--tx2)"}}><span style={{position:"relative"}}>{t.l}{tab===t.id&&<svg aria-hidden viewBox="0 0 100 8" preserveAspectRatio="none" style={{position:"absolute",left:0,bottom:-6,width:"100%",height:6,overflow:"visible"}}><path d="M0,5 C10,0 20,0 30,5 C40,10 50,10 60,5 C70,0 80,0 90,5 C95,7.5 98,6 100,5" fill="none" stroke="var(--cy)" strokeWidth="1.6" strokeLinecap="round"/></svg>}</span></button>)}</div>
+    <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>{tabGroups.map(grp=><div key={grp.g} style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+      <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:.6,color:"var(--tx3)",width:86,flexShrink:0}}>{grp.g}</div>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{grp.items.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{padding:"8px 16px",borderRadius:"var(--rs)",border:"none",fontSize:12,fontWeight:tab===t.id?700:500,background:"var(--sf)",color:tab===t.id?"var(--cy)":"var(--tx2)"}}><span style={{position:"relative"}}>{t.l}{tab===t.id&&<svg aria-hidden viewBox="0 0 100 8" preserveAspectRatio="none" style={{position:"absolute",left:0,bottom:-6,width:"100%",height:6,overflow:"visible"}}><path d="M0,5 C10,0 20,0 30,5 C40,10 50,10 60,5 C70,0 80,0 90,5 C95,7.5 98,6 100,5" fill="none" stroke="var(--cy)" strokeWidth="1.6" strokeLinecap="round"/></svg>}</span></button>)}</div>
+    </div>)}</div>
     {tab==="dashboard"&&<DashboardFin empEntries={empEntries} leafAccts={leafAccts} eObj={eObj}/>}
     {tab==="plan"&&<PlanCtas accts={accts} setAccts={setAccts} aLog={aLog}/>}
     {tab==="asientos"&&<Asientos entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} eObj={eObj} aLog={aLog} ccostos={ccostos} resaltar={navTarget?.tipo==="asiento"?navTarget:null}/>}
@@ -2145,33 +2160,39 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
   const [tfm,setTfm]=useState({});
   const [params,setParamsSt]=useState(getParamsPrevired);
   const setParams=next=>{setParamsSt(next);sv("rd_param_previred",next)};
-  const [pBusy,setPBusy]=useState(null);
-  const [pMsg,setPMsg]=useState(null);
+  // Los parametros previsionales (UF, UTM, tasas AFP) son valores legales
+  // nacionales -- nadie dentro de RADAR deberia poder editarlos a mano (un
+  // numero mal escrito aqui descuadra todas las liquidaciones de todas las
+  // empresas). Por eso esto corre solo, en segundo plano, sin botones ni
+  // mensajes de error tecnicos: si una fuente no responde, simplemente se
+  // mantienen los ultimos valores guardados hasta que se pueda actualizar.
+  const autoParamRef=useRef(false);
   const actualizarUfUtm=async()=>{
-    setPBusy("ufutm");setPMsg(null);
     try{
       const[rUf,rUtm]=await Promise.all([fetch("https://mindicador.cl/api/uf"),fetch("https://mindicador.cl/api/utm")]);
-      if(!rUf.ok||!rUtm.ok)throw new Error("mindicador.cl no respondio correctamente");
+      if(!rUf.ok||!rUtm.ok)return;
       const[dUf,dUtm]=await Promise.all([rUf.json(),rUtm.json()]);
       const uf=dUf?.serie?.[0]?.valor;const utm=dUtm?.serie?.[0]?.valor;
-      if(!uf||!utm)throw new Error("Respuesta sin valores de UF/UTM");
+      if(!uf||!utm)return;
       setParams({...params,uf:Math.round(uf),utm:Math.round(utm),actualizadoUfUtm:new Date().toISOString()});
-      setPMsg({t:"ok",m:`UF $${fmt(Math.round(uf))} y UTM $${fmt(Math.round(utm))} actualizadas (${dUf?.serie?.[0]?.fecha?.slice(0,10)||"hoy"}).`});
-    }catch(err){setPMsg({t:"err",m:"No se pudo conectar a mindicador.cl: "+err.message})}
-    setPBusy(null);
+    }catch{/* mindicador.cl no respondio -- se mantiene el ultimo valor guardado */}
   };
   const actualizarAfpPrevired=async()=>{
-    setPBusy("afp");setPMsg(null);
     try{
       const r=await fetch("http://localhost:4001/previred");
-      if(!r.ok)throw new Error(await r.text());
+      if(!r.ok)return;
       const d=await r.json();
-      if(!d.afp)throw new Error("El puente local no devolvio tasas AFP reconocibles.");
+      if(!d.afp)return;
       setParams({...params,afp:{...params.afp,...d.afp},topeImponibleUF:d.topeImponibleUF||params.topeImponibleUF,actualizadoAfp:new Date().toISOString()});
-      setPMsg({t:"ok",m:"Tasas AFP actualizadas desde el informe de Previred de "+(d.periodo||"este mes")+"."});
-    }catch(err){setPMsg({t:"err",m:"No se pudo leer el informe de Previred ("+err.message+"). Revisa que 'node tools/sii-local-server.mjs' este corriendo, o actualiza las tasas a mano abajo."})}
-    setPBusy(null);
+    }catch{/* el puente local es opcional -- si no esta corriendo, se mantienen las tasas actuales */}
   };
+  useEffect(()=>{
+    if(autoParamRef.current)return;
+    autoParamRef.current=true;
+    const hoy=new Date().toISOString().slice(0,10);
+    if((params.actualizadoUfUtm||"").slice(0,10)!==hoy)actualizarUfUtm();
+    if((params.actualizadoAfp||"").slice(0,10)!==hoy)actualizarAfpPrevired();
+  },[]);
 
   // Migracion: liquidaciones de antes de esta fase no tenian ficha de
   // trabajador propia -- se agrupan por RUT y se genera una ficha
@@ -2419,44 +2440,38 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
     </div>);
   }
 
-  if(vw==="params")return(<div style={{maxWidth:700,margin:"0 auto"}}>
+  if(vw==="params"){
+    const ultimaRev=[params.actualizadoUfUtm,params.actualizadoAfp].filter(Boolean).sort().pop();
+    return(<div style={{maxWidth:700,margin:"0 auto"}}>
     <Bk onClick={()=>setVw("list")}>Volver</Bk>
     <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28}}>
       <h2 style={{fontSize:18,fontWeight:700,marginBottom:4}}>Parametros Previsionales</h2>
-      <div style={{fontSize:12,color:"var(--tx3)",marginBottom:20}}>Estos valores son nacionales (no dependen de la empresa) y se usan para calcular todas las liquidaciones de RADAR.</div>
+      <div style={{fontSize:12,color:"var(--tx3)",marginBottom:20}}>Valores legales nacionales (no dependen de la empresa). Se mantienen al dia solos, en segundo plano — no son editables aqui para que ninguna liquidacion quede mal calculada por un numero cambiado por error.</div>
 
       <Sc t="UF / UTM del periodo"><FG>
-        <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>UF</label><input type="number" value={params.uf} onChange={e=>setParams({...params,uf:parseInt(e.target.value)||0})}/></div>
-        <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>UTM</label><input type="number" value={params.utm} onChange={e=>setParams({...params,utm:parseInt(e.target.value)||0})}/></div>
+        <div><div style={{fontSize:11,color:"var(--tx3)",marginBottom:6,fontWeight:500}}>UF</div><div style={{fontSize:16,fontWeight:700,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(params.uf)}</div></div>
+        <div><div style={{fontSize:11,color:"var(--tx3)",marginBottom:6,fontWeight:500}}>UTM</div><div style={{fontSize:16,fontWeight:700,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(params.utm)}</div></div>
       </FG></Sc>
-      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20,flexWrap:"wrap"}}>
-        <Bt onClick={actualizarUfUtm} p={true}>{pBusy==="ufutm"?"Consultando mindicador.cl...":"Actualizar UF/UTM de hoy"}</Bt>
-        {params.actualizadoUfUtm&&<span style={{fontSize:11,color:"var(--tx3)"}}>Ultima actualizacion: {new Date(params.actualizadoUfUtm).toLocaleString("es-CL")}</span>}
-      </div>
 
       <Sc t="Tope Imponible"><FG>
-        <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Tope imponible (UF)</label><input type="number" step="0.1" value={params.topeImponibleUF} onChange={e=>setParams({...params,topeImponibleUF:parseFloat(e.target.value)||0})}/></div>
+        <div><div style={{fontSize:11,color:"var(--tx3)",marginBottom:6,fontWeight:500}}>Tope imponible</div><div style={{fontSize:16,fontWeight:700,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{params.topeImponibleUF} UF</div></div>
       </FG></Sc>
       <div style={{fontSize:11,color:"var(--tx3)",marginBottom:20}}>Hoy equivale a ${fmt(Math.round(params.topeImponibleUF*params.uf))} — las cotizaciones de AFP, salud y cesantia no se calculan sobre lo que exceda este monto.</div>
 
       <div style={{fontSize:12,fontWeight:600,marginBottom:12,color:"var(--tx2)"}}>Tasas AFP (comision + SIS, %)</div>
-      <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:12}}>
+      <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:20}}>
+        <div style={{display:"grid",gridTemplateColumns:"100px 1fr 1fr",gap:8,fontSize:10,color:"var(--tx3)"}}><span></span><span>Comision AFP</span><span>SIS</span></div>
         {Object.keys(params.afp).map(k=><div key={k} style={{display:"grid",gridTemplateColumns:"100px 1fr 1fr",gap:8,alignItems:"center"}}>
           <span style={{fontSize:12,textTransform:"capitalize"}}>{k}</span>
-          <input type="number" step="0.01" value={params.afp[k].r} onChange={e=>setParams({...params,afp:{...params.afp,[k]:{...params.afp[k],r:parseFloat(e.target.value)||0}}})} style={{fontSize:12}}/>
-          <input type="number" step="0.01" value={params.afp[k].sis} onChange={e=>setParams({...params,afp:{...params.afp,[k]:{...params.afp[k],sis:parseFloat(e.target.value)||0}}})} style={{fontSize:12}}/>
+          <span style={{fontSize:12,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{params.afp[k].r}%</span>
+          <span style={{fontSize:12,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{params.afp[k].sis}%</span>
         </div>)}
-        <div style={{display:"grid",gridTemplateColumns:"100px 1fr 1fr",gap:8,fontSize:10,color:"var(--tx3)"}}><span></span><span>Comision AFP</span><span>SIS</span></div>
       </div>
-      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16,flexWrap:"wrap"}}>
-        <Bt onClick={actualizarAfpPrevired}>{pBusy==="afp"?"Leyendo informe Previred...":"Actualizar tasas AFP desde Previred"}</Bt>
-        {params.actualizadoAfp&&<span style={{fontSize:11,color:"var(--tx3)"}}>Ultima actualizacion: {new Date(params.actualizadoAfp).toLocaleString("es-CL")}</span>}
-      </div>
-      <div style={{fontSize:11,color:"var(--tx3)",marginBottom:16}}>Necesita <code style={{background:"var(--sf2)",padding:"1px 6px",borderRadius:4}}>node tools/sii-local-server.mjs</code> corriendo en tu computador (ver tools/README.md). Tambien puedes editar las tasas a mano arriba cuando Previred publique un cambio.</div>
 
-      {pMsg&&<div style={{fontSize:12,padding:"10px 12px",borderRadius:"var(--rs)",background:pMsg.t==="err"?"rgba(239,68,68,.1)":"rgba(16,185,129,.1)",color:pMsg.t==="err"?"var(--rd)":"var(--gn)",border:"1px solid "+(pMsg.t==="err"?"rgba(239,68,68,.2)":"rgba(16,185,129,.2)")}}>{pMsg.m}</div>}
+      <div style={{fontSize:11,color:"var(--tx3)"}}>{ultimaRev?"Ultima revision automatica: "+new Date(ultimaRev).toLocaleDateString("es-CL"):"Valores base de RADAR, pendientes de la primera revision automatica."}</div>
     </div>
   </div>);
+  }
 
   // LIST
   const totLiq=empRems.reduce((s,r)=>s+(r.liquido||0),0);

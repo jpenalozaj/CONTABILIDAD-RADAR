@@ -48,3 +48,4 @@ Importador universal de cartolas con IA, preguntas en lenguaje natural sobre los
 - Nada de flujos de aprobación de asientos por celular.
 - Tipografía monoespaciada para montos es intencional (JetBrains Mono, webfont — no depender de fuentes locales del sistema).
 - Tema claro (crema/salvia), acento lima, texto principal verde oscuro (`--tx:#1B4D2E`), tarjetas con borde y `rd-tilt` para composición "grid roto".
+- Parámetros Previsionales (UF/UTM/tasas AFP) son de solo lectura en la UI y se actualizan solos en segundo plano (una vez al día, mindicador.cl + puente local Previred). Nunca mostrar el error técnico de la fuente al usuario ni volver a agregar inputs editables ahí — son valores legales nacionales, un numero mal escrito a mano descuadraría todas las liquidaciones de todas las empresas.
