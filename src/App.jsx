@@ -761,7 +761,7 @@ const CONTAB_TAB_GROUPS=[
   {g:"Resumen",items:[{id:"dashboard",l:"Dashboard"}]},
   {g:"Registro",items:[{id:"asientos",l:"Asientos"},{id:"csv",l:"Compras/Ventas SII"},{id:"porclasificar",l:"Por Clasificar"}]},
   {g:"Procesos",items:[{id:"conciliacion",l:"Conciliacion Bancaria"},{id:"ccostos",l:"Centros de Costo"},{id:"activos",l:"Activos Fijos"}]},
-  {g:"Libros",items:[{id:"diario",l:"Libro Diario"},{id:"mayor",l:"Libro Mayor"},{id:"lcompras",l:"Libro de Compras"},{id:"lventas",l:"Libro de Ventas"},{id:"auxiliar",l:"Auxiliares"}]},
+  {g:"Libros",items:[{id:"diario",l:"Libro Diario"},{id:"mayor",l:"Libro Mayor"},{id:"lcompras",l:"Libro de Compras"},{id:"lventas",l:"Libro de Ventas"},{id:"auxiliar",l:"Auxiliares"},{id:"librocaja",l:"Libro de Caja"}]},
   {g:"Reportes",items:[{id:"resumeniva",l:"Resumen IVA"},{id:"balance",l:"Balance"},{id:"eerr",l:"Estado Resultados"},{id:"b8",l:"8 Columnas"}]},
   {g:"Configuracion",items:[{id:"plan",l:"Plan de Cuentas"}]},
 ];
@@ -808,6 +808,7 @@ function ContabP({eObj,accts,setAccts,entries,setEntries,empEntries,leafAccts,aL
     {tab==="diario"&&<LDiario empEntries={empEntries} accts={accts} eObj={eObj} ccostos={ccostos} irAAsiento={irAAsiento}/>}
     {tab==="mayor"&&<LMayor empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj} irAAsiento={irAAsiento} cuentaInicial={navTarget?.tipo==="cuenta"?navTarget:null}/>}
     {tab==="auxiliar"&&<LibroAuxiliar empEntries={empEntries} eObj={eObj} irAAsiento={irAAsiento}/>}
+    {tab==="librocaja"&&<LibroCaja empEntries={empEntries} accts={accts} eObj={eObj} irAAsiento={irAAsiento}/>}
     {tab==="ccostos"&&<CentrosCosto ccostos={ccostos} setCcostos={setCcostos} eObj={eObj} aLog={aLog}/>}
     {tab==="activos"&&<ActivosFijos activos={activos} setActivos={setActivos} empEntries={empEntries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} aLog={aLog}/>}
     {tab==="resumeniva"&&<ResumenIVA empEntries={empEntries} eObj={eObj}/>}
@@ -1232,6 +1233,85 @@ function LDiario({empEntries,accts,eObj,ccostos,irAAsiento}){
       </tr>))}
         <tr style={{borderTop:"2px solid var(--bd2)",background:"var(--sf2)",fontWeight:700}}><td colSpan={4} style={{padding:"10px 12px",textAlign:"right",fontSize:11,textTransform:"uppercase",letterSpacing:1}}>Totales</td><td style={{padding:"10px 12px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(tD)}</td><td style={{padding:"10px 12px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(tC)}</td></tr>
       </tbody></table></div>
+  </div>);
+}
+
+// Libro de Caja + Libro de Ingresos y Egresos (regimen Pro Pyme
+// Transparente, 14 D N8): a diferencia de los demas libros, que son base
+// devengada, este es base CAJA -- solo lo que efectivamente entro o salio
+// de las cuentas de Disponible (1.1.01.x: Caja y Bancos). El resultado
+// tributario de este regimen es justo Ingresos - Egresos percibidos.
+function LibroCaja({empEntries,accts,eObj,irAAsiento}){
+  const cuentasCaja=useMemo(()=>accts.filter(a=>a.cd.startsWith("1.1.01.")),[accts]);
+  const [filtroCuenta,setFiltroCuenta]=useState("todas");
+  const [filtroAno,setFiltroAno]=useState("todos");
+  const [filtroMes,setFiltroMes]=useState("todos");
+
+  const movimientos=useMemo(()=>{
+    const cajaSet=new Set(cuentasCaja.map(c=>c.cd));
+    const rows=[];
+    [...empEntries].sort((a,b)=>a.date.localeCompare(b.date)||a.num.localeCompare(b.num)).forEach(e=>{
+      e.lines.forEach(l=>{
+        if(!cajaSet.has(l.ac))return;
+        if(!(l.db>0)&&!(l.cr>0))return;
+        rows.push({entryId:e.id,date:e.date,num:e.num,desc:e.desc,cuenta:l.ac,ingreso:l.db||0,egreso:l.cr||0});
+      });
+    });
+    let saldo=0;
+    return rows.map(r=>{saldo+=r.ingreso-r.egreso;return{...r,saldo}});
+  },[empEntries,cuentasCaja]);
+
+  const anos=useMemo(()=>[...new Set(movimientos.map(m=>m.date.slice(0,4)))].sort((a,b)=>b.localeCompare(a)),[movimientos]);
+  const visibles=useMemo(()=>movimientos.filter(m=>
+    (filtroCuenta==="todas"||m.cuenta===filtroCuenta)&&
+    (filtroAno==="todos"||m.date.slice(0,4)===filtroAno)&&
+    (filtroMes==="todos"||m.date.slice(5,7)===filtroMes)
+  ),[movimientos,filtroCuenta,filtroAno,filtroMes]);
+
+  const am=useMemo(()=>Object.fromEntries(accts.map(a=>[a.cd,a.nm])),[accts]);
+  const totIngresos=visibles.reduce((s,m)=>s+m.ingreso,0);
+  const totEgresos=visibles.reduce((s,m)=>s+m.egreso,0);
+  const resultado=totIngresos-totEgresos;
+  const saldoFinal=visibles.length>0?visibles[visibles.length-1].saldo:(movimientos.length>0?movimientos[movimientos.length-1].saldo:0);
+
+  if(cuentasCaja.length===0)return<Ey i="💰" t="Sin cuentas de Caja/Banco" d="No hay cuentas bajo 1.1.01 (Disponible) en el plan de cuentas."/>;
+  if(!empEntries.length)return<Ey i="💰" t="Sin movimientos" d="Registra asientos que toquen Caja o Banco para ver este libro."/>;
+
+  return(<div className="report" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden"}}>
+    <ReportHeader eObj={eObj} title="Libro de Caja / Ingresos y Egresos" subtitle="Base caja -- regimen Pro Pyme Transparente"/>
+    <div className="no-print" style={{padding:"16px 20px",borderBottom:"1px solid var(--bd)",background:"var(--sf2)",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+      <span style={{fontSize:13,fontWeight:600}}>Libro de Caja</span>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        <select value={filtroCuenta} onChange={e=>setFiltroCuenta(e.target.value)} style={{fontSize:11,padding:"6px 10px",maxWidth:200}}><option value="todas">Todas las cuentas</option>{cuentasCaja.map(c=><option key={c.cd} value={c.cd}>{c.nm}</option>)}</select>
+        <select value={filtroAno} onChange={e=>setFiltroAno(e.target.value)} style={{fontSize:11,padding:"6px 10px"}}><option value="todos">Todos los años</option>{anos.map(a=><option key={a} value={a}>{a}</option>)}</select>
+        <select value={filtroMes} onChange={e=>setFiltroMes(e.target.value)} style={{fontSize:11,padding:"6px 10px"}}><option value="todos">Todos los meses</option>{MESES.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select>
+        <BtnCSV onClick={()=>{
+          const rows=[["Fecha","N Asiento","Cuenta","Glosa","Ingreso","Egreso","Saldo"]];
+          visibles.forEach(m=>rows.push([fD(m.date),m.num,am[m.cuenta]||m.cuenta,m.desc,m.ingreso||0,m.egreso||0,m.saldo]));
+          rows.push(["","","","Totales",totIngresos,totEgresos,saldoFinal]);
+          descargarCSV("libro_caja.csv",rows);
+        }}/>
+      </div>
+    </div>
+    <div style={{padding:"16px 20px",display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12,borderBottom:"1px solid var(--bd)"}}>
+      <div><div style={{fontSize:10,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:4}}>Ingresos del periodo</div><div style={{fontSize:18,fontWeight:700,color:"var(--gn)",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(totIngresos)}</div></div>
+      <div><div style={{fontSize:10,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:4}}>Egresos del periodo</div><div style={{fontSize:18,fontWeight:700,color:"var(--rd)",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(totEgresos)}</div></div>
+      <div><div style={{fontSize:10,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:4}}>Resultado (base tributaria)</div><div style={{fontSize:18,fontWeight:700,color:resultado>=0?"var(--gn)":"var(--rd)",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(resultado)}</div></div>
+      <div><div style={{fontSize:10,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:4}}>Saldo en caja/banco</div><div style={{fontSize:18,fontWeight:700,color:"var(--cy)",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(saldoFinal)}</div></div>
+    </div>
+    {visibles.length===0?<div style={{padding:40,textAlign:"center",fontSize:12,color:"var(--tx3)"}}>Sin movimientos con estos filtros.</div>:
+    <div style={{overflowX:"auto"}}><table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}><thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:10,color:"var(--tx3)",background:"var(--sf2)"}}><th style={{textAlign:"left",padding:"8px 12px",fontWeight:500}}>Fecha</th><th style={{textAlign:"left",padding:"8px 4px",fontWeight:500}}>N</th><th style={{textAlign:"left",padding:"8px 4px",fontWeight:500}}>Cuenta</th><th style={{textAlign:"left",padding:"8px 4px",fontWeight:500}}>Glosa</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Ingreso</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Egreso</th><th style={{textAlign:"right",padding:"8px 12px",fontWeight:500}}>Saldo</th></tr></thead>
+      <tbody>{visibles.map((m,i)=><tr key={m.entryId+"-"+i} onClick={()=>irAAsiento?.(m.entryId)} title="Ver asiento" style={{borderBottom:"1px solid var(--bd)",cursor:irAAsiento?"pointer":"default"}}>
+        <td style={{padding:"6px 12px",fontSize:11}}>{fD(m.date)}</td>
+        <td style={{padding:"6px 4px",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontSize:10}}>{m.num}</td>
+        <td style={{padding:"6px 4px",fontSize:11,color:"var(--tx3)"}}>{am[m.cuenta]||m.cuenta}</td>
+        <td style={{padding:"6px 4px"}}>{m.desc}</td>
+        <td style={{padding:"6px 12px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:"var(--gn)"}}>{m.ingreso>0?"$"+fmt(m.ingreso):""}</td>
+        <td style={{padding:"6px 12px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:"var(--rd)"}}>{m.egreso>0?"$"+fmt(m.egreso):""}</td>
+        <td style={{padding:"6px 12px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontWeight:600}}>${fmt(m.saldo)}</td>
+      </tr>)}
+        <tr style={{borderTop:"2px solid var(--bd2)",background:"var(--sf2)",fontWeight:700}}><td colSpan={4} style={{padding:"10px 12px",textAlign:"right",fontSize:11,textTransform:"uppercase",letterSpacing:1}}>Totales</td><td style={{padding:"10px 12px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:"var(--gn)"}}>${fmt(totIngresos)}</td><td style={{padding:"10px 12px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:"var(--rd)"}}>${fmt(totEgresos)}</td><td style={{padding:"10px 12px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(saldoFinal)}</td></tr>
+      </tbody></table></div>}
   </div>);
 }
 
