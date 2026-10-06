@@ -2249,6 +2249,8 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
   const [tid,setTid]=useState(null);
   const [tfm,setTfm]=useState({});
   const [afm,setAfm]=useState(null);
+  const [buscarT,setBuscarT]=useState("");
+  const [buscarL,setBuscarL]=useState("");
   const [ftab,setFtab]=useState("resumen");
   const [periodoSel,setPeriodoSel]=useState(null);
   const ESTADOS_PROCESO=[{id:"iniciado",l:"Iniciado",c:"var(--tx3)",bg:"var(--sf2)"},{id:"revision",l:"En Revision",c:"#92400E",bg:"rgba(180,83,9,.14)"},{id:"pagado",l:"Pagado",c:"#1B4D2E",bg:"var(--cy-fill)"}];
@@ -2630,6 +2632,9 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
   if(vw==="trabajadores"){
     const activosN=empTrabajadores.filter(t=>t.activo!==false).length;
     const nominaBase=empTrabajadores.filter(t=>t.activo!==false).reduce((s,t)=>s+(t.sueldoBase||0),0);
+    const q=buscarT.trim().toLowerCase();
+    const qRut=q.replace(/[.\-]/g,"");
+    const trabajadoresFiltrados=!q?empTrabajadores:empTrabajadores.filter(t=>(t.nombre+" "+(t.apellido||"")).toLowerCase().includes(q)||(t.rut&&normRut(t.rut).includes(qRut)));
     return(<div style={{maxWidth:900,margin:"0 auto"}}>
     <div style={{display:"flex",flexWrap:"wrap",gap:12,marginBottom:20,alignItems:"center",justifyContent:"space-between"}}>
       <div style={{display:"flex",alignItems:"center",gap:12}}>
@@ -2642,8 +2647,13 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
       <div className="rd-hover-lift rd-tilt" style={{"--tilt":"-1deg","--tilty":"4px",background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4,fontWeight:600}}>Nomina activa</div><div style={{fontSize:22,fontWeight:800,letterSpacing:-.3,lineHeight:1.2}}>{activosN}</div></div>
       <div className="rd-hover-lift rd-tilt" style={{"--tilt":"1deg","--tilty":"-5px",background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4,fontWeight:600}}>Sueldos base (activos)</div><div style={{fontSize:20,fontWeight:800,letterSpacing:-.3,lineHeight:1.2,color:"var(--gn)"}}>${fmt(nominaBase)}</div></div>
     </div>}
+    {empTrabajadores.length>0&&<div style={{position:"relative",marginBottom:16}}>
+      <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",color:"var(--tx3)",pointerEvents:"none"}}>{IC.search}</span>
+      <input value={buscarT} onChange={e=>setBuscarT(e.target.value)} placeholder="Buscar por nombre o RUT..." style={{paddingLeft:38}}/>
+    </div>}
     {empTrabajadores.length===0?<Ey i="👥" t="Sin trabajadores" d="Crea la ficha de tu primer trabajador."><Bt onClick={openNewT} p={true}>Crear trabajador</Bt></Ey>
-    :<div style={{display:"flex",flexDirection:"column",gap:8}}>{empTrabajadores.map(t=><div key={t.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16,cursor:"pointer",opacity:t.activo===false?.55:1}} onClick={()=>openEditT(t)}>
+    :trabajadoresFiltrados.length===0?<Ey i="🔍" t="Sin resultados" d="Ningun trabajador coincide con la busqueda."/>
+    :<div style={{display:"flex",flexDirection:"column",gap:8}}>{trabajadoresFiltrados.map(t=><div key={t.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16,cursor:"pointer",opacity:t.activo===false?.55:1}} onClick={()=>openEditT(t)}>
       <div style={{width:40,height:40,borderRadius:10,background:t.activo===false?"var(--sf2)":"var(--cy-fill)",border:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:t.activo===false?"var(--tx2)":"#1B4D2E",flexShrink:0}}>{(t.nombre||"?").slice(0,2).toUpperCase()}</div>
       <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:600}}>{t.nombre} {t.apellido}</div><div style={{fontSize:11,color:"var(--tx3)"}}>{t.cargo||"Sin cargo"} · {t.rut}{t.activo===false?" · Inactivo":""}</div></div>
       <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(t.sueldoBase||0)}</div><div style={{fontSize:10,color:"var(--tx3)"}}>Sueldo base</div></div>
@@ -2755,9 +2765,18 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
       })}
     </div>}
 
+    {empRems.length>0&&<div style={{position:"relative",marginBottom:20}}>
+      <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",color:"var(--tx3)",pointerEvents:"none"}}>{IC.search}</span>
+      <input value={buscarL} onChange={e=>setBuscarL(e.target.value)} placeholder="Buscar liquidacion por nombre o RUT..." style={{paddingLeft:38}}/>
+    </div>}
     {empRems.length===0?<Ey i="👥" t="Sin liquidaciones" d="Crea tu primera liquidacion de sueldo."><Bt onClick={openNew} p={true}>Crear liquidacion</Bt></Ey>
-    :periodos.map(p=>{
-      const rowsP=empRems.filter(r=>r.periodo===p);
+    :(()=>{
+      const qL=buscarL.trim().toLowerCase();const qLRut=qL.replace(/[.\-]/g,"");
+      const matchL=r=>!qL||(r.nombre||"").toLowerCase().includes(qL)||(r.rut&&normRut(r.rut).includes(qLRut));
+      const periodosConMatch=periodos.filter(p=>empRems.some(r=>r.periodo===p&&matchL(r)));
+      if(periodosConMatch.length===0)return<Ey i="🔍" t="Sin resultados" d="Ninguna liquidacion coincide con la busqueda."/>;
+      return periodosConMatch.map(p=>{
+      const rowsP=empRems.filter(r=>r.periodo===p&&matchL(r));
       const totP=rowsP.reduce((s,r)=>s+(r.liquido||0),0);
       const esActual=p===periodoActual;
       return(<div key={p} style={{marginBottom:20}}>
@@ -2773,7 +2792,8 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
           <button onClick={e=>{e.stopPropagation();doDel(r.id)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5,padding:4}}>x</button>
         </div>)}</div>
       </div>);
-    })}
+    });
+    })()}
   </div>);
 }
 
