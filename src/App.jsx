@@ -45,6 +45,17 @@ button:active:not(:disabled){transform:scale(.97)}
 .rd-tilt:hover{transform:rotate(0deg) translateY(-5px) scale(1.015)!important;z-index:5}
 @media (max-width:640px){.rd-tilt{--tilt:0deg;--tilty:0px}}
 @media (prefers-reduced-motion: reduce){.rd-tilt:hover{transform:rotate(0deg)!important}}
+/* Dialogo propio (confirm/alert) -- el overlay se desvanece, la tarjeta
+   "materializa" con una leve escala (como una superficie real llegando,
+   no solo un fade) -- la regla reduced-motion global de arriba ya anula
+   ambas animaciones para quien lo prefiera. */
+@keyframes rd-dlg-fade{from{opacity:0}to{opacity:1}}
+@keyframes rd-dlg-pop{from{opacity:0;transform:scale(.96) translateY(6px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.rd-dlg-overlay{animation:rd-dlg-fade .15s ease-out}
+.rd-dlg-card{animation:rd-dlg-pop .18s cubic-bezier(.2,.8,.2,1)}
+/* Mismo "materializar" para menus desplegables que se abren/cierran --
+   crecen desde arriba (de donde salieron) en vez de aparecer de golpe. */
+.rd-pop-in{animation:rd-dlg-pop .15s cubic-bezier(.2,.8,.2,1);transform-origin:top}
 .rpt-print-head{display:none}
 /* El look formal (papel blanco, encabezado tipo carta) solo se ve al
    exportar a PDF -- en pantalla los reportes se quedan con el tema
@@ -90,6 +101,44 @@ const IC={
   edit:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{width:16,height:16}}><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
   contab:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{width:20,height:20}}><path d="M9 7h6m-6 4h6m-6 4h4M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"/></svg>,
 };
+
+// ═══ DIALOGOS PROPIOS (reemplazan confirm()/alert() nativos del navegador) ═══
+// Un confirm()/alert() nativo se ve como un cuadro de Windows/Chrome, bloquea
+// sin poder interrumpirse y no tiene nada que ver con el diseño de RADAR --
+// esto lo reemplaza por una tarjeta propia, consistente con el resto de la
+// app. rdConfirm/rdAlert son funciones de modulo (no hooks) para poder
+// llamarlas desde cualquier parte sin pasar props; DialogHost se monta una
+// sola vez en la raiz y escucha esas llamadas.
+let _dialogSet=null;
+function rdConfirm(mensaje,opts){
+  const okLabel=opts?.okLabel||"Eliminar";
+  const destructivo=opts?.destructivo!==false;
+  return new Promise(resolve=>{
+    if(_dialogSet)_dialogSet({tipo:"confirm",mensaje,okLabel,destructivo,resolve});
+    else resolve(window.confirm(mensaje));
+  });
+}
+function rdAlert(mensaje){
+  return new Promise(resolve=>{
+    if(_dialogSet)_dialogSet({tipo:"alert",mensaje,resolve});
+    else{window.alert(mensaje);resolve()}
+  });
+}
+function DialogHost(){
+  const[dlg,setDlg]=useState(null);
+  useEffect(()=>{_dialogSet=setDlg;return()=>{_dialogSet=null}},[]);
+  if(!dlg)return null;
+  const close=r=>{dlg.resolve?.(r);setDlg(null)};
+  return(<div className="rd-dlg-overlay" onClick={()=>dlg.tipo==="confirm"&&close(false)} style={{position:"fixed",inset:0,zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(27,77,46,.3)",backdropFilter:"blur(3px)",padding:20}}>
+    <div className="rd-dlg-card" onClick={e=>e.stopPropagation()} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:24,maxWidth:380,width:"100%"}}>
+      <div style={{fontSize:13,color:"var(--tx)",lineHeight:1.6,marginBottom:22,whiteSpace:"pre-wrap"}}>{dlg.mensaje}</div>
+      <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
+        {dlg.tipo==="confirm"&&<button onClick={()=>close(false)} style={{padding:"10px 20px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx2)",fontSize:13,fontWeight:600,cursor:"pointer"}}>Cancelar</button>}
+        <button onClick={()=>close(true)} style={{padding:"10px 20px",borderRadius:"var(--rs)",border:dlg.tipo==="confirm"&&dlg.destructivo?"1px solid var(--rd)":"none",background:dlg.tipo==="confirm"&&dlg.destructivo?"transparent":"var(--cy-fill)",color:dlg.tipo==="confirm"&&dlg.destructivo?"var(--rd)":"#1B4D2E",fontSize:13,fontWeight:600,cursor:"pointer"}}>{dlg.tipo==="confirm"?dlg.okLabel:"Entendido"}</button>
+      </div>
+    </div>
+  </div>);
+}
 
 // Default Chart of Accounts (Chilean NIIF - 4 Niveles: Clase / Grupo / Clasificacion / Cuenta)
 const DFLT_ACCTS=[
@@ -311,7 +360,7 @@ function Dashboard({session}){
   const nav=[{id:"inicio",label:"Inicio",icon:IC.home},{id:"empresas",label:"Empresas",icon:IC.emp},{id:"radar",label:"RADAR",icon:IC.eval},{id:"contabilidad",label:"Contabilidad",icon:IC.contab},{id:"remuneraciones",label:"Remuneraciones",icon:remIcon},{id:"documentos",label:"Documentos",icon:docIcon},{id:"planificacion",label:"Planificacion",icon:planIcon},{id:"portal",label:"Portal Cliente",icon:portalIcon}];
   const go=p=>{if(!nav.find(n=>n.id===p)?.soon){setPg(p);setSb(false)}};
   if(!rdy)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#EDEAD9"}}><div style={{textAlign:"center",color:"#6B7408"}}><div style={{fontSize:24,fontWeight:800,letterSpacing:6,fontFamily:"'Fraunces',Georgia,serif"}}>RADAR</div><div style={{fontSize:12,color:"#7A7868",marginTop:8}}>Cargando...</div></div></div>;
-  return(<><style>{ST}</style><div style={{display:"flex",height:"100vh",overflow:"hidden",background:"var(--bg)"}}>
+  return(<><style>{ST}</style><DialogHost/><div style={{display:"flex",height:"100vh",overflow:"hidden",background:"var(--bg)"}}>
     {sb&&<div onClick={()=>setSb(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:40}}/>}
     <aside className="rsb rd-glass" style={{position:"fixed",zIndex:50,top:0,bottom:0,left:0,width:260,borderRight:"1px solid var(--bd)",display:"flex",flexDirection:"column",transform:sb?"translateX(0)":"translateX(-100%)",transition:"transform .25s"}}>
       <div style={{padding:"24px 20px 20px",borderBottom:"1px solid var(--bd)"}}><div style={{display:"flex",alignItems:"center",gap:12}}><div style={{color:"var(--cy)"}}>{IC.radar}</div><div><div style={{fontSize:18,fontWeight:800,letterSpacing:4,color:"var(--cy)",fontFamily:"'Fraunces',Georgia,serif"}}>RADAR</div><div style={{fontSize:10,color:"var(--tx3)",letterSpacing:1}}>INTELIGENCIA EMPRESARIAL</div></div></div></div>
@@ -537,7 +586,7 @@ function EmpP({emps,setEmps,aEmp,setAEmp,aLog}){
     <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28,marginBottom:16}}><div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap",gap:16}}><div><div style={{fontSize:22,fontWeight:700,letterSpacing:-.3,lineHeight:1.15}}>{det.name}</div><div style={{fontSize:12,color:"var(--tx3)",marginTop:4}}>{det.rut}</div></div><div style={{display:"flex",gap:8}}><Bt onClick={()=>{setFm({...mt(),...det});setEid(det.id);setVw("form")}}>{IC.edit} Editar</Bt><Bt onClick={()=>{setAEmp(det.id);aLog("Empresa activada",det.name)}} p={det.id!==aEmp}>{det.id===aEmp?"Activa":"Activar"}</Bt></div></div>
       <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:20}}>{(det.services||[]).map(s=>{const sv=SVCS.find(x=>x.id===s);return sv?<Tg key={s} c={sv.color}>{sv.icon} {sv.label}</Tg>:null})}</div></div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:16}}><IC2 t="General" items={[{l:"Giro",v:det.giro},{l:"Regimen",v:det.regimen},{l:"Inicio Act.",v:det.fechaInicioAct}]}/><IC2 t="Contacto" items={[{l:"Direccion",v:det.address},{l:"Region/Comuna",v:[det.region,det.comuna].filter(Boolean).join(", ")},{l:"Telefono",v:det.phone},{l:"Email",v:det.email}]}/><IC2 t="Rep. Legal" items={[{l:"Nombre",v:det.repLegalName},{l:"RUT",v:det.repLegalRut}]}/></div>
-    <div style={{marginTop:24,padding:"16px 20px",borderRadius:"var(--rs)",border:"1px solid rgba(239,68,68,.2)",background:"rgba(239,68,68,.05)",display:"flex",alignItems:"center",justifyContent:"space-between"}}><div style={{fontSize:12,fontWeight:600,color:"var(--rd)"}}>Eliminar empresa</div><button onClick={()=>{if(confirm("Eliminar?"))doDel(det.id)}} style={{background:"transparent",border:"1px solid var(--rd)",color:"var(--rd)",borderRadius:"var(--rs)",padding:"6px 16px",fontSize:12}}>Eliminar</button></div>
+    <div style={{marginTop:24,padding:"16px 20px",borderRadius:"var(--rs)",border:"1px solid rgba(239,68,68,.2)",background:"rgba(239,68,68,.05)",display:"flex",alignItems:"center",justifyContent:"space-between"}}><div style={{fontSize:12,fontWeight:600,color:"var(--rd)"}}>Eliminar empresa</div><button onClick={async()=>{if(await rdConfirm("Eliminar esta empresa?"))doDel(det.id)}} style={{background:"transparent",border:"1px solid var(--rd)",color:"var(--rd)",borderRadius:"var(--rs)",padding:"6px 16px",fontSize:12}}>Eliminar</button></div>
   </div>);
   return(<div style={{maxWidth:700,margin:"0 auto"}}><Bk onClick={()=>setVw("list")}>Volver</Bk>
     <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28}}><h2 style={{fontSize:18,fontWeight:700,marginBottom:24}}>{eid?"Editar":"Nueva"} Empresa</h2>
@@ -651,7 +700,7 @@ function F22V({ev,upd,del,emp,back}){
           <button onClick={genAI} disabled={aiL} style={{display:"flex",alignItems:"center",gap:8,background:aiL?"var(--sf2)":"linear-gradient(135deg, #D4F000, #8FA300)",color:"#1B4D2E",border:"none",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600,cursor:aiL?"wait":"pointer",opacity:aiL?.7:1}}>{aiL?"Generando...":aiR?"Regenerar Informe":"Generar Informe"}</button>
         </div>
         {aiL&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:32,textAlign:"center"}}><div style={{fontSize:28,marginBottom:12,animation:"rpulse 1.5s infinite"}}>🤖</div><div style={{fontSize:14,fontWeight:600,color:"var(--cy)"}}>Analizando evaluacion...</div><div style={{fontSize:12,color:"var(--tx3)",marginTop:4}}>Revisando datos, contingencias y observaciones profesionales.</div></div>}
-        {!aiL&&aiR&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:24}}><div style={{whiteSpace:"pre-wrap",fontSize:13,lineHeight:1.7,color:"var(--tx)"}}>{aiR}</div><div style={{display:"flex",gap:8,marginTop:20,paddingTop:16,borderTop:"1px solid var(--bd)"}}><button onClick={()=>{navigator.clipboard.writeText(aiR);alert("Copiado!")}} style={{display:"flex",alignItems:"center",gap:6,background:"var(--sf)",border:"1px solid var(--bd)",color:"var(--tx2)",padding:"8px 16px",borderRadius:"var(--rs)",fontSize:12}}>Copiar informe</button><button onClick={genAI} style={{display:"flex",alignItems:"center",gap:6,background:"var(--sf)",border:"1px solid var(--bd)",color:"var(--tx2)",padding:"8px 16px",borderRadius:"var(--rs)",fontSize:12}}>Regenerar</button></div></div>}
+        {!aiL&&aiR&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:24}}><div style={{whiteSpace:"pre-wrap",fontSize:13,lineHeight:1.7,color:"var(--tx)"}}>{aiR}</div><div style={{display:"flex",gap:8,marginTop:20,paddingTop:16,borderTop:"1px solid var(--bd)"}}><button onClick={()=>{navigator.clipboard.writeText(aiR);rdAlert("Copiado!")}} style={{display:"flex",alignItems:"center",gap:6,background:"var(--sf)",border:"1px solid var(--bd)",color:"var(--tx2)",padding:"8px 16px",borderRadius:"var(--rs)",fontSize:12}}>Copiar informe</button><button onClick={genAI} style={{display:"flex",alignItems:"center",gap:6,background:"var(--sf)",border:"1px solid var(--bd)",color:"var(--tx2)",padding:"8px 16px",borderRadius:"var(--rs)",fontSize:12}}>Regenerar</button></div></div>}
       </div>
     </div></div>);
 
@@ -666,7 +715,7 @@ function F22V({ev,upd,del,emp,back}){
       {q.type==="number"&&<input type="number" value={r[q.id]||""} onChange={e=>setR(q.id,e.target.value)} placeholder="0" style={{background:"var(--sf2)",maxWidth:250}}/>}
       {q.type==="textarea"&&<textarea value={r[q.id]||""} onChange={e=>setR(q.id,e.target.value)} placeholder={q.ph||"Escriba aqui..."} style={{background:"var(--sf2)"}}/>}
     </div>)}</div>
-    <div style={{marginTop:32,padding:"16px 20px",borderRadius:"var(--rs)",border:"1px solid rgba(239,68,68,.2)",background:"rgba(239,68,68,.05)",display:"flex",alignItems:"center",justifyContent:"space-between"}}><div style={{fontSize:12,fontWeight:600,color:"var(--rd)"}}>Eliminar evaluacion</div><button onClick={()=>{if(confirm("Eliminar?"))del()}} style={{background:"transparent",border:"1px solid var(--rd)",color:"var(--rd)",borderRadius:"var(--rs)",padding:"6px 16px",fontSize:12}}>Eliminar</button></div>
+    <div style={{marginTop:32,padding:"16px 20px",borderRadius:"var(--rs)",border:"1px solid rgba(239,68,68,.2)",background:"rgba(239,68,68,.05)",display:"flex",alignItems:"center",justifyContent:"space-between"}}><div style={{fontSize:12,fontWeight:600,color:"var(--rd)"}}>Eliminar evaluacion</div><button onClick={async()=>{if(await rdConfirm("Eliminar esta evaluacion?"))del()}} style={{background:"transparent",border:"1px solid var(--rd)",color:"var(--rd)",borderRadius:"var(--rs)",padding:"6px 16px",fontSize:12}}>Eliminar</button></div>
   </div>);
 }
 
@@ -741,7 +790,7 @@ function ContabP({eObj,accts,setAccts,entries,setEntries,empEntries,leafAccts,aL
           <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{width:11,height:11,transform:activo?"rotate(180deg)":"none",transition:"transform .15s ease",flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
         </button>);
       })}</div>
-      {openGrp&&<div style={{display:"flex",gap:6,flexWrap:"wrap",background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:10}}>
+      {openGrp&&<div key={openGrp} className="rd-pop-in" style={{display:"flex",gap:6,flexWrap:"wrap",background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:10}}>
         {CONTAB_TAB_GROUPS.find(g=>g.g===openGrp)?.items.map(t=>{
           const lbl=t.id==="porclasificar"&&porClasificarN>0?t.l+" ("+porClasificarN+")":t.l;
           return(<button key={t.id} onClick={()=>setTab(t.id)} style={{padding:"8px 16px",borderRadius:"var(--rs)",border:"none",fontSize:12,fontWeight:tab===t.id?700:500,background:tab===t.id?"var(--sf)":"transparent",color:tab===t.id?"var(--cy)":"var(--tx2)",cursor:"pointer"}}><span style={{position:"relative"}}>{lbl}{tab===t.id&&<svg aria-hidden viewBox="0 0 100 8" preserveAspectRatio="none" style={{position:"absolute",left:0,bottom:-6,width:"100%",height:6,overflow:"visible"}}><path d="M0,5 C10,0 20,0 30,5 C40,10 50,10 60,5 C70,0 80,0 90,5 C95,7.5 98,6 100,5" fill="none" stroke="var(--cy)" strokeWidth="1.6" strokeLinecap="round"/></svg>}</span></button>);
@@ -776,8 +825,8 @@ function CentrosCosto({ccostos,setCcostos,eObj,aLog}){
     aLog("Centro de costo creado",nombre.trim());
     setNombre("");
   };
-  const eliminar=(id,nom)=>{
-    if(!confirm('Eliminar "'+nom+'"? Los asientos que lo usaban quedaran sin centro de costo asignado.'))return;
+  const eliminar=async(id,nom)=>{
+    if(!await rdConfirm('Eliminar "'+nom+'"? Los asientos que lo usaban quedaran sin centro de costo asignado.'))return;
     setCcostos(p=>p.filter(c=>c.id!==id));
   };
   return(<div>
@@ -816,8 +865,8 @@ function ActivosFijos({activos,setActivos,empEntries,setEntries,leafAccts,eObj,a
     aLog("Activo fijo creado",fm.nombre);
     setFm(blankFm());setShowF(false);
   };
-  const eliminar=(id,nombre)=>{
-    if(!confirm('Eliminar "'+nombre+'"? Esto no elimina los asientos de depreciacion ya generados.'))return;
+  const eliminar=async(id,nombre)=>{
+    if(!await rdConfirm('Eliminar "'+nombre+'"? Esto no elimina los asientos de depreciacion ya generados.'))return;
     setActivos(p=>p.filter(a=>a.id!==id));
   };
 
@@ -994,10 +1043,10 @@ function PlanCtas({accts,setAccts,aLog}){
   const [na,setNa]=useState({cd:"",nm:"",tp:"asset",lv:4});
   const [editNm,setEditNm]=useState("");
   const isLeaf=cd=>!accts.some(b=>b.cd!==cd&&b.cd.startsWith(cd+"."));
-  const addA=()=>{if(!na.cd||!na.nm)return;if(accts.find(a=>a.cd===na.cd)){alert("Codigo ya existe");return}setAccts(p=>[...p,{...na}].sort((a,b)=>a.cd.localeCompare(b.cd)));setNa({cd:"",nm:"",tp:"asset",lv:4});setShowAdd(false);aLog("Cuenta agregada",na.cd+" - "+na.nm)};
-  const delA=cd=>{if(!isLeaf(cd)){alert("No se puede eliminar: tiene subcuentas");return}setAccts(p=>p.filter(a=>a.cd!==cd));aLog("Cuenta eliminada",cd)};
+  const addA=()=>{if(!na.cd||!na.nm)return;if(accts.find(a=>a.cd===na.cd)){rdAlert("Codigo ya existe");return}setAccts(p=>[...p,{...na}].sort((a,b)=>a.cd.localeCompare(b.cd)));setNa({cd:"",nm:"",tp:"asset",lv:4});setShowAdd(false);aLog("Cuenta agregada",na.cd+" - "+na.nm)};
+  const delA=cd=>{if(!isLeaf(cd)){rdAlert("No se puede eliminar: tiene subcuentas");return}setAccts(p=>p.filter(a=>a.cd!==cd));aLog("Cuenta eliminada",cd)};
   const saveEdit=()=>{if(!editNm.trim())return;setAccts(p=>p.map(a=>a.cd===editCd?{...a,nm:editNm}:a));aLog("Cuenta editada",editCd);setEditCd(null)};
-  const reset=()=>{if(confirm("Restaurar plan por defecto? Se perderan las cuentas personalizadas."))setAccts(DFLT_ACCTS)};
+  const reset=async()=>{if(await rdConfirm("Restaurar plan por defecto? Se perderan las cuentas personalizadas.",{okLabel:"Restaurar"}))setAccts(DFLT_ACCTS)};
   const lvPad={1:8,2:24,3:40,4:56};
   const lvWeight={1:700,2:600,3:500,4:400};
   const lvSize={1:13,2:12,3:12,4:11};
@@ -1071,7 +1120,7 @@ function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog,ccostos,res
   const openEdit=e=>{setFm({date:e.date,desc:e.desc,tipo:e.tipo||"traspaso",centroCosto:e.centroCosto||"",recurrente:!!e.recurrente,lines:e.lines.map(l=>({ac:l.ac,db:l.db||0,cr:l.cr||0}))});setEditId(e.id);setShowF(true)};
   const doSave=()=>{
     if(!fm.desc||!bal)return;
-    if(fm.lines.some(l=>!l.ac)){alert("Selecciona cuenta en todas las lineas");return}
+    if(fm.lines.some(l=>!l.ac)){rdAlert("Selecciona cuenta en todas las lineas");return}
     const lines=fm.lines.filter(l=>l.db>0||l.cr>0);
     if(editId){setEntries(p=>p.map(e=>e.id===editId?{...e,date:fm.date,desc:fm.desc,tipo:fm.tipo,centroCosto:fm.centroCosto||null,recurrente:fm.recurrente,lines}:e));aLog("Asiento editado",fm.desc)}
     else{const e={id:uid(),empresaId:eObj.id,num:nxt,date:fm.date,desc:fm.desc,tipo:fm.tipo,origen:"manual",centroCosto:fm.centroCosto||null,recurrente:fm.recurrente,lines};setEntries(p=>[...p,e]);aLog("Asiento "+nxt,fm.desc)}
@@ -1093,7 +1142,7 @@ function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog,ccostos,res
     empEntries.forEach(e=>{if(e.recurrenteOrigenId&&e.date.slice(0,7)===mesActual)set.add(e.recurrenteOrigenId)});
     return set;
   },[empEntries,mesActual]);
-  const handleCSV=ev=>{const f=ev.target.files?.[0];if(!f)return;const rd=new FileReader();rd.onload=e=>{try{const rows=e.target.result.split("\n").filter(r=>r.trim()).slice(1);const imp=[];let cur=null;let n=parseInt(nxt);rows.forEach(row=>{const c=row.split(/[,;\t]/).map(x=>x.trim().replace(/^"|"$/g,""));if(c.length>=5){const[dt,gl,ct,dStr,hStr]=c;const db=parseFloat(dStr)||0;const cr=parseFloat(hStr)||0;const ac=leafAccts.find(a=>a.cd===ct||a.nm.toLowerCase().includes(ct.toLowerCase()));if(!cur||cur.desc!==gl||cur.date!==dt){if(cur&&cur.lines.length>0)imp.push(cur);cur={id:uid(),empresaId:eObj.id,num:String(n++).padStart(4,"0"),date:dt||new Date().toISOString().slice(0,10),desc:gl,origen:"csv",lines:[]}}if(ac)cur.lines.push({ac:ac.cd,db,cr})}});if(cur&&cur.lines.length>0)imp.push(cur);if(imp.length>0){setEntries(p=>[...p,...imp]);aLog("CSV importado",imp.length+" asientos");alert(imp.length+" asiento(s) importado(s)")}else alert("No se importaron asientos. Verifica formato: Fecha,Glosa,Cuenta,Debe,Haber")}catch(err){alert("Error: "+err.message)}};rd.readAsText(f);ev.target.value=""};
+  const handleCSV=ev=>{const f=ev.target.files?.[0];if(!f)return;const rd=new FileReader();rd.onload=e=>{try{const rows=e.target.result.split("\n").filter(r=>r.trim()).slice(1);const imp=[];let cur=null;let n=parseInt(nxt);rows.forEach(row=>{const c=row.split(/[,;\t]/).map(x=>x.trim().replace(/^"|"$/g,""));if(c.length>=5){const[dt,gl,ct,dStr,hStr]=c;const db=parseFloat(dStr)||0;const cr=parseFloat(hStr)||0;const ac=leafAccts.find(a=>a.cd===ct||a.nm.toLowerCase().includes(ct.toLowerCase()));if(!cur||cur.desc!==gl||cur.date!==dt){if(cur&&cur.lines.length>0)imp.push(cur);cur={id:uid(),empresaId:eObj.id,num:String(n++).padStart(4,"0"),date:dt||new Date().toISOString().slice(0,10),desc:gl,origen:"csv",lines:[]}}if(ac)cur.lines.push({ac:ac.cd,db,cr})}});if(cur&&cur.lines.length>0)imp.push(cur);if(imp.length>0){setEntries(p=>[...p,...imp]);aLog("CSV importado",imp.length+" asientos");rdAlert(imp.length+" asiento(s) importado(s)")}else rdAlert("No se importaron asientos. Verifica formato: Fecha,Glosa,Cuenta,Debe,Haber")}catch(err){rdAlert("Error: "+err.message)}};rd.readAsText(f);ev.target.value=""};
 
   return(<div>
     <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:16,justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:12,color:"var(--tx3)"}}>{empEntries.length} asientos</span><div style={{display:"flex",gap:8}}><label style={{display:"flex",alignItems:"center",gap:8,background:"var(--sf2)",color:"var(--tx2)",border:"1px solid var(--bd)",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,cursor:"pointer"}}>CSV<input type="file" accept=".csv,.txt" onChange={handleCSV} style={{display:"none"}}/></label><Bt onClick={()=>showF?setShowF(false):openNew()} p={true}>{IC.plus} Nuevo Asiento</Bt></div></div>
@@ -1141,7 +1190,7 @@ function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog,ccostos,res
       <span style={{fontSize:11,color:"var(--tx3)",marginLeft:"auto",alignSelf:"center"}}>{entriesFiltradas.length} de {empEntries.length} asientos</span>
     </div>
     <div style={{display:"flex",flexDirection:"column",gap:8}}>{[...entriesFiltradas].sort((a,b)=>b.date.localeCompare(a.date)).map(e=><div key={e.id} id={"asiento-"+e.id} style={{background:"var(--sf)",border:"1px solid "+(resaltadoId===e.id?"var(--am)":editId===e.id?"var(--cy)":"var(--bd)"),boxShadow:resaltadoId===e.id?"0 0 0 3px rgba(251,191,36,.25), var(--shadow)":"var(--shadow)",borderRadius:"var(--r)",padding:16,transition:"box-shadow .3s,border-color .3s"}}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8,flexWrap:"wrap",gap:8}}><div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}><span style={{fontSize:10,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",background:"var(--sf2)",padding:"2px 8px",borderRadius:4}}>N {e.num}</span><span style={{fontSize:13,fontWeight:500}}>{e.desc}</span>{e.tipo&&<span style={{fontSize:10,background:"var(--sf2)",color:"var(--tx2)",padding:"2px 8px",borderRadius:4,border:"1px solid var(--bd)"}}>{TIPOS_COMPROBANTE.find(t=>t.id===e.tipo)?.l}</span>}<span style={{fontSize:10,background:e.origen&&e.origen!=="manual"?"rgba(155,168,136,.15)":"var(--cyg)",color:e.origen&&e.origen!=="manual"?"var(--pu)":"var(--cy2)",padding:"2px 8px",borderRadius:4}}>{ORIGEN_LABELS[e.origen]||"Manual"}</span>{e.centroCosto&&ccNombre[e.centroCosto]&&<span style={{fontSize:10,background:"var(--cyg)",color:"var(--cy)",padding:"2px 8px",borderRadius:4}}>{ccNombre[e.centroCosto]}</span>}{e.recurrente&&<span style={{fontSize:10,background:"rgba(155,168,136,.15)",color:"var(--pu)",padding:"2px 8px",borderRadius:4}}>↻ Recurrente</span>}</div><div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:11,color:"var(--tx3)"}}>{fD(e.date)}</span><button onClick={()=>openEdit(e)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.6,fontSize:11}}>editar</button><button onClick={()=>{if(confirm("Eliminar este asiento?"))delE(e.id)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5}}>x</button></div></div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8,flexWrap:"wrap",gap:8}}><div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}><span style={{fontSize:10,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",background:"var(--sf2)",padding:"2px 8px",borderRadius:4}}>N {e.num}</span><span style={{fontSize:13,fontWeight:500}}>{e.desc}</span>{e.tipo&&<span style={{fontSize:10,background:"var(--sf2)",color:"var(--tx2)",padding:"2px 8px",borderRadius:4,border:"1px solid var(--bd)"}}>{TIPOS_COMPROBANTE.find(t=>t.id===e.tipo)?.l}</span>}<span style={{fontSize:10,background:e.origen&&e.origen!=="manual"?"rgba(155,168,136,.15)":"var(--cyg)",color:e.origen&&e.origen!=="manual"?"var(--pu)":"var(--cy2)",padding:"2px 8px",borderRadius:4}}>{ORIGEN_LABELS[e.origen]||"Manual"}</span>{e.centroCosto&&ccNombre[e.centroCosto]&&<span style={{fontSize:10,background:"var(--cyg)",color:"var(--cy)",padding:"2px 8px",borderRadius:4}}>{ccNombre[e.centroCosto]}</span>}{e.recurrente&&<span style={{fontSize:10,background:"rgba(155,168,136,.15)",color:"var(--pu)",padding:"2px 8px",borderRadius:4}}>↻ Recurrente</span>}</div><div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:11,color:"var(--tx3)"}}>{fD(e.date)}</span><button onClick={()=>openEdit(e)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.6,fontSize:11}}>editar</button><button onClick={async()=>{if(await rdConfirm("Eliminar este asiento?"))delE(e.id)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5}}>x</button></div></div>
       <div style={{fontSize:11}}>{e.lines.map((l,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 80px 80px",gap:8,padding:"2px 0"}}><span style={{color:"var(--tx2)",paddingLeft:l.cr>0?20:0}}>{l.ac} {leafAccts.find(a=>a.cd===l.ac)?.nm||""}</span><span style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{l.db>0?"$"+fmt(l.db):""}</span><span style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{l.cr>0?"$"+fmt(l.cr):""}</span></div>)}</div>
     </div>)}</div>
     {entriesFiltradas.length===0&&empEntries.length>0&&<Ey i="🔍" t="Sin resultados" d="Ningun asiento coincide con los filtros aplicados."/>}
@@ -2399,7 +2448,7 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
     setVw("trabajadores");
   };
   const doDelT=id=>{
-    if(empRems.some(r=>r.trabajadorId===id)){alert("Este trabajador tiene liquidaciones guardadas -- no se puede eliminar su ficha. Si ya no trabaja en la empresa, marcalo como inactivo en vez de eliminarlo.");return}
+    if(empRems.some(r=>r.trabajadorId===id)){rdAlert("Este trabajador tiene liquidaciones guardadas -- no se puede eliminar su ficha. Si ya no trabaja en la empresa, marcalo como inactivo en vez de eliminarlo.");return}
     setTrabajadores(p=>p.filter(t=>t.id!==id));
   };
 
@@ -2495,8 +2544,8 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
       aLog("Asiento remuneraciones",rows.length+" trabajadores - "+eObj.name+(ccNombre?" - "+ccNombre:""));
       creados+=rows.length;
     });
-    if(creados===0){alert(saltados>0?"Este periodo ya estaba centralizado.":"Nada que centralizar.");return}
-    alert("Centralizacion creada: "+creados+" trabajador"+(creados!==1?"es":"")+(saltados>0?" ("+saltados+" ya estaban centralizados)":"")+".");
+    if(creados===0){rdAlert(saltados>0?"Este periodo ya estaba centralizado.":"Nada que centralizar.");return}
+    rdAlert("Centralizacion creada: "+creados+" trabajador"+(creados!==1?"es":"")+(saltados>0?" ("+saltados+" ya estaban centralizados)":"")+".");
   };
 
   const preview=fm.sueldoBase>0?calcRem(fm):null;
@@ -2716,7 +2765,7 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
       <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:600}}>{t.nombre} {t.apellido}</div><div style={{fontSize:11,color:"var(--tx3)"}}>{t.cargo||"Sin cargo"} · {t.rut}{t.activo===false?" · Inactivo":""}</div></div>
       <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(t.sueldoBase||0)}</div><div style={{fontSize:10,color:"var(--tx3)"}}>Sueldo base</div></div>
       <button onClick={e=>{e.stopPropagation();openEditT(t,"liquidaciones")}} style={{background:"none",border:"1px solid var(--bd)",borderRadius:"var(--rs)",color:"var(--tx2)",cursor:"pointer",fontSize:11,padding:"6px 10px",flexShrink:0}}>Liquidaciones</button>
-      <button onClick={e=>{e.stopPropagation();if(confirm("Eliminar la ficha de "+t.nombre+"?"))doDelT(t.id)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5,padding:4}}>x</button>
+      <button onClick={async e=>{e.stopPropagation();if(await rdConfirm("Eliminar la ficha de "+t.nombre+"?"))doDelT(t.id)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5,padding:4}}>x</button>
     </div>)}</div>}
   </div>);
   }
@@ -2940,7 +2989,7 @@ function TribV({ev,upd,del,emp,back}){
           <button onClick={genAI} disabled={aiL} style={{display:"flex",alignItems:"center",gap:8,background:aiL?"var(--sf2)":"linear-gradient(135deg, #D4F000, #8FA300)",color:"#1B4D2E",border:"none",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600,cursor:aiL?"wait":"pointer",opacity:aiL?.7:1}}>{aiL?"Generando...":aiR?"Regenerar":"Generar Informe"}</button>
         </div>
         {aiL&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:32,textAlign:"center"}}><div style={{fontSize:28,marginBottom:12,animation:"rpulse 1.5s infinite"}}>🤖</div><div style={{fontSize:14,fontWeight:600,color:"var(--cy)"}}>Analizando...</div></div>}
-        {!aiL&&aiR&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:24}}><div style={{whiteSpace:"pre-wrap",fontSize:13,lineHeight:1.7}}>{aiR}</div><div style={{display:"flex",gap:8,marginTop:16,paddingTop:12,borderTop:"1px solid var(--bd)"}}><button onClick={()=>{navigator.clipboard.writeText(aiR);alert("Copiado!")}} style={{background:"var(--sf)",border:"1px solid var(--bd)",color:"var(--tx2)",padding:"8px 16px",borderRadius:"var(--rs)",fontSize:12}}>Copiar</button></div></div>}
+        {!aiL&&aiR&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:24}}><div style={{whiteSpace:"pre-wrap",fontSize:13,lineHeight:1.7}}>{aiR}</div><div style={{display:"flex",gap:8,marginTop:16,paddingTop:12,borderTop:"1px solid var(--bd)"}}><button onClick={()=>{navigator.clipboard.writeText(aiR);rdAlert("Copiado!")}} style={{background:"var(--sf)",border:"1px solid var(--bd)",color:"var(--tx2)",padding:"8px 16px",borderRadius:"var(--rs)",fontSize:12}}>Copiar</button></div></div>}
       </div>
     </div></div>);
 
@@ -2968,7 +3017,7 @@ function TribV({ev,upd,del,emp,back}){
       {secIdx>0?<Bt onClick={()=>setSecIdx(secIdx-1)}>Anterior</Bt>:<div/>}
       {secIdx<TRIB_SECTIONS.length-1&&<Bt onClick={()=>setSecIdx(secIdx+1)} p={true}>Siguiente</Bt>}
     </div>
-    <div style={{marginTop:32,padding:"16px 20px",borderRadius:"var(--rs)",border:"1px solid rgba(239,68,68,.2)",background:"rgba(239,68,68,.05)",display:"flex",alignItems:"center",justifyContent:"space-between"}}><div style={{fontSize:12,fontWeight:600,color:"var(--rd)"}}>Eliminar evaluacion</div><button onClick={()=>{if(confirm("Eliminar?"))del()}} style={{background:"transparent",border:"1px solid var(--rd)",color:"var(--rd)",borderRadius:"var(--rs)",padding:"6px 16px",fontSize:12}}>Eliminar</button></div>
+    <div style={{marginTop:32,padding:"16px 20px",borderRadius:"var(--rs)",border:"1px solid rgba(239,68,68,.2)",background:"rgba(239,68,68,.05)",display:"flex",alignItems:"center",justifyContent:"space-between"}}><div style={{fontSize:12,fontWeight:600,color:"var(--rd)"}}>Eliminar evaluacion</div><button onClick={async()=>{if(await rdConfirm("Eliminar esta evaluacion?"))del()}} style={{background:"transparent",border:"1px solid var(--rd)",color:"var(--rd)",borderRadius:"var(--rs)",padding:"6px 16px",fontSize:12}}>Eliminar</button></div>
   </div>);
 }
 
@@ -3123,7 +3172,7 @@ function FinV({ev,upd,del,emp,back}){
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}><div style={{fontSize:13,fontWeight:700,color:"var(--cy)"}}>Informe con IA</div>
           <button onClick={genAI} disabled={aiL} style={{background:aiL?"var(--sf2)":"linear-gradient(135deg,#D4F000,#34D399)",color:"#1B4D2E",border:"none",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600,cursor:aiL?"wait":"pointer"}}>{aiL?"Generando...":aiR?"Regenerar":"Generar Informe"}</button></div>
         {aiL&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:32,textAlign:"center"}}><div style={{fontSize:28,animation:"rpulse 1.5s infinite"}}>🤖</div></div>}
-        {!aiL&&aiR&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:24}}><div style={{whiteSpace:"pre-wrap",fontSize:13,lineHeight:1.7}}>{aiR}</div><button onClick={()=>{navigator.clipboard.writeText(aiR);alert("Copiado!")}} style={{marginTop:16,background:"var(--sf)",border:"1px solid var(--bd)",color:"var(--tx2)",padding:"8px 16px",borderRadius:"var(--rs)",fontSize:12}}>Copiar</button></div>}
+        {!aiL&&aiR&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:24}}><div style={{whiteSpace:"pre-wrap",fontSize:13,lineHeight:1.7}}>{aiR}</div><button onClick={()=>{navigator.clipboard.writeText(aiR);rdAlert("Copiado!")}} style={{marginTop:16,background:"var(--sf)",border:"1px solid var(--bd)",color:"var(--tx2)",padding:"8px 16px",borderRadius:"var(--rs)",fontSize:12}}>Copiar</button></div>}
       </div>
     </div></div>);
 
@@ -3136,7 +3185,7 @@ function FinV({ev,upd,del,emp,back}){
     <div style={{display:"flex",flexDirection:"column",gap:12}}><div style={{fontSize:13,fontWeight:600,color:"var(--gn)",marginBottom:4}}>{sec.title}</div>
       {sec.questions.map((q,i)=><QCard key={q.id} q={q} i={i} r={r} setR={setR}/>)}</div>
     <div style={{display:"flex",justifyContent:"space-between",marginTop:20}}>{secIdx>0?<Bt onClick={()=>setSecIdx(secIdx-1)}>Anterior</Bt>:<div/>}{secIdx<FIN_SECTIONS.length-1&&<Bt onClick={()=>setSecIdx(secIdx+1)} p={true}>Siguiente</Bt>}</div>
-    <div style={{marginTop:32,padding:"16px 20px",borderRadius:"var(--rs)",border:"1px solid rgba(239,68,68,.2)",background:"rgba(239,68,68,.05)",display:"flex",alignItems:"center",justifyContent:"space-between"}}><div style={{fontSize:12,fontWeight:600,color:"var(--rd)"}}>Eliminar</div><button onClick={()=>{if(confirm("Eliminar?"))del()}} style={{background:"transparent",border:"1px solid var(--rd)",color:"var(--rd)",borderRadius:"var(--rs)",padding:"6px 16px",fontSize:12}}>Eliminar</button></div>
+    <div style={{marginTop:32,padding:"16px 20px",borderRadius:"var(--rs)",border:"1px solid rgba(239,68,68,.2)",background:"rgba(239,68,68,.05)",display:"flex",alignItems:"center",justifyContent:"space-between"}}><div style={{fontSize:12,fontWeight:600,color:"var(--rd)"}}>Eliminar</div><button onClick={async()=>{if(await rdConfirm("Eliminar esta evaluacion?"))del()}} style={{background:"transparent",border:"1px solid var(--rd)",color:"var(--rd)",borderRadius:"var(--rs)",padding:"6px 16px",fontSize:12}}>Eliminar</button></div>
   </div>);
 }
 
@@ -3173,7 +3222,7 @@ function R360V({ev,upd,del,emp,back}){
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}><div style={{fontSize:13,fontWeight:700,color:"var(--cy)"}}>Informe 360 con IA</div>
           <button onClick={genAI} disabled={aiL} style={{background:aiL?"var(--sf2)":"linear-gradient(135deg,#F87171,#8FA300)",color:"#1B4D2E",border:"none",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600,cursor:aiL?"wait":"pointer"}}>{aiL?"Generando...":aiR?"Regenerar":"Generar Informe 360"}</button></div>
         {aiL&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:32,textAlign:"center"}}><div style={{fontSize:28,animation:"rpulse 1.5s infinite"}}>🎯</div><div style={{fontSize:14,fontWeight:600,color:"var(--cy)",marginTop:8}}>Generando diagnostico integral...</div></div>}
-        {!aiL&&aiR&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:24}}><div style={{whiteSpace:"pre-wrap",fontSize:13,lineHeight:1.7}}>{aiR}</div><button onClick={()=>{navigator.clipboard.writeText(aiR);alert("Copiado!")}} style={{marginTop:16,background:"var(--sf)",border:"1px solid var(--bd)",color:"var(--tx2)",padding:"8px 16px",borderRadius:"var(--rs)",fontSize:12}}>Copiar</button></div>}
+        {!aiL&&aiR&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:24}}><div style={{whiteSpace:"pre-wrap",fontSize:13,lineHeight:1.7}}>{aiR}</div><button onClick={()=>{navigator.clipboard.writeText(aiR);rdAlert("Copiado!")}} style={{marginTop:16,background:"var(--sf)",border:"1px solid var(--bd)",color:"var(--tx2)",padding:"8px 16px",borderRadius:"var(--rs)",fontSize:12}}>Copiar</button></div>}
       </div>
     </div></div>);
 
@@ -3186,7 +3235,7 @@ function R360V({ev,upd,del,emp,back}){
     <div style={{display:"flex",flexDirection:"column",gap:12}}><div style={{fontSize:13,fontWeight:600,color:"var(--rd)",marginBottom:4}}>{sec.title}</div>
       {sec.questions.map((q,i)=><QCard key={q.id} q={q} i={i} r={r} setR={setR}/>)}</div>
     <div style={{display:"flex",justifyContent:"space-between",marginTop:20}}>{secIdx>0?<Bt onClick={()=>setSecIdx(secIdx-1)}>Anterior</Bt>:<div/>}{secIdx<ALL_SECS.length-1&&<Bt onClick={()=>setSecIdx(secIdx+1)} p={true}>Siguiente</Bt>}</div>
-    <div style={{marginTop:32,padding:"16px 20px",borderRadius:"var(--rs)",border:"1px solid rgba(239,68,68,.2)",background:"rgba(239,68,68,.05)",display:"flex",alignItems:"center",justifyContent:"space-between"}}><div style={{fontSize:12,fontWeight:600,color:"var(--rd)"}}>Eliminar</div><button onClick={()=>{if(confirm("Eliminar?"))del()}} style={{background:"transparent",border:"1px solid var(--rd)",color:"var(--rd)",borderRadius:"var(--rs)",padding:"6px 16px",fontSize:12}}>Eliminar</button></div>
+    <div style={{marginTop:32,padding:"16px 20px",borderRadius:"var(--rs)",border:"1px solid rgba(239,68,68,.2)",background:"rgba(239,68,68,.05)",display:"flex",alignItems:"center",justifyContent:"space-between"}}><div style={{fontSize:12,fontWeight:600,color:"var(--rd)"}}>Eliminar</div><button onClick={async()=>{if(await rdConfirm("Eliminar esta evaluacion?"))del()}} style={{background:"transparent",border:"1px solid var(--rd)",color:"var(--rd)",borderRadius:"var(--rs)",padding:"6px 16px",fontSize:12}}>Eliminar</button></div>
   </div>);
 }
 
