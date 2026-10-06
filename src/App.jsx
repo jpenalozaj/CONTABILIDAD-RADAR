@@ -702,33 +702,52 @@ function ReportHeader({eObj,title,subtitle}){
 const tpL={asset:"Activo",liability:"Pasivo",equity:"Patrimonio",income:"Ingreso",expense:"Gasto"};
 const tpC={asset:"#6B7408",liability:"#DC2626",equity:"#5F6B4A",income:"#0D8A5F",expense:"#B45309"};
 
+// Agrupado siguiendo el flujo real de un cierre contable (orden inspirado en
+// como Nubox separa Contabilidad / Libros / Reportes en menus propios, en
+// vez de una sola fila plana de botones sin jerarquia): Resumen -> Registro
+// (entra todo) -> Procesos (se ordena/concilia) -> Libros (registro legal)
+// -> Reportes (salida) -> Configuracion. Cada grupo es su propio menu
+// desplegable en vez de mostrar los 6 grupos apilados a la vez.
+const CONTAB_TAB_GROUPS=[
+  {g:"Resumen",items:[{id:"dashboard",l:"Dashboard"}]},
+  {g:"Registro",items:[{id:"asientos",l:"Asientos"},{id:"csv",l:"Compras/Ventas SII"},{id:"porclasificar",l:"Por Clasificar"}]},
+  {g:"Procesos",items:[{id:"conciliacion",l:"Conciliacion Bancaria"},{id:"ccostos",l:"Centros de Costo"},{id:"activos",l:"Activos Fijos"}]},
+  {g:"Libros",items:[{id:"diario",l:"Libro Diario"},{id:"mayor",l:"Libro Mayor"},{id:"lcompras",l:"Libro de Compras"},{id:"lventas",l:"Libro de Ventas"},{id:"auxiliar",l:"Auxiliares"}]},
+  {g:"Reportes",items:[{id:"balance",l:"Balance"},{id:"eerr",l:"Estado Resultados"},{id:"b8",l:"8 Columnas"}]},
+  {g:"Configuracion",items:[{id:"plan",l:"Plan de Cuentas"}]},
+];
+
 function ContabP({eObj,accts,setAccts,entries,setEntries,empEntries,leafAccts,aLog,go,reglas,setReglas,ccostos,setCcostos,activos,setActivos}){
   const [tab,setTab]=useState("dashboard");
   const [navTarget,setNavTarget]=useState(null);
+  const [openGrp,setOpenGrp]=useState("Resumen");
+  useEffect(()=>{
+    const g=CONTAB_TAB_GROUPS.find(gr=>gr.items.some(it=>it.id===tab));
+    if(g)setOpenGrp(g.g);
+  },[tab]);
   if(!eObj)return<Ey i="🏢" t="Selecciona una empresa" d="Activa una empresa primero."><Bt onClick={()=>go("empresas")} p={true}>Ir a Empresas</Bt></Ey>;
   const porClasificarN=empEntries.filter(e=>e.lines.some(l=>l.ac==="1.1.05.001")).length;
-  // Agrupado siguiendo el flujo real de un cierre contable (orden inspirado
-  // en como Nubox separa Contabilidad / Libros / Reportes en menus propios,
-  // en vez de una sola fila plana de 16 botones sin jerarquia):
-  // Resumen -> Registro (entra todo) -> Procesos (se ordena/concilia) ->
-  // Libros (registro legal) -> Reportes (salida) -> Configuracion.
-  const tabGroups=[
-    {g:"Resumen",items:[{id:"dashboard",l:"Dashboard"}]},
-    {g:"Registro",items:[{id:"asientos",l:"Asientos"},{id:"csv",l:"Compras/Ventas SII"},{id:"porclasificar",l:"Por Clasificar"+(porClasificarN>0?" ("+porClasificarN+")":"")}]},
-    {g:"Procesos",items:[{id:"conciliacion",l:"Conciliacion Bancaria"},{id:"ccostos",l:"Centros de Costo"},{id:"activos",l:"Activos Fijos"}]},
-    {g:"Libros",items:[{id:"diario",l:"Libro Diario"},{id:"mayor",l:"Libro Mayor"},{id:"lcompras",l:"Libro de Compras"},{id:"lventas",l:"Libro de Ventas"},{id:"auxiliar",l:"Auxiliares"}]},
-    {g:"Reportes",items:[{id:"balance",l:"Balance"},{id:"eerr",l:"Estado Resultados"},{id:"b8",l:"8 Columnas"}]},
-    {g:"Configuracion",items:[{id:"plan",l:"Plan de Cuentas"}]},
-  ];
   // Trazabilidad: click en una cuenta -> Libro Mayor filtrado en esa cuenta;
   // click en un movimiento -> Asientos, resaltando ese asiento puntual.
   const irACuenta=cd=>{setNavTarget({tipo:"cuenta",valor:cd,ts:Date.now()});setTab("mayor")};
   const irAAsiento=id=>{setNavTarget({tipo:"asiento",valor:id,ts:Date.now()});setTab("asientos")};
   return(<div style={{maxWidth:960,margin:"0 auto"}}>
-    <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>{tabGroups.map(grp=><div key={grp.g} style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-      <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:.6,color:"var(--tx3)",width:86,flexShrink:0}}>{grp.g}</div>
-      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{grp.items.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{padding:"8px 16px",borderRadius:"var(--rs)",border:"none",fontSize:12,fontWeight:tab===t.id?700:500,background:"var(--sf)",color:tab===t.id?"var(--cy)":"var(--tx2)"}}><span style={{position:"relative"}}>{t.l}{tab===t.id&&<svg aria-hidden viewBox="0 0 100 8" preserveAspectRatio="none" style={{position:"absolute",left:0,bottom:-6,width:"100%",height:6,overflow:"visible"}}><path d="M0,5 C10,0 20,0 30,5 C40,10 50,10 60,5 C70,0 80,0 90,5 C95,7.5 98,6 100,5" fill="none" stroke="var(--cy)" strokeWidth="1.6" strokeLinecap="round"/></svg>}</span></button>)}</div>
-    </div>)}</div>
+    <div style={{marginBottom:20}}>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:openGrp?10:0}}>{CONTAB_TAB_GROUPS.map(grp=>{
+        const activo=grp.g===openGrp;
+        const contieneActual=grp.items.some(it=>it.id===tab);
+        return(<button key={grp.g} onClick={()=>setOpenGrp(activo?null:grp.g)} style={{display:"flex",alignItems:"center",gap:6,padding:"9px 16px",borderRadius:"var(--rs)",border:"1px solid "+(contieneActual?"var(--cy2)":"var(--bd)"),background:activo?"var(--cy-fill)":"var(--sf)",color:activo?"#1B4D2E":"var(--tx2)",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+          {grp.g}
+          <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{width:11,height:11,transform:activo?"rotate(180deg)":"none",transition:"transform .15s ease",flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
+        </button>);
+      })}</div>
+      {openGrp&&<div style={{display:"flex",gap:6,flexWrap:"wrap",background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--r)",padding:10}}>
+        {CONTAB_TAB_GROUPS.find(g=>g.g===openGrp)?.items.map(t=>{
+          const lbl=t.id==="porclasificar"&&porClasificarN>0?t.l+" ("+porClasificarN+")":t.l;
+          return(<button key={t.id} onClick={()=>setTab(t.id)} style={{padding:"8px 16px",borderRadius:"var(--rs)",border:"none",fontSize:12,fontWeight:tab===t.id?700:500,background:tab===t.id?"var(--sf)":"transparent",color:tab===t.id?"var(--cy)":"var(--tx2)",cursor:"pointer"}}><span style={{position:"relative"}}>{lbl}{tab===t.id&&<svg aria-hidden viewBox="0 0 100 8" preserveAspectRatio="none" style={{position:"absolute",left:0,bottom:-6,width:"100%",height:6,overflow:"visible"}}><path d="M0,5 C10,0 20,0 30,5 C40,10 50,10 60,5 C70,0 80,0 90,5 C95,7.5 98,6 100,5" fill="none" stroke="var(--cy)" strokeWidth="1.6" strokeLinecap="round"/></svg>}</span></button>);
+        })}
+      </div>}
+    </div>
     {tab==="dashboard"&&<DashboardFin empEntries={empEntries} leafAccts={leafAccts} eObj={eObj}/>}
     {tab==="plan"&&<PlanCtas accts={accts} setAccts={setAccts} aLog={aLog}/>}
     {tab==="asientos"&&<Asientos entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} eObj={eObj} aLog={aLog} ccostos={ccostos} resaltar={navTarget?.tipo==="asiento"?navTarget:null}/>}
@@ -815,7 +834,7 @@ function ActivosFijos({activos,setActivos,empEntries,setEntries,leafAccts,eObj,a
     if(a.valorLibro<=0)return;
     const monto=Math.round(Math.min(a.depMensual,a.valorLibro));
     const ns=empEntries.map(e=>parseInt(e.num)||0);const n=String(Math.max(0,...ns)+1).padStart(4,"0");
-    const nuevo={id:uid(),empresaId:eObj.id,num:n,date:new Date().toISOString().slice(0,10),desc:"Depreciacion "+a.nombre+" - "+mesActual,depreciacionActivoId:a.id,lines:[{ac:CUENTA_GASTO_DEP,db:monto,cr:0},{ac:a.cuentaDep,db:0,cr:monto}]};
+    const nuevo={id:uid(),empresaId:eObj.id,num:n,date:new Date().toISOString().slice(0,10),desc:"Depreciacion "+a.nombre+" - "+mesActual,origen:"depreciacion",depreciacionActivoId:a.id,lines:[{ac:CUENTA_GASTO_DEP,db:monto,cr:0},{ac:a.cuentaDep,db:0,cr:monto}]};
     setEntries(p=>[...p,nuevo]);
     aLog("Depreciacion generada",a.nombre+" - "+mesActual);
   };
@@ -1013,6 +1032,8 @@ function PlanCtas({accts,setAccts,aLog}){
   </div>);
 }
 
+const TIPOS_COMPROBANTE=[{id:"ingreso",l:"Ingreso"},{id:"egreso",l:"Egreso"},{id:"traspaso",l:"Traspaso"}];
+const ORIGEN_LABELS={manual:"Manual",centralizacion:"Centralizacion",sii:"Importacion SII",csv:"CSV",conciliacion:"Conciliacion",depreciacion:"Depreciacion",recurrente:"Recurrente"};
 function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog,ccostos,resaltar}){
   const [showF,setShowF]=useState(false);
   const [editId,setEditId]=useState(null);
@@ -1026,10 +1047,19 @@ function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog,ccostos,res
     const t=setTimeout(()=>setResaltadoId(null),3000);
     return()=>clearTimeout(t);
   },[resaltar]);
-  const blankFm=()=>({date:new Date().toISOString().slice(0,10),desc:"",centroCosto:"",recurrente:false,lines:[{ac:"",db:0,cr:0},{ac:"",db:0,cr:0}]});
+  const blankFm=()=>({date:new Date().toISOString().slice(0,10),desc:"",tipo:"traspaso",centroCosto:"",recurrente:false,lines:[{ac:"",db:0,cr:0},{ac:"",db:0,cr:0}]});
   const [fm,setFm]=useState(blankFm());
+  const [filtroMes,setFiltroMes]=useState("todos");
+  const [filtroTipo,setFiltroTipo]=useState("todos");
+  const [filtroOrigen,setFiltroOrigen]=useState("todos");
   const nxt=useMemo(()=>{const ns=empEntries.map(e=>parseInt(e.num)||0);return String(Math.max(0,...ns)+1).padStart(4,"0")},[empEntries]);
   const ccNombre=useMemo(()=>Object.fromEntries((ccostos||[]).map(c=>[c.id,c.nombre])),[ccostos]);
+  const mesesDisponibles=useMemo(()=>[...new Set(empEntries.map(e=>e.date.slice(0,7)))].sort((a,b)=>b.localeCompare(a)),[empEntries]);
+  const entriesFiltradas=useMemo(()=>empEntries.filter(e=>
+    (filtroMes==="todos"||e.date.slice(0,7)===filtroMes)&&
+    (filtroTipo==="todos"||(filtroTipo==="sin_tipo"?!e.tipo:e.tipo===filtroTipo))&&
+    (filtroOrigen==="todos"||(filtroOrigen==="manual"?!e.origen||e.origen==="manual":e.origen===filtroOrigen))
+  ),[empEntries,filtroMes,filtroTipo,filtroOrigen]);
   const uLine=(i,f,v)=>setFm(p=>{const ls=[...p.lines];ls[i]={...ls[i],[f]:f==="ac"?v:Math.max(0,parseFloat(v)||0)};return{...p,lines:ls}});
   const addL=()=>setFm(p=>({...p,lines:[...p.lines,{ac:"",db:0,cr:0}]}));
   const rmL=i=>{if(fm.lines.length>2)setFm(p=>({...p,lines:p.lines.filter((_,j)=>j!==i)}))};
@@ -1037,13 +1067,13 @@ function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog,ccostos,res
   const tC=fm.lines.reduce((s,l)=>s+(l.cr||0),0);
   const bal=Math.abs(tD-tC)<0.01&&tD>0;
   const openNew=()=>{setFm(blankFm());setEditId(null);setShowF(true)};
-  const openEdit=e=>{setFm({date:e.date,desc:e.desc,centroCosto:e.centroCosto||"",recurrente:!!e.recurrente,lines:e.lines.map(l=>({ac:l.ac,db:l.db||0,cr:l.cr||0}))});setEditId(e.id);setShowF(true)};
+  const openEdit=e=>{setFm({date:e.date,desc:e.desc,tipo:e.tipo||"traspaso",centroCosto:e.centroCosto||"",recurrente:!!e.recurrente,lines:e.lines.map(l=>({ac:l.ac,db:l.db||0,cr:l.cr||0}))});setEditId(e.id);setShowF(true)};
   const doSave=()=>{
     if(!fm.desc||!bal)return;
     if(fm.lines.some(l=>!l.ac)){alert("Selecciona cuenta en todas las lineas");return}
     const lines=fm.lines.filter(l=>l.db>0||l.cr>0);
-    if(editId){setEntries(p=>p.map(e=>e.id===editId?{...e,date:fm.date,desc:fm.desc,centroCosto:fm.centroCosto||null,recurrente:fm.recurrente,lines}:e));aLog("Asiento editado",fm.desc)}
-    else{const e={id:uid(),empresaId:eObj.id,num:nxt,date:fm.date,desc:fm.desc,centroCosto:fm.centroCosto||null,recurrente:fm.recurrente,lines};setEntries(p=>[...p,e]);aLog("Asiento "+nxt,fm.desc)}
+    if(editId){setEntries(p=>p.map(e=>e.id===editId?{...e,date:fm.date,desc:fm.desc,tipo:fm.tipo,centroCosto:fm.centroCosto||null,recurrente:fm.recurrente,lines}:e));aLog("Asiento editado",fm.desc)}
+    else{const e={id:uid(),empresaId:eObj.id,num:nxt,date:fm.date,desc:fm.desc,tipo:fm.tipo,origen:"manual",centroCosto:fm.centroCosto||null,recurrente:fm.recurrente,lines};setEntries(p=>[...p,e]);aLog("Asiento "+nxt,fm.desc)}
     setFm(blankFm());setEditId(null);setShowF(false);
   };
   const delE=id=>setEntries(p=>p.filter(e=>e.id!==id));
@@ -1051,7 +1081,7 @@ function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog,ccostos,res
     const ns=empEntries.map(e=>parseInt(e.num)||0);const n=String(Math.max(0,...ns)+1).padStart(4,"0");
     const hoy=new Date();const dia=Math.min(parseInt(t.date.slice(8,10)),new Date(hoy.getFullYear(),hoy.getMonth()+1,0).getDate());
     const fecha=hoy.getFullYear()+"-"+String(hoy.getMonth()+1).padStart(2,"0")+"-"+String(dia).padStart(2,"0");
-    const nuevo={id:uid(),empresaId:eObj.id,num:n,date:fecha,desc:t.desc,centroCosto:t.centroCosto||null,recurrenteOrigenId:t.id,lines:t.lines.map(l=>({...l}))};
+    const nuevo={id:uid(),empresaId:eObj.id,num:n,date:fecha,desc:t.desc,tipo:t.tipo||null,origen:"recurrente",centroCosto:t.centroCosto||null,recurrenteOrigenId:t.id,lines:t.lines.map(l=>({...l}))};
     setEntries(p=>[...p,nuevo]);
     aLog("Asiento recurrente generado",t.desc+" - "+fD(fecha));
   };
@@ -1062,13 +1092,17 @@ function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog,ccostos,res
     empEntries.forEach(e=>{if(e.recurrenteOrigenId&&e.date.slice(0,7)===mesActual)set.add(e.recurrenteOrigenId)});
     return set;
   },[empEntries,mesActual]);
-  const handleCSV=ev=>{const f=ev.target.files?.[0];if(!f)return;const rd=new FileReader();rd.onload=e=>{try{const rows=e.target.result.split("\n").filter(r=>r.trim()).slice(1);const imp=[];let cur=null;let n=parseInt(nxt);rows.forEach(row=>{const c=row.split(/[,;\t]/).map(x=>x.trim().replace(/^"|"$/g,""));if(c.length>=5){const[dt,gl,ct,dStr,hStr]=c;const db=parseFloat(dStr)||0;const cr=parseFloat(hStr)||0;const ac=leafAccts.find(a=>a.cd===ct||a.nm.toLowerCase().includes(ct.toLowerCase()));if(!cur||cur.desc!==gl||cur.date!==dt){if(cur&&cur.lines.length>0)imp.push(cur);cur={id:uid(),empresaId:eObj.id,num:String(n++).padStart(4,"0"),date:dt||new Date().toISOString().slice(0,10),desc:gl,lines:[]}}if(ac)cur.lines.push({ac:ac.cd,db,cr})}});if(cur&&cur.lines.length>0)imp.push(cur);if(imp.length>0){setEntries(p=>[...p,...imp]);aLog("CSV importado",imp.length+" asientos");alert(imp.length+" asiento(s) importado(s)")}else alert("No se importaron asientos. Verifica formato: Fecha,Glosa,Cuenta,Debe,Haber")}catch(err){alert("Error: "+err.message)}};rd.readAsText(f);ev.target.value=""};
+  const handleCSV=ev=>{const f=ev.target.files?.[0];if(!f)return;const rd=new FileReader();rd.onload=e=>{try{const rows=e.target.result.split("\n").filter(r=>r.trim()).slice(1);const imp=[];let cur=null;let n=parseInt(nxt);rows.forEach(row=>{const c=row.split(/[,;\t]/).map(x=>x.trim().replace(/^"|"$/g,""));if(c.length>=5){const[dt,gl,ct,dStr,hStr]=c;const db=parseFloat(dStr)||0;const cr=parseFloat(hStr)||0;const ac=leafAccts.find(a=>a.cd===ct||a.nm.toLowerCase().includes(ct.toLowerCase()));if(!cur||cur.desc!==gl||cur.date!==dt){if(cur&&cur.lines.length>0)imp.push(cur);cur={id:uid(),empresaId:eObj.id,num:String(n++).padStart(4,"0"),date:dt||new Date().toISOString().slice(0,10),desc:gl,origen:"csv",lines:[]}}if(ac)cur.lines.push({ac:ac.cd,db,cr})}});if(cur&&cur.lines.length>0)imp.push(cur);if(imp.length>0){setEntries(p=>[...p,...imp]);aLog("CSV importado",imp.length+" asientos");alert(imp.length+" asiento(s) importado(s)")}else alert("No se importaron asientos. Verifica formato: Fecha,Glosa,Cuenta,Debe,Haber")}catch(err){alert("Error: "+err.message)}};rd.readAsText(f);ev.target.value=""};
 
   return(<div>
     <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:16,justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:12,color:"var(--tx3)"}}>{empEntries.length} asientos</span><div style={{display:"flex",gap:8}}><label style={{display:"flex",alignItems:"center",gap:8,background:"var(--sf2)",color:"var(--tx2)",border:"1px solid var(--bd)",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,cursor:"pointer"}}>CSV<input type="file" accept=".csv,.txt" onChange={handleCSV} style={{display:"none"}}/></label><Bt onClick={()=>showF?setShowF(false):openNew()} p={true}>{IC.plus} Nuevo Asiento</Bt></div></div>
     <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:12,marginBottom:16,fontSize:11,color:"var(--tx3)"}}><b>CSV:</b> Fecha, Glosa, CodigoCuenta, Debe, Haber</div>
     {showF&&<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20,marginBottom:16}}>
       <div style={{fontSize:13,fontWeight:600,marginBottom:12}}>{editId?"Editar Asiento N "+(empEntries.find(e=>e.id===editId)?.num||""):"Asiento N "+nxt}</div>
+      <div style={{marginBottom:16}}>
+        <label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Tipo de comprobante</label>
+        <div style={{display:"flex",gap:6}}>{TIPOS_COMPROBANTE.map(t=><button key={t.id} type="button" onClick={()=>setFm(p=>({...p,tipo:t.id}))} style={{flex:1,padding:"9px 12px",borderRadius:"var(--rs)",border:fm.tipo===t.id?"2px solid var(--cy2)":"1px solid var(--bd)",background:fm.tipo===t.id?"var(--cy-fill)":"var(--sf)",color:fm.tipo===t.id?"#1B4D2E":"var(--tx2)",fontSize:12,fontWeight:700,cursor:"pointer"}}>{t.l}</button>)}</div>
+      </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}><input type="date" value={fm.date} onChange={e=>setFm(p=>({...p,date:e.target.value}))}/><input placeholder="Glosa / Descripcion" value={fm.desc} onChange={e=>setFm(p=>({...p,desc:e.target.value}))}/></div>
       {ccostos?.length>0&&<div style={{marginBottom:16}}><select value={fm.centroCosto} onChange={e=>setFm(p=>({...p,centroCosto:e.target.value}))} style={{maxWidth:300}}><option value="">Sin centro de costo</option>{ccostos.map(c=><option key={c.id} value={c.id}>{c.nombre}</option>)}</select></div>}
       <div style={{marginBottom:16}}><Sw checked={fm.recurrente} onChange={v=>setFm(p=>({...p,recurrente:v}))} label="Repetir este asiento cada mes (arriendo, sueldos base, etc.)"/></div>
@@ -1098,10 +1132,18 @@ function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog,ccostos,res
           <button onClick={()=>generarRecurrente(t)} disabled={generado} style={{padding:"6px 14px",borderRadius:"var(--rs)",border:"none",background:generado?"var(--sf2)":"var(--cy-fill)",color:generado?"var(--tx3)":"#1B4D2E",fontSize:11,fontWeight:600,cursor:generado?"default":"pointer"}}>{generado?"Ya generado este mes":"Generar para "+mesActual}</button>
         </div>);})}</div>
     </div>}
-    <div style={{display:"flex",flexDirection:"column",gap:8}}>{[...empEntries].sort((a,b)=>b.date.localeCompare(a.date)).map(e=><div key={e.id} id={"asiento-"+e.id} style={{background:"var(--sf)",border:"1px solid "+(resaltadoId===e.id?"var(--am)":editId===e.id?"var(--cy)":"var(--bd)"),boxShadow:resaltadoId===e.id?"0 0 0 3px rgba(251,191,36,.25), var(--shadow)":"var(--shadow)",borderRadius:"var(--r)",padding:16,transition:"box-shadow .3s,border-color .3s"}}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:10,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",background:"var(--sf2)",padding:"2px 8px",borderRadius:4}}>N {e.num}</span><span style={{fontSize:13,fontWeight:500}}>{e.desc}</span>{e.centroCosto&&ccNombre[e.centroCosto]&&<span style={{fontSize:10,background:"var(--cyg)",color:"var(--cy)",padding:"2px 8px",borderRadius:4}}>{ccNombre[e.centroCosto]}</span>}{e.recurrente&&<span style={{fontSize:10,background:"rgba(155,168,136,.15)",color:"var(--pu)",padding:"2px 8px",borderRadius:4}}>↻ Recurrente</span>}</div><div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:11,color:"var(--tx3)"}}>{fD(e.date)}</span><button onClick={()=>openEdit(e)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.6,fontSize:11}}>editar</button><button onClick={()=>{if(confirm("Eliminar este asiento?"))delE(e.id)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5}}>x</button></div></div>
+    <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
+      <select value={filtroMes} onChange={e=>setFiltroMes(e.target.value)} style={{maxWidth:160,fontSize:12}}><option value="todos">Todos los meses</option>{mesesDisponibles.map(m=><option key={m} value={m}>{m}</option>)}</select>
+      <select value={filtroTipo} onChange={e=>setFiltroTipo(e.target.value)} style={{maxWidth:160,fontSize:12}}><option value="todos">Todo tipo</option>{TIPOS_COMPROBANTE.map(t=><option key={t.id} value={t.id}>{t.l}</option>)}<option value="sin_tipo">Sin tipo</option></select>
+      <select value={filtroOrigen} onChange={e=>setFiltroOrigen(e.target.value)} style={{maxWidth:180,fontSize:12}}><option value="todos">Todo origen</option><option value="manual">Manual</option>{Object.entries(ORIGEN_LABELS).filter(([id])=>id!=="manual").map(([id,l])=><option key={id} value={id}>{l}</option>)}</select>
+      {(filtroMes!=="todos"||filtroTipo!=="todos"||filtroOrigen!=="todos")&&<button onClick={()=>{setFiltroMes("todos");setFiltroTipo("todos");setFiltroOrigen("todos")}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",fontSize:11,textDecoration:"underline"}}>Limpiar filtros</button>}
+      <span style={{fontSize:11,color:"var(--tx3)",marginLeft:"auto",alignSelf:"center"}}>{entriesFiltradas.length} de {empEntries.length} asientos</span>
+    </div>
+    <div style={{display:"flex",flexDirection:"column",gap:8}}>{[...entriesFiltradas].sort((a,b)=>b.date.localeCompare(a.date)).map(e=><div key={e.id} id={"asiento-"+e.id} style={{background:"var(--sf)",border:"1px solid "+(resaltadoId===e.id?"var(--am)":editId===e.id?"var(--cy)":"var(--bd)"),boxShadow:resaltadoId===e.id?"0 0 0 3px rgba(251,191,36,.25), var(--shadow)":"var(--shadow)",borderRadius:"var(--r)",padding:16,transition:"box-shadow .3s,border-color .3s"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8,flexWrap:"wrap",gap:8}}><div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}><span style={{fontSize:10,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",background:"var(--sf2)",padding:"2px 8px",borderRadius:4}}>N {e.num}</span><span style={{fontSize:13,fontWeight:500}}>{e.desc}</span>{e.tipo&&<span style={{fontSize:10,background:"var(--sf2)",color:"var(--tx2)",padding:"2px 8px",borderRadius:4,border:"1px solid var(--bd)"}}>{TIPOS_COMPROBANTE.find(t=>t.id===e.tipo)?.l}</span>}<span style={{fontSize:10,background:e.origen&&e.origen!=="manual"?"rgba(155,168,136,.15)":"var(--cyg)",color:e.origen&&e.origen!=="manual"?"var(--pu)":"var(--cy2)",padding:"2px 8px",borderRadius:4}}>{ORIGEN_LABELS[e.origen]||"Manual"}</span>{e.centroCosto&&ccNombre[e.centroCosto]&&<span style={{fontSize:10,background:"var(--cyg)",color:"var(--cy)",padding:"2px 8px",borderRadius:4}}>{ccNombre[e.centroCosto]}</span>}{e.recurrente&&<span style={{fontSize:10,background:"rgba(155,168,136,.15)",color:"var(--pu)",padding:"2px 8px",borderRadius:4}}>↻ Recurrente</span>}</div><div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:11,color:"var(--tx3)"}}>{fD(e.date)}</span><button onClick={()=>openEdit(e)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.6,fontSize:11}}>editar</button><button onClick={()=>{if(confirm("Eliminar este asiento?"))delE(e.id)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5}}>x</button></div></div>
       <div style={{fontSize:11}}>{e.lines.map((l,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 80px 80px",gap:8,padding:"2px 0"}}><span style={{color:"var(--tx2)",paddingLeft:l.cr>0?20:0}}>{l.ac} {leafAccts.find(a=>a.cd===l.ac)?.nm||""}</span><span style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{l.db>0?"$"+fmt(l.db):""}</span><span style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{l.cr>0?"$"+fmt(l.cr):""}</span></div>)}</div>
     </div>)}</div>
+    {entriesFiltradas.length===0&&empEntries.length>0&&<Ey i="🔍" t="Sin resultados" d="Ningun asiento coincide con los filtros aplicados."/>}
   </div>);
 }
 
@@ -1430,7 +1472,7 @@ function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog,reglas}){
       const lines=[];
       if(isCompra){if(netoExento>0)lines.push({ac:ctpAc,db:netoExento,cr:0});if(iva>0)lines.push({ac:ivaAc,db:Math.abs(iva),cr:0});lines.push({ac:tpAc,db:0,cr:Math.abs(total)})}
       else{lines.push({ac:tpAc,db:Math.abs(total),cr:0});if(netoExento>0)lines.push({ac:ctpAc,db:0,cr:netoExento});if(iva>0)lines.push({ac:ivaAc,db:0,cr:Math.abs(iva)})}
-      if(lines.length>=2)imported.push({id:uid(),empresaId:eObj.id,num:String(n++).padStart(4,"0"),date:dt,desc:glosa,lines,rut:rut,folio:folio,razonSocial:razon,tipoDoc:isCompra?"compra":"venta",tipoDocCod:tipoDocCod,periodo:periodoTrib||dt.slice(0,7).replace("-",""),neto:Math.abs(neto),exento:Math.abs(exento),iva:Math.abs(iva),total:Math.abs(total)});
+      if(lines.length>=2)imported.push({id:uid(),empresaId:eObj.id,num:String(n++).padStart(4,"0"),date:dt,desc:glosa,lines,origen:"sii",rut:rut,folio:folio,razonSocial:razon,tipoDoc:isCompra?"compra":"venta",tipoDocCod:tipoDocCod,periodo:periodoTrib||dt.slice(0,7).replace("-",""),neto:Math.abs(neto),exento:Math.abs(exento),iva:Math.abs(iva),total:Math.abs(total)});
     });
     if(imported.length>0){
       // Reimportar el mismo periodo (ej. para corregir un bug de un import
@@ -2388,7 +2430,7 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
       if(tImp>0)lines.push({ac:"2.1.02.003",db:0,cr:tImp});
       lines.push({ac:"2.1.03.001",db:0,cr:tLiq});
       nCount+=1;
-      const entry={id:uid(),empresaId:eObj.id,num:String(nCount).padStart(4,"0"),date:new Date().toISOString().slice(0,10),desc,centroCosto:ccId||null,lines};
+      const entry={id:uid(),empresaId:eObj.id,num:String(nCount).padStart(4,"0"),date:new Date().toISOString().slice(0,10),desc,origen:"centralizacion",centroCosto:ccId||null,lines};
       setEntries(p=>[...p,entry]);
       aLog("Asiento remuneraciones",rows.length+" trabajadores - "+eObj.name+(ccNombre?" - "+ccNombre:""));
       creados+=rows.length;

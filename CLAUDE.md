@@ -17,8 +17,8 @@ explícitamente lo contrario.
 
 **Revisión de diseño/correctitud (sesión del 2026-10-06)**
 - [x] Fase A — Asiento de Remuneraciones con cuentas reales (no inventadas), desglosado en subcuentas, un asiento por centro de costo; Score del Portal Cliente calculado automático (A-D) desde Liquidez/Endeudamiento/Resultado en vez de depender de una pregunta manual — hecho, commit `ef2621e`.
-- [ ] Fase B — Checkbox "Trabajador activo" → toggle con el diseño de RADAR; tarjetas de stat del Portal Cliente → fuente adaptable para montos largos.
-- [ ] Fase C — Nav de Contabilidad → menús desplegables por grupo (no filas fijas); Asientos → filtro por mes, tipo de comprobante, origen manual/automático, flujo de creación más guiado.
+- [x] Fase B — Nuevo componente `Sw` (toggle lima) reemplaza los 3 checkboxes binarios nativos del navegador; `accent-color` global para los checkboxes de selección en tablas; tarjetas de KPI del Portal Cliente con fuente adaptable + monospace + word-break (ya no se desbordan) — hecho, commit `59e1c7f`.
+- [x] Fase C — Nav de Contabilidad: cada grupo (Resumen/Registro/Procesos/Libros/Reportes/Configuración) es ahora su propio menú desplegable (`CONTAB_TAB_GROUPS`, componente `ContabP`), se abre el grupo de la pestaña activa automáticamente. Asientos: filtro por mes/tipo de comprobante/origen, campo `tipo` (Ingreso/Egreso/Traspaso) elegido como segmented-control al crear un asiento manual, campo `origen` (manual/centralizacion/sii/csv/conciliacion/depreciacion/recurrente) tageado en los 6 puntos donde RADAR genera asientos automáticos — hecho, commit pendiente de push.
 - Principio del usuario: usar Buk/Nubox como referencia *funcional*, no visual — RADAR debe verse distintivo y propio (lima/verde oscuro/`rd-tilt`/garabato/JetBrains Mono), nunca "improvisado" ni inconsistente entre pantallas.
 
 **Remuneraciones**

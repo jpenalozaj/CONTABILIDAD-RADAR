@@ -105,6 +105,7 @@ export function armarAsiento(mov, cuentaBanco, contracuenta, numero, empresaId, 
     num: String(numero).padStart(4, "0"),
     date: mov.fecha,
     desc: (glosaExtra ? glosaExtra + " — " : "") + mov.descripcion,
+    origen: "conciliacion",
     lines: [
       { ac: desDebe, db: monto, cr: 0 },
       { ac: desHaber, db: 0, cr: monto },
