@@ -2313,13 +2313,13 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
   const doDelAsistencia=id=>setAsistencia(p=>p.filter(a=>a.id!==id));
 
   // ── Liquidaciones ──
-  const emptyF=()=>({trabajadorId:"",nombre:"",rut:"",cargo:"",afp:"habitat",isapre:"fonasa",contratoTipo:"indefinido",sueldoBase:0,gratificacion:0,bonos:0,horasExtra:0,colacion:0,movilizacion:0,periodo:new Date().toISOString().slice(0,7),diasSinGoce:0,diasLicencia:0});
+  const emptyF=()=>({trabajadorId:"",nombre:"",rut:"",cargo:"",afp:"habitat",isapre:"fonasa",contratoTipo:"indefinido",sueldoBase:0,gratificacion:0,bonos:0,horasExtra:0,colacion:0,movilizacion:0,periodo:new Date().toISOString().slice(0,7),diasSinGoce:0,diasLicencia:0,centroCosto:""});
   const elegirTrabajador=idT=>{
     const t=empTrabajadores.find(x=>x.id===idT);
     if(!t){setFm(p=>({...p,trabajadorId:""}));return}
     setFm(p=>{
       const{diasSinGoce,diasLicencia}=diasAsistenciaEnPeriodo(empAsistencia,idT,p.periodo);
-      return{...p,trabajadorId:idT,nombre:t.nombre+(t.apellido?" "+t.apellido:""),rut:t.rut,cargo:t.cargo||"",afp:t.afp||"habitat",isapre:t.isapre||"fonasa",contratoTipo:t.contratoTipo||"indefinido",sueldoBase:t.sueldoBase||0,gratificacion:t.gratificacion||0,colacion:t.colacion||0,movilizacion:t.movilizacion||0,diasSinGoce,diasLicencia};
+      return{...p,trabajadorId:idT,nombre:t.nombre+(t.apellido?" "+t.apellido:""),rut:t.rut,cargo:t.cargo||"",afp:t.afp||"habitat",isapre:t.isapre||"fonasa",contratoTipo:t.contratoTipo||"indefinido",sueldoBase:t.sueldoBase||0,gratificacion:t.gratificacion||0,colacion:t.colacion||0,movilizacion:t.movilizacion||0,diasSinGoce,diasLicencia,centroCosto:t.centroCosto||""};
     });
   };
   const cambiarPeriodoForm=periodo=>{
@@ -2345,32 +2345,55 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
   // sumaba TODOS los empRems sin filtrar por periodo, lo que mezclaba
   // meses distintos en un solo asiento y los duplicaba si se centralizaba
   // mas de una vez.
-  const descCentralizacion=p=>"Centralizacion remuneraciones "+p;
-  const estaCentralizado=p=>empEntries.some(e=>e.desc===descCentralizacion(p));
+  // Usa las cuentas de detalle reales del plan de cuentas (antes usaba
+  // codigos como 2.1.08/2.1.05/2.1.07 que no existen, y cargaba todo a
+  // 5.2.01 que es una cuenta de grupo, no de detalle -- esos montos no
+  // calzaban en el Balance ni en el Libro Mayor). Ademas genera un asiento
+  // separado POR CENTRO DE COSTO (reusa el campo centroCosto que ya existe
+  // en cada asiento), para que el gasto de remuneraciones quede repartido
+  // igual que cualquier otro gasto con centro de costo.
+  const descCentralizacion=(p,ccNombre)=>"Centralizacion remuneraciones "+p+(ccNombre?" - "+ccNombre:"");
+  const estaCentralizado=p=>empEntries.some(e=>(e.desc||"").startsWith("Centralizacion remuneraciones "+p));
   const genAsiento=(periodo)=>{
     const rowsP=periodo?empRems.filter(r=>r.periodo===periodo):empRems;
     if(rowsP.length===0)return;
-    const tSB=rowsP.reduce((s,r)=>s+r.totalImponible,0);
-    const tNI=rowsP.reduce((s,r)=>s+r.totalNoImponible,0);
-    const tAFP=rowsP.reduce((s,r)=>s+r.afpMonto,0);
-    const tSalud=rowsP.reduce((s,r)=>s+r.saludMonto,0);
-    const tCes=rowsP.reduce((s,r)=>s+r.cesantiaTrab,0);
-    const tImp=rowsP.reduce((s,r)=>s+r.impUnico,0);
-    const tLiq=rowsP.reduce((s,r)=>s+r.liquido,0);
-    const tCesEmp=rowsP.reduce((s,r)=>s+r.cesantiaEmp,0);
-    const tSIS=rowsP.reduce((s,r)=>s+r.sisMonto,0);
-    const ns=empEntries.map(e=>parseInt(e.num)||0);
-    const n=String(Math.max(0,...ns)+1).padStart(4,"0");
-    const lines=[];
-    lines.push({ac:"5.2.01",db:tSB+tNI+tCesEmp+tSIS,cr:0});
-    const tCotiz=tAFP+tSalud+tCes+tCesEmp+tSIS;
-    if(tCotiz>0)lines.push({ac:"2.1.08",db:0,cr:tCotiz});
-    if(tImp>0)lines.push({ac:"2.1.05",db:0,cr:tImp});
-    lines.push({ac:"2.1.07",db:0,cr:tLiq});
-    const entry={id:uid(),empresaId:eObj.id,num:n,date:new Date().toISOString().slice(0,10),desc:descCentralizacion(periodo||rowsP[0]?.periodo),lines};
-    setEntries(p=>[...p,entry]);
-    aLog("Asiento remuneraciones",rowsP.length+" trabajadores - "+eObj.name);
-    alert("Asiento de centralizacion N"+n+" creado con "+rowsP.length+" trabajadores");
+    const grupos=new Map();
+    rowsP.forEach(r=>{const key=r.centroCosto||"";if(!grupos.has(key))grupos.set(key,[]);grupos.get(key).push(r)});
+    let nCount=Math.max(0,...empEntries.map(e=>parseInt(e.num)||0));
+    let creados=0,saltados=0;
+    grupos.forEach((rows,ccId)=>{
+      const ccNombre=ccId?(ccostos||[]).find(c=>c.id===ccId)?.nombre:"";
+      const desc=descCentralizacion(periodo||rows[0]?.periodo,ccNombre);
+      if(empEntries.some(e=>e.desc===desc)){saltados+=rows.length;return}
+      const tSueldos=rows.reduce((s,r)=>s+(r.totalImponible-r.gratificacion-r.horasExtra),0);
+      const tGrat=rows.reduce((s,r)=>s+r.gratificacion,0);
+      const tHE=rows.reduce((s,r)=>s+r.horasExtra,0);
+      const tNI=rows.reduce((s,r)=>s+r.totalNoImponible,0);
+      const tCostoPrev=rows.reduce((s,r)=>s+r.cesantiaEmp+r.sisMonto,0);
+      const tAFP=rows.reduce((s,r)=>s+r.afpMonto+r.sisMonto,0);
+      const tSalud=rows.reduce((s,r)=>s+r.saludMonto,0);
+      const tCesPagar=rows.reduce((s,r)=>s+r.cesantiaTrab+r.cesantiaEmp,0);
+      const tImp=rows.reduce((s,r)=>s+r.impUnico,0);
+      const tLiq=rows.reduce((s,r)=>s+r.liquido,0);
+      const lines=[];
+      if(tSueldos>0)lines.push({ac:"5.2.01.001",db:tSueldos,cr:0});
+      if(tGrat>0)lines.push({ac:"5.2.01.002",db:tGrat,cr:0});
+      if(tHE>0)lines.push({ac:"5.2.01.003",db:tHE,cr:0});
+      if(tNI>0)lines.push({ac:"5.2.01.004",db:tNI,cr:0});
+      if(tCostoPrev>0)lines.push({ac:"5.2.01.005",db:tCostoPrev,cr:0});
+      if(tAFP>0)lines.push({ac:"2.1.03.002",db:0,cr:tAFP});
+      if(tSalud>0)lines.push({ac:"2.1.03.003",db:0,cr:tSalud});
+      if(tCesPagar>0)lines.push({ac:"2.1.03.004",db:0,cr:tCesPagar});
+      if(tImp>0)lines.push({ac:"2.1.02.003",db:0,cr:tImp});
+      lines.push({ac:"2.1.03.001",db:0,cr:tLiq});
+      nCount+=1;
+      const entry={id:uid(),empresaId:eObj.id,num:String(nCount).padStart(4,"0"),date:new Date().toISOString().slice(0,10),desc,centroCosto:ccId||null,lines};
+      setEntries(p=>[...p,entry]);
+      aLog("Asiento remuneraciones",rows.length+" trabajadores - "+eObj.name+(ccNombre?" - "+ccNombre:""));
+      creados+=rows.length;
+    });
+    if(creados===0){alert(saltados>0?"Este periodo ya estaba centralizado.":"Nada que centralizar.");return}
+    alert("Centralizacion creada: "+creados+" trabajador"+(creados!==1?"es":"")+(saltados>0?" ("+saltados+" ya estaban centralizados)":"")+".");
   };
 
   const preview=fm.sueldoBase>0?calcRem(fm):null;
@@ -2395,6 +2418,7 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
         <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>AFP</label><select value={fm.afp} onChange={e=>setFm(p=>({...p,afp:e.target.value}))}>{Object.keys(params.afp).map(k=><option key={k} value={k}>{k.charAt(0).toUpperCase()+k.slice(1)} ({params.afp[k].r}%)</option>)}</select></div>
         <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Salud</label><select value={fm.isapre} onChange={e=>setFm(p=>({...p,isapre:e.target.value}))}><option value="fonasa">Fonasa (7%)</option><option value="isapre">Isapre</option></select></div>
         <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Contrato</label><select value={fm.contratoTipo} onChange={e=>setFm(p=>({...p,contratoTipo:e.target.value}))}><option value="indefinido">Indefinido</option><option value="fijo">Plazo Fijo</option></select></div>
+        {ccostos?.length>0&&<div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Centro de Costo</label><select value={fm.centroCosto} onChange={e=>setFm(p=>({...p,centroCosto:e.target.value}))}><option value="">Sin centro de costo</option>{ccostos.map(c=><option key={c.id} value={c.id}>{c.nombre}</option>)}</select></div>}
       </FG></Sc>
       <Sc t="Haberes Imponibles"><FG>
         <Fi l="Sueldo Base" v={fm.sueldoBase} s={v=>setFm(p=>({...p,sueldoBase:parseInt(v)||0}))} t="number"/>
@@ -3129,10 +3153,22 @@ function PortalP({eObj,empEntries,empDocs,empRems,eEvs,accts,leafAccts,go}){
   const totalI=leafAccts.filter(a=>a.tp==="income").reduce((s,a)=>s+getB(a.cd,a.tp),0);
   const totalX=leafAccts.filter(a=>a.tp==="expense").reduce((s,a)=>s+getB(a.cd,a.tp),0);
   const resultado=totalI-totalX;
-  const liquidez=totalL>0?(totalA/totalL).toFixed(2):"N/A";
-  const endeudam=totalA>0?((totalL/totalA)*100).toFixed(1):"0";
+  const liquidezNum=totalL>0?totalA/totalL:null;
+  const endeudamNum=totalA>0?(totalL/totalA)*100:0;
+  const liquidez=liquidezNum===null?"N/A":liquidezNum.toFixed(2);
+  const endeudam=endeudamNum.toFixed(1);
 
-  const lastEval=eEvs.length>0?eEvs[eEvs.length-1]:null;
+  // Score (A-D) calculado solo a partir de los datos contables ya existentes
+  // -- antes dependia de una pregunta manual de la Evaluacion RADAR que casi
+  // nunca se llenaba, por lo que el score se quedaba en "--" para siempre.
+  // Rubrica simple: liquidez + endeudamiento + resultado del ejercicio.
+  let puntosScore=0;
+  if(liquidezNum===null||liquidezNum>=1.5)puntosScore+=2;else if(liquidezNum>=1)puntosScore+=1;
+  if(endeudamNum<=40)puntosScore+=2;else if(endeudamNum<=70)puntosScore+=1;
+  if(resultado>=0)puntosScore+=1;
+  const score=puntosScore>=4?"A":puntosScore>=3?"B":puntosScore>=1?"C":"D";
+  const scoreColor={A:"var(--gn)",B:"var(--cy)",C:"var(--am)",D:"var(--rd)"}[score];
+
   const docsPend=empDocs.filter(d=>d.estado==="pendiente").length;
   const docsVenc=empDocs.filter(d=>d.estado==="vencido").length;
 
@@ -3146,8 +3182,8 @@ function PortalP({eObj,empEntries,empDocs,empRems,eEvs,accts,leafAccts,go}){
           <div style={{fontSize:22,fontWeight:700,letterSpacing:-.3,lineHeight:1.15,marginTop:4}}>{eObj.name}</div>
           <div style={{fontSize:12,color:"var(--tx3)",marginTop:4}}>{eObj.rut} - {eObj.giro||"Sin giro"}</div>
         </div>
-        <div style={{width:72,height:72,borderRadius:"50%",background:"var(--cyg)",border:"2px solid var(--cy2)",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column"}}>
-          <div style={{fontSize:22,fontWeight:800,color:"var(--cy)"}}>{lastEval?.responses?.pro_riesgo_global==="bajo"?"A":lastEval?.responses?.pro_riesgo_global==="medio"?"B":lastEval?.responses?.pro_riesgo_global==="alto"?"C":"--"}</div>
+        <div style={{width:72,height:72,borderRadius:"50%",background:"var(--cyg)",border:"2px solid "+scoreColor,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column"}}>
+          <div style={{fontSize:22,fontWeight:800,color:scoreColor}}>{score}</div>
           <div style={{fontSize:7,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:1}}>Score</div>
         </div>
       </div>
