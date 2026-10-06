@@ -188,6 +188,7 @@ const DFLT_ACCTS=[
   {cd:"2.1.01.001",nm:"Proveedores",tp:"liability",lv:4},
   {cd:"2.1.01.002",nm:"Documentos por Pagar",tp:"liability",lv:4},
   {cd:"2.1.01.003",nm:"Acreedores Varios",tp:"liability",lv:4},
+  {cd:"2.1.01.004",nm:"Honorarios por Pagar",tp:"liability",lv:4},
   {cd:"2.1.02",nm:"Impuestos por Pagar",tp:"liability",lv:3},
   {cd:"2.1.02.001",nm:"IVA Debito Fiscal",tp:"liability",lv:4},
   {cd:"2.1.02.002",nm:"Retencion Honorarios",tp:"liability",lv:4},
@@ -296,10 +297,11 @@ function Dashboard({session}){
   const [reglas,setReglas]=useState([]);
   const [ccostos,setCcostos]=useState([]);
   const [activos,setActivos]=useState([]);
+  const [honorarios,setHonorarios]=useState([]);
   const [sb,setSb]=useState(false);
-  const prevIds=useRef({e:new Set(),v:new Set(),l:new Set(),a:new Set(),en:new Set(),rm:new Set(),tb:new Set(),pr:new Set(),as:new Set(),dc:new Set(),ta:new Set(),rg:new Set(),cc:new Set(),af:new Set()});
+  const prevIds=useRef({e:new Set(),v:new Set(),l:new Set(),a:new Set(),en:new Set(),rm:new Set(),tb:new Set(),pr:new Set(),as:new Set(),dc:new Set(),ta:new Set(),rg:new Set(),cc:new Set(),af:new Set(),ho:new Set()});
   useEffect(()=>{let cancelled=false;(async()=>{
-    const[e,v,l,a,en,rm,tb,pr,as,dc,ta,rg,cc,af]=await Promise.all([
+    const[e,v,l,a,en,rm,tb,pr,as,dc,ta,rg,ho,cc,af]=await Promise.all([
       loadCollection(userId,"empresas",[]),
       loadCollection(userId,"evaluaciones",[]),
       loadCollection(userId,"log",[]),
@@ -312,17 +314,23 @@ function Dashboard({session}){
       loadCollection(userId,"documentos",[]),
       loadCollection(userId,"tareas",[]),
       loadCollection(userId,"reglas_categorizacion",[]),
+      loadCollection(userId,"honorarios",[]),
       loadCollection(userId,"centros_costo",[]),
       loadCollection(userId,"activos_fijos",[]),
     ]);
     if(cancelled)return;
+    // Migracion aditiva: empresas creadas antes de que existiera el modulo
+    // de Honorarios no tienen esta cuenta en su plan de cuentas guardado
+    // (solo las empresas nuevas parten de DFLT_ACCTS actualizado) -- se
+    // agrega sola, sin tocar ninguna cuenta existente.
+    const accFinal=a.some(x=>x.cd==="2.1.01.004")?a:[...a,{cd:"2.1.01.004",nm:"Honorarios por Pagar",tp:"liability",lv:4}];
     prevIds.current={
       e:new Set(e.map(x=>String(x.id))),v:new Set(v.map(x=>String(x.id))),l:new Set(l.map(x=>String(x.id))),
       a:new Set(a.map(x=>String(x.cd))),en:new Set(en.map(x=>String(x.id))),rm:new Set(rm.map(x=>String(x.id))),
       tb:new Set(tb.map(x=>String(x.id))),pr:new Set(pr.map(x=>String(x.id))),as:new Set(as.map(x=>String(x.id))),
-      dc:new Set(dc.map(x=>String(x.id))),ta:new Set(ta.map(x=>String(x.id))),rg:new Set(rg.map(x=>String(x.id))),cc:new Set(cc.map(x=>String(x.id))),af:new Set(af.map(x=>String(x.id))),
+      dc:new Set(dc.map(x=>String(x.id))),ta:new Set(ta.map(x=>String(x.id))),rg:new Set(rg.map(x=>String(x.id))),cc:new Set(cc.map(x=>String(x.id))),af:new Set(af.map(x=>String(x.id))),ho:new Set(ho.map(x=>String(x.id))),
     };
-    setEmps(e);setEvs(v);setLog(l);setAccts(a);setEntries(en);setRems(rm);setTrabajadores(tb);setProcesosRem(pr);setAsistencia(as);setDocs(dc);setTareas(ta);setReglas(rg);setCcostos(cc);setActivos(af);
+    setEmps(e);setEvs(v);setLog(l);setAccts(accFinal);setEntries(en);setRems(rm);setTrabajadores(tb);setProcesosRem(pr);setAsistencia(as);setDocs(dc);setTareas(ta);setReglas(rg);setCcostos(cc);setActivos(af);setHonorarios(ho);
     if(e.length>0)setAEmp(e[0].id);setRdy(true);
   })();return()=>{cancelled=true}},[userId]);
   useEffect(()=>{if(rdy)saveCollection(userId,"empresas",emps,prevIds.current.e).then(s=>prevIds.current.e=s)},[emps,rdy]);
@@ -339,6 +347,7 @@ function Dashboard({session}){
   useEffect(()=>{if(rdy)saveCollection(userId,"reglas_categorizacion",reglas,prevIds.current.rg).then(s=>prevIds.current.rg=s)},[reglas,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"centros_costo",ccostos,prevIds.current.cc).then(s=>prevIds.current.cc=s)},[ccostos,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"activos_fijos",activos,prevIds.current.af).then(s=>prevIds.current.af=s)},[activos,rdy]);
+  useEffect(()=>{if(rdy)saveCollection(userId,"honorarios",honorarios,prevIds.current.ho).then(s=>prevIds.current.ho=s)},[honorarios,rdy]);
   const aLog=(a,d)=>setLog(p=>[{id:uid(),time:new Date().toISOString(),action:a,detail:d},...p].slice(0,50));
   const eObj=useMemo(()=>emps.find(e=>e.id===aEmp),[emps,aEmp]);
   const eEvs=useMemo(()=>evs.filter(e=>e.empresaId===aEmp),[evs,aEmp]);
@@ -346,6 +355,7 @@ function Dashboard({session}){
   const empReglas=useMemo(()=>reglas.filter(r=>r.empresaId===aEmp),[reglas,aEmp]);
   const empCcostos=useMemo(()=>ccostos.filter(c=>c.empresaId===aEmp),[ccostos,aEmp]);
   const empActivos=useMemo(()=>activos.filter(a=>a.empresaId===aEmp),[activos,aEmp]);
+  const empHonorarios=useMemo(()=>honorarios.filter(h=>h.empresaId===aEmp),[honorarios,aEmp]);
   const empRems=useMemo(()=>rems.filter(r=>r.empresaId===aEmp),[rems,aEmp]);
   const empTrabajadores=useMemo(()=>trabajadores.filter(t=>t.empresaId===aEmp),[trabajadores,aEmp]);
   const empProcesosRem=useMemo(()=>procesosRem.filter(p=>p.empresaId===aEmp),[procesosRem,aEmp]);
@@ -377,7 +387,7 @@ function Dashboard({session}){
         {pg==="inicio"&&<HomeP emps={emps} eObj={eObj} evs={evs} log={log}/>}
         {pg==="empresas"&&<EmpP emps={emps} setEmps={setEmps} aEmp={aEmp} setAEmp={setAEmp} aLog={aLog}/>}
         {pg==="radar"&&<RadP eObj={eObj} evs={evs} setEvs={setEvs} eEvs={eEvs} aLog={aLog} go={go}/>}
-        {pg==="contabilidad"&&<ContabP eObj={eObj} accts={accts} setAccts={setAccts} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go} reglas={empReglas} setReglas={setReglas} ccostos={empCcostos} setCcostos={setCcostos} activos={empActivos} setActivos={setActivos}/>}
+        {pg==="contabilidad"&&<ContabP eObj={eObj} accts={accts} setAccts={setAccts} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go} reglas={empReglas} setReglas={setReglas} ccostos={empCcostos} setCcostos={setCcostos} activos={empActivos} setActivos={setActivos} honorarios={empHonorarios} setHonorarios={setHonorarios}/>}
         {pg==="remuneraciones"&&<RemP eObj={eObj} rems={rems} setRems={setRems} empRems={empRems} trabajadores={trabajadores} setTrabajadores={setTrabajadores} empTrabajadores={empTrabajadores} procesosRem={procesosRem} setProcesosRem={setProcesosRem} empProcesosRem={empProcesosRem} asistencia={asistencia} setAsistencia={setAsistencia} empAsistencia={empAsistencia} ccostos={empCcostos} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go}/>}
         {pg==="documentos"&&<DocsP eObj={eObj} docs={docs} setDocs={setDocs} empDocs={empDocs} aLog={aLog} go={go}/>}
         {pg==="planificacion"&&<PlanP eObj={eObj} tareas={tareas} setTareas={setTareas} empTareas={empTareas} aLog={aLog} go={go}/>}
@@ -759,14 +769,14 @@ const tpC={asset:"#6B7408",liability:"#DC2626",equity:"#5F6B4A",income:"#0D8A5F"
 // desplegable en vez de mostrar los 6 grupos apilados a la vez.
 const CONTAB_TAB_GROUPS=[
   {g:"Resumen",items:[{id:"dashboard",l:"Dashboard"}]},
-  {g:"Registro",items:[{id:"asientos",l:"Asientos"},{id:"csv",l:"Compras/Ventas SII"},{id:"porclasificar",l:"Por Clasificar"}]},
+  {g:"Registro",items:[{id:"asientos",l:"Asientos"},{id:"csv",l:"Compras/Ventas SII"},{id:"porclasificar",l:"Por Clasificar"},{id:"honorarios",l:"Honorarios"}]},
   {g:"Procesos",items:[{id:"centralizacion",l:"Centralizacion"},{id:"conciliacion",l:"Conciliacion Bancaria"},{id:"ccostos",l:"Centros de Costo"},{id:"activos",l:"Activos Fijos"}]},
   {g:"Libros",items:[{id:"diario",l:"Libro Diario"},{id:"mayor",l:"Libro Mayor"},{id:"lcompras",l:"Libro de Compras"},{id:"lventas",l:"Libro de Ventas"},{id:"auxiliar",l:"Auxiliares"},{id:"librocaja",l:"Libro de Caja"}]},
   {g:"Reportes",items:[{id:"resumeniva",l:"Resumen IVA"},{id:"balance",l:"Balance"},{id:"eerr",l:"Estado Resultados"},{id:"b8",l:"8 Columnas"}]},
   {g:"Configuracion",items:[{id:"plan",l:"Plan de Cuentas"}]},
 ];
 
-function ContabP({eObj,accts,setAccts,entries,setEntries,empEntries,leafAccts,aLog,go,reglas,setReglas,ccostos,setCcostos,activos,setActivos}){
+function ContabP({eObj,accts,setAccts,entries,setEntries,empEntries,leafAccts,aLog,go,reglas,setReglas,ccostos,setCcostos,activos,setActivos,honorarios,setHonorarios}){
   const [tab,setTab]=useState("dashboard");
   const [navTarget,setNavTarget]=useState(null);
   const [openGrp,setOpenGrp]=useState("Resumen");
@@ -804,6 +814,7 @@ function ContabP({eObj,accts,setAccts,entries,setEntries,empEntries,leafAccts,aL
     {tab==="lcompras"&&<LibroCV empEntries={empEntries} tipo="compra" eObj={eObj} irAAsiento={irAAsiento}/>}
     {tab==="lventas"&&<LibroCV empEntries={empEntries} tipo="venta" eObj={eObj} irAAsiento={irAAsiento}/>}
     {tab==="porclasificar"&&<PorClasificar empEntries={empEntries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} aLog={aLog} reglas={reglas} setReglas={setReglas} irAAsiento={irAAsiento}/>}
+    {tab==="honorarios"&&<HonorariosP honorarios={honorarios} setHonorarios={setHonorarios} empEntries={empEntries} setEntries={setEntries} eObj={eObj} aLog={aLog} irAAsiento={irAAsiento}/>}
     {tab==="conciliacion"&&<ConciliacionP entries={entries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} empEntries={empEntries} aLog={aLog} reglas={reglas} setReglas={setReglas}/>}
     {tab==="diario"&&<LDiario empEntries={empEntries} accts={accts} eObj={eObj} ccostos={ccostos} irAAsiento={irAAsiento}/>}
     {tab==="mayor"&&<LMayor empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj} irAAsiento={irAAsiento} cuentaInicial={navTarget?.tipo==="cuenta"?navTarget:null}/>}
@@ -1157,7 +1168,7 @@ function PlanCtas({accts,setAccts,aLog}){
 }
 
 const TIPOS_COMPROBANTE=[{id:"ingreso",l:"Ingreso"},{id:"egreso",l:"Egreso"},{id:"traspaso",l:"Traspaso"}];
-const ORIGEN_LABELS={manual:"Manual",centralizacion:"Centralizacion",sii:"Importacion SII",csv:"CSV",conciliacion:"Conciliacion",depreciacion:"Depreciacion",recurrente:"Recurrente"};
+const ORIGEN_LABELS={manual:"Manual",centralizacion:"Centralizacion",sii:"Importacion SII",csv:"CSV",conciliacion:"Conciliacion",depreciacion:"Depreciacion",recurrente:"Recurrente",honorarios:"Honorarios"};
 function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog,ccostos,resaltar}){
   const [showF,setShowF]=useState(false);
   const [editId,setEditId]=useState(null);
@@ -1264,6 +1275,154 @@ function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog,ccostos,res
       <div style={{fontSize:11}}>{e.lines.map((l,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 80px 80px",gap:8,padding:"2px 0"}}><span style={{color:"var(--tx2)",paddingLeft:l.cr>0?20:0}}>{l.ac} {leafAccts.find(a=>a.cd===l.ac)?.nm||""}</span><span style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{l.db>0?"$"+fmt(l.db):""}</span><span style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{l.cr>0?"$"+fmt(l.cr):""}</span></div>)}</div>
     </div>)}</div>
     {entriesFiltradas.length===0&&empEntries.length>0&&<Ey i="🔍" t="Sin resultados" d="Ningun asiento coincide con los filtros aplicados."/>}
+  </div>);
+}
+
+// ═══ HONORARIOS (boletas de tercero, retencion de impuesto) ═══
+// La tasa es un parametro editable por boleta (no un valor fijo del
+// sistema como UF/UTM/Previred): la ley la sube de 15.25% hoy a 17% hacia
+// 2028 en tramos, y cada boleta debe conservar la tasa vigente al momento
+// en que se emitio, no la de hoy.
+const HONORARIOS_TASA_DEFAULT=15.25;
+const CTA_HONORARIOS_GASTO="5.2.02.001";
+const CTA_HONORARIOS_RETENCION="2.1.02.002";
+const CTA_HONORARIOS_PAGAR="2.1.01.004";
+const HONORARIOS_VISTAS=[{id:"boletas",l:"Boletas"},{id:"libro",l:"Libro de Retencion"},{id:"certificado",l:"Certificado Anual"}];
+function HonorariosP({honorarios,setHonorarios,empEntries,setEntries,eObj,aLog,irAAsiento}){
+  const [vw,setVw]=useState("boletas");
+  const [showF,setShowF]=useState(false);
+  const blankFm=()=>({rut:"",nombre:"",fecha:new Date().toISOString().slice(0,10),montoBruto:0,tasa:HONORARIOS_TASA_DEFAULT});
+  const [fm,setFm]=useState(blankFm());
+  const [filtroMes,setFiltroMes]=useState("todos");
+  const nxt=useMemo(()=>{const ns=empEntries.map(e=>parseInt(e.num)||0);return Math.max(0,...ns)+1},[empEntries]);
+  const mesesDisponibles=useMemo(()=>[...new Set(honorarios.map(h=>h.fecha.slice(0,7)))].sort((a,b)=>b.localeCompare(a)),[honorarios]);
+  const honorariosFiltrados=useMemo(()=>filtroMes==="todos"?honorarios:honorarios.filter(h=>h.fecha.slice(0,7)===filtroMes),[honorarios,filtroMes]);
+  const sumar=list=>list.reduce((s,h)=>({bruto:s.bruto+h.montoBruto,retencion:s.retencion+h.retencion,liquido:s.liquido+h.liquido}),{bruto:0,retencion:0,liquido:0});
+  const totales=useMemo(()=>sumar(honorariosFiltrados),[honorariosFiltrados]);
+
+  const agregar=()=>{
+    if(!fm.rut.trim()||!fm.nombre.trim()||!fm.montoBruto||!fm.tasa)return;
+    const retencion=Math.round(fm.montoBruto*fm.tasa/100);
+    const liquido=fm.montoBruto-retencion;
+    const entry={id:uid(),empresaId:eObj.id,num:String(nxt).padStart(4,"0"),date:fm.fecha,desc:"Honorarios "+fm.nombre.trim(),origen:"honorarios",lines:[
+      {ac:CTA_HONORARIOS_GASTO,db:fm.montoBruto,cr:0},
+      {ac:CTA_HONORARIOS_RETENCION,db:0,cr:retencion},
+      {ac:CTA_HONORARIOS_PAGAR,db:0,cr:liquido},
+    ].filter(l=>l.db>0||l.cr>0)};
+    setEntries(p=>[...p,entry]);
+    setHonorarios(p=>[...p,{id:uid(),empresaId:eObj.id,rut:fm.rut.trim(),nombre:fm.nombre.trim(),fecha:fm.fecha,montoBruto:fm.montoBruto,tasa:fm.tasa,retencion,liquido,entryId:entry.id}]);
+    aLog("Boleta de honorarios",fm.nombre.trim()+" - $"+fmt(fm.montoBruto));
+    setFm(blankFm());setShowF(false);
+  };
+  const eliminar=async(id,nombre)=>{
+    if(!await rdConfirm('Eliminar la boleta de "'+nombre+'"? El asiento ya generado no se elimina automaticamente.'))return;
+    setHonorarios(p=>p.filter(h=>h.id!==id));
+  };
+
+  const [anioCert,setAnioCert]=useState(String(new Date().getFullYear()));
+  const [rutCert,setRutCert]=useState("");
+  const aniosDisponibles=useMemo(()=>[...new Set(honorarios.map(h=>h.fecha.slice(0,4)))].sort((a,b)=>b.localeCompare(a)),[honorarios]);
+  const prestadoresAnio=useMemo(()=>{
+    const m=new Map();
+    honorarios.filter(h=>h.fecha.slice(0,4)===anioCert).forEach(h=>{const k=normRut(h.rut)||h.rut;if(!m.has(k))m.set(k,{rut:h.rut,nombre:h.nombre})});
+    return[...m.values()].sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  },[honorarios,anioCert]);
+  const certBoletas=useMemo(()=>rutCert?honorarios.filter(h=>h.fecha.slice(0,4)===anioCert&&normRut(h.rut)===normRut(rutCert)).sort((a,b)=>a.fecha.localeCompare(b.fecha)):[],[honorarios,anioCert,rutCert]);
+  const certTotales=useMemo(()=>sumar(certBoletas),[certBoletas]);
+  const certNombre=certBoletas[0]?.nombre||"";
+
+  return(<div>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:12}}>
+      <div>
+        <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Honorarios</div>
+        <div style={{fontSize:12,color:"var(--tx3)"}}>Boletas de prestadores, retencion de impuesto y el asiento contable al tiro — sin pasos manuales.</div>
+      </div>
+      {vw==="boletas"&&<Bt onClick={()=>showF?setShowF(false):(setFm(blankFm()),setShowF(true))} p={true}>{IC.plus} Nueva Boleta</Bt>}
+    </div>
+    <div style={{display:"flex",gap:6,marginBottom:16}}>{HONORARIOS_VISTAS.map(v=><button key={v.id} onClick={()=>setVw(v.id)} style={{padding:"8px 16px",borderRadius:"var(--rs)",border:"1px solid "+(vw===v.id?"var(--cy2)":"var(--bd)"),background:vw===v.id?"var(--cy-fill)":"var(--sf)",color:vw===v.id?"#1B4D2E":"var(--tx2)",fontSize:12,fontWeight:600,cursor:"pointer"}}>{v.l}</button>)}</div>
+
+    {vw==="boletas"&&<>
+      {showF&&<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20,marginBottom:16}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+          <Fi l="RUT del prestador" v={fm.rut} s={v=>setFm(p=>({...p,rut:v}))} ph="11.111.111-1"/>
+          <Fi l="Nombre del prestador" v={fm.nombre} s={v=>setFm(p=>({...p,nombre:v}))}/>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:16}}>
+          <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Fecha de la boleta</label><input type="date" value={fm.fecha} onChange={e=>setFm(p=>({...p,fecha:e.target.value}))}/></div>
+          <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Monto bruto</label><input type="number" min="0" value={fm.montoBruto||""} onChange={e=>setFm(p=>({...p,montoBruto:parseFloat(e.target.value)||0}))}/></div>
+          <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Tasa de retencion %</label><input type="number" min="0" max="100" step="0.01" value={fm.tasa||""} onChange={e=>setFm(p=>({...p,tasa:parseFloat(e.target.value)||0}))}/></div>
+        </div>
+        {fm.montoBruto>0&&fm.tasa>0&&<div style={{display:"flex",gap:16,fontSize:12,marginBottom:16,color:"var(--tx3)"}}><span>Retencion: <b style={{color:"var(--tx)",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(Math.round(fm.montoBruto*fm.tasa/100))}</b></span><span>Liquido: <b style={{color:"var(--gn)",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(fm.montoBruto-Math.round(fm.montoBruto*fm.tasa/100))}</b></span></div>}
+        <div style={{display:"flex",gap:8}}><Bt onClick={agregar} p={true}>Guardar</Bt><Bt onClick={()=>{setShowF(false);setFm(blankFm())}}>Cancelar</Bt></div>
+      </div>}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:12,marginBottom:16}}>
+        <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase",marginBottom:6}}>Bruto</div><div style={{fontSize:18,fontWeight:700,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(totales.bruto)}</div></div>
+        <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase",marginBottom:6}}>Retenido</div><div style={{fontSize:18,fontWeight:700,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:"var(--am)"}}>${fmt(totales.retencion)}</div></div>
+        <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase",marginBottom:6}}>Liquido a pagar</div><div style={{fontSize:18,fontWeight:700,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:"var(--gn)"}}>${fmt(totales.liquido)}</div></div>
+      </div>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16,alignItems:"center"}}>
+        <select value={filtroMes} onChange={e=>setFiltroMes(e.target.value)} style={{maxWidth:160,fontSize:12}}><option value="todos">Todos los meses</option>{mesesDisponibles.map(m=><option key={m} value={m}>{m}</option>)}</select>
+        <span style={{fontSize:11,color:"var(--tx3)",marginLeft:"auto"}}>{honorariosFiltrados.length} boleta{honorariosFiltrados.length!==1?"s":""}</span>
+      </div>
+      {honorariosFiltrados.length===0?<Ey i="🧾" t="Sin boletas de honorarios" d="Agrega una boleta para generar su asiento automaticamente."/>:
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>{[...honorariosFiltrados].sort((a,b)=>b.fecha.localeCompare(a.fecha)).map(h=>
+        <div key={h.id} onClick={()=>h.entryId&&irAAsiento?.(h.entryId)} title={h.entryId?"Ver asiento":""} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,cursor:h.entryId?"pointer":"default"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
+            <div><div style={{fontSize:13,fontWeight:600}}>{h.nombre}</div><div style={{fontSize:11,color:"var(--tx3)",marginTop:2}}>{h.rut} · {fD(h.fecha)} · tasa {h.tasa}%</div></div>
+            <button onClick={e=>{e.stopPropagation();eliminar(h.id,h.nombre)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.6,fontSize:11}}>eliminar</button>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(100px,1fr))",gap:10,marginTop:12,fontSize:12,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>
+            <span>Bruto ${fmt(h.montoBruto)}</span><span style={{color:"var(--am)"}}>Retencion ${fmt(h.retencion)}</span><span style={{color:"var(--gn)",fontWeight:600}}>Liquido ${fmt(h.liquido)}</span>
+          </div>
+        </div>
+      )}</div>}
+    </>}
+
+    {vw==="libro"&&<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden"}}>
+      <div style={{padding:16,borderBottom:"1px solid var(--bd)",display:"flex",gap:12,alignItems:"center",flexWrap:"wrap"}}>
+        <select value={filtroMes} onChange={e=>setFiltroMes(e.target.value)} style={{maxWidth:160,fontSize:12}}><option value="todos">Todos los meses</option>{mesesDisponibles.map(m=><option key={m} value={m}>{m}</option>)}</select>
+        <span style={{fontSize:11,color:"var(--tx3)"}}>{honorariosFiltrados.length} boleta{honorariosFiltrados.length!==1?"s":""}</span>
+      </div>
+      {honorariosFiltrados.length===0?<Ey i="📖" t="Sin movimientos" d="No hay boletas en el periodo seleccionado."/>:
+      <div style={{overflowX:"auto"}}><table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
+        <thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:11,color:"var(--tx3)"}}><th style={{textAlign:"left",padding:"10px 16px",fontWeight:500}}>Fecha</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>RUT</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Prestador</th><th style={{textAlign:"right",padding:"10px 8px",fontWeight:500}}>Tasa</th><th style={{textAlign:"right",padding:"10px 8px",fontWeight:500}}>Bruto</th><th style={{textAlign:"right",padding:"10px 16px",fontWeight:500}}>Retencion</th><th style={{textAlign:"right",padding:"10px 16px",fontWeight:500}}>Liquido</th></tr></thead>
+        <tbody>{[...honorariosFiltrados].sort((a,b)=>a.fecha.localeCompare(b.fecha)).map(h=><tr key={h.id} onClick={()=>h.entryId&&irAAsiento?.(h.entryId)} title={h.entryId?"Ver asiento":""} style={{borderBottom:"1px solid var(--bd)",cursor:h.entryId?"pointer":"default"}}>
+          <td style={{padding:"8px 16px"}}>{fD(h.fecha)}</td><td style={{padding:"8px 8px"}}>{h.rut}</td><td style={{padding:"8px 8px"}}>{h.nombre}</td>
+          <td style={{padding:"8px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{h.tasa}%</td>
+          <td style={{padding:"8px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(h.montoBruto)}</td>
+          <td style={{padding:"8px 16px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:"var(--am)"}}>${fmt(h.retencion)}</td>
+          <td style={{padding:"8px 16px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontWeight:600,color:"var(--gn)"}}>${fmt(h.liquido)}</td>
+        </tr>)}</tbody>
+        <tfoot><tr style={{borderTop:"2px solid var(--bd)",fontWeight:700}}><td colSpan={4} style={{padding:"10px 16px"}}>Total</td>
+          <td style={{padding:"10px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(totales.bruto)}</td>
+          <td style={{padding:"10px 16px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:"var(--am)"}}>${fmt(totales.retencion)}</td>
+          <td style={{padding:"10px 16px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:"var(--gn)"}}>${fmt(totales.liquido)}</td>
+        </tr></tfoot>
+      </table></div>}
+    </div>}
+
+    {vw==="certificado"&&<div>
+      <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:16}}>
+        <select value={anioCert} onChange={e=>{setAnioCert(e.target.value);setRutCert("")}} style={{maxWidth:140,fontSize:12}}>{aniosDisponibles.length===0?<option value={anioCert}>{anioCert}</option>:aniosDisponibles.map(a=><option key={a} value={a}>{a}</option>)}</select>
+        <select value={rutCert} onChange={e=>setRutCert(e.target.value)} style={{maxWidth:280,fontSize:12}}><option value="">Elige un prestador...</option>{prestadoresAnio.map(p=><option key={p.rut} value={p.rut}>{p.nombre} · {p.rut}</option>)}</select>
+        {rutCert&&certBoletas.length>0&&<Bt onClick={()=>window.print()}>Imprimir</Bt>}
+      </div>
+      {!rutCert?<Ey i="📜" t="Certificado de Honorarios" d="Elige un año y un prestador para ver el total de boletas emitidas."/>:
+      certBoletas.length===0?<Ey i="📜" t="Sin boletas" d={"Este prestador no tiene boletas registradas en "+anioCert+"."}/>:
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:24}}>
+        <div style={{fontSize:15,fontWeight:700,marginBottom:4}}>Certificado de Honorarios {anioCert}</div>
+        <div style={{fontSize:12,color:"var(--tx3)",marginBottom:20}}>{certNombre} · {rutCert} · {eObj?.name}</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:12,marginBottom:20}}>
+          <div><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase",marginBottom:6}}>Total Bruto</div><div style={{fontSize:18,fontWeight:700,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(certTotales.bruto)}</div></div>
+          <div><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase",marginBottom:6}}>Total Retenido</div><div style={{fontSize:18,fontWeight:700,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:"var(--am)"}}>${fmt(certTotales.retencion)}</div></div>
+          <div><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase",marginBottom:6}}>Total Liquido</div><div style={{fontSize:18,fontWeight:700,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:"var(--gn)"}}>${fmt(certTotales.liquido)}</div></div>
+        </div>
+        <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
+          <thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:11,color:"var(--tx3)"}}><th style={{textAlign:"left",padding:"8px 0",fontWeight:500}}>Fecha</th><th style={{textAlign:"right",padding:"8px 0",fontWeight:500}}>Bruto</th><th style={{textAlign:"right",padding:"8px 0",fontWeight:500}}>Retencion</th><th style={{textAlign:"right",padding:"8px 0",fontWeight:500}}>Liquido</th></tr></thead>
+          <tbody>{certBoletas.map(h=><tr key={h.id} style={{borderBottom:"1px solid var(--bd)"}}><td style={{padding:"6px 0"}}>{fD(h.fecha)}</td><td style={{padding:"6px 0",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(h.montoBruto)}</td><td style={{padding:"6px 0",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(h.retencion)}</td><td style={{padding:"6px 0",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(h.liquido)}</td></tr>)}</tbody>
+        </table>
+      </div>}
+    </div>}
   </div>);
 }
 
