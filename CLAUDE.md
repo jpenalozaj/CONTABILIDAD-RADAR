@@ -38,7 +38,8 @@ explícitamente lo contrario.
 - [ ] Asistente de Centralización general (multi-tipo de movimiento, por rango de fechas, generaliza el botón único "Centralizar" actual).
 
 **RRHH** (usuario confirmó: "sí, todas las funciones")
-- [ ] Control de Asistencia (registro/cálculo; integración con hardware/app de marcaje queda fuera de alcance de RADAR).
+- [x] Control de Asistencia v1 — colección `asistencia` (ausencia injustificada, licencia médica, permiso con/sin goce), CRUD en pestaña "Asistencia" de la ficha del trabajador, y **el cálculo de la liquidación (`calcRem`) ya descuenta el sueldo base automáticamente** en proporción a los días sin goce + días de licencia médica del período (permisos con goce no descuentan nada). Se precarga solo al elegir trabajador/período en Nueva Liquidación, queda editable. Licencia médica: se excluye del sueldo que paga la empresa pero el monto del subsidio Isapre/Fonasa/Mutual NO se calcula (fuera de alcance, se gestiona aparte) — hecho, commit `9be7624`.
+  - Pendiente dentro de esta misma fase si se necesita más adelante: registro de asistencia diaria real (marcaje entrada/salida) — integración con hardware/app de marcaje queda fuera de alcance de RADAR, esto es solo el registro de eventos tipo ausencia/licencia/permiso por rango de fechas.
 - [ ] Vacaciones.
 - [ ] Documentos y Firma.
 
