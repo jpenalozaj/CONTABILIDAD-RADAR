@@ -713,7 +713,7 @@ const CONTAB_TAB_GROUPS=[
   {g:"Registro",items:[{id:"asientos",l:"Asientos"},{id:"csv",l:"Compras/Ventas SII"},{id:"porclasificar",l:"Por Clasificar"}]},
   {g:"Procesos",items:[{id:"conciliacion",l:"Conciliacion Bancaria"},{id:"ccostos",l:"Centros de Costo"},{id:"activos",l:"Activos Fijos"}]},
   {g:"Libros",items:[{id:"diario",l:"Libro Diario"},{id:"mayor",l:"Libro Mayor"},{id:"lcompras",l:"Libro de Compras"},{id:"lventas",l:"Libro de Ventas"},{id:"auxiliar",l:"Auxiliares"}]},
-  {g:"Reportes",items:[{id:"balance",l:"Balance"},{id:"eerr",l:"Estado Resultados"},{id:"b8",l:"8 Columnas"}]},
+  {g:"Reportes",items:[{id:"resumeniva",l:"Resumen IVA"},{id:"balance",l:"Balance"},{id:"eerr",l:"Estado Resultados"},{id:"b8",l:"8 Columnas"}]},
   {g:"Configuracion",items:[{id:"plan",l:"Plan de Cuentas"}]},
 ];
 
@@ -761,6 +761,7 @@ function ContabP({eObj,accts,setAccts,entries,setEntries,empEntries,leafAccts,aL
     {tab==="auxiliar"&&<LibroAuxiliar empEntries={empEntries} eObj={eObj} irAAsiento={irAAsiento}/>}
     {tab==="ccostos"&&<CentrosCosto ccostos={ccostos} setCcostos={setCcostos} eObj={eObj} aLog={aLog}/>}
     {tab==="activos"&&<ActivosFijos activos={activos} setActivos={setActivos} empEntries={empEntries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} aLog={aLog}/>}
+    {tab==="resumeniva"&&<ResumenIVA empEntries={empEntries} eObj={eObj}/>}
     {tab==="balance"&&<Balance empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj} irACuenta={irACuenta}/>}
     {tab==="eerr"&&<EERR empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj} ccostos={ccostos} irACuenta={irACuenta}/>}
     {tab==="b8"&&<B8Col empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj} irACuenta={irACuenta}/>}
@@ -1573,6 +1574,63 @@ function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog,reglas}){
 // papel.
 const MESES=[["01","Enero"],["02","Febrero"],["03","Marzo"],["04","Abril"],["05","Mayo"],["06","Junio"],["07","Julio"],["08","Agosto"],["09","Septiembre"],["10","Octubre"],["11","Noviembre"],["12","Diciembre"]];
 const TIPO_DOC_LABELS={"33":"Factura Electronica","34":"Factura No Afecta o Exenta Electronica","39":"Boleta Electronica","41":"Boleta Exenta Electronica","46":"Factura de Compra Electronica","56":"Nota de Debito Electronica","61":"Nota de Credito Electronica","110":"Factura de Exportacion","111":"Nota de Debito de Exportacion","112":"Nota de Credito de Exportacion"};
+// Nota de Credito (61/112) resta del total del periodo -- no suma como si
+// fuera otra factura. Nota de Debito (56/111) sí suma, es un aumento.
+const signoDocTributario=cod=>(cod==="61"||cod==="112")?-1:1;
+
+function ResumenIVA({empEntries,eObj}){
+  const docsIva=useMemo(()=>empEntries.filter(e=>e.tipoDoc==="compra"||e.tipoDoc==="venta"),[empEntries]);
+  const periodos=useMemo(()=>[...new Set(docsIva.map(d=>d.periodo).filter(p=>/^\d{6}$/.test(p)))].sort((a,b)=>b.localeCompare(a)),[docsIva]);
+  const [periodoSel,setPeriodoSel]=useState(null);
+  const periodo=periodoSel||periodos[0]||null;
+  const fmtPeriodo=p=>{if(!p)return"";const mm=MESES.find(m=>m[0]===p.slice(4,6));return(mm?mm[1]:p.slice(4,6))+" "+p.slice(0,4)};
+
+  const calc=(tipoDoc)=>{
+    const rows=docsIva.filter(d=>d.tipoDoc===tipoDoc&&d.periodo===periodo);
+    const signo=r=>signoDocTributario(r.tipoDocCod);
+    return{
+      docs:rows.length,
+      neto:rows.reduce((s,r)=>s+(r.neto||0)*signo(r),0),
+      exento:rows.reduce((s,r)=>s+(r.exento||0)*signo(r),0),
+      iva:rows.reduce((s,r)=>s+(r.iva||0)*signo(r),0),
+      total:rows.reduce((s,r)=>s+(r.total||0)*signo(r),0),
+    };
+  };
+  const ventas=periodo?calc("venta"):null;
+  const compras=periodo?calc("compra"):null;
+  const ivaDeterminado=ventas&&compras?ventas.iva-compras.iva:0;
+
+  if(!empEntries.length||periodos.length===0)return<Ey i="🧾" t="Sin documentos" d="Importa Compras/Ventas del SII para ver el resumen de IVA."/>;
+
+  return(<div className="report" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden"}}>
+    <ReportHeader eObj={eObj} title="Resumen IVA Ventas/Compras" subtitle={"Periodo: "+fmtPeriodo(periodo)}/>
+    <div className="no-print" style={{padding:"16px 20px",borderBottom:"1px solid var(--bd)",background:"var(--sf2)",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+      <span style={{fontSize:13,fontWeight:600}}>Resumen IVA</span>
+      <select value={periodo||""} onChange={e=>setPeriodoSel(e.target.value)} style={{maxWidth:200}}>{periodos.map(p=><option key={p} value={p}>{fmtPeriodo(p)}</option>)}</select>
+    </div>
+    <div style={{padding:20}}>
+      <div style={{fontSize:11,color:"var(--tx3)",marginBottom:20}}>Las Notas de Credito ya se restan y las Notas de Debito ya se suman automaticamente. Esto no reemplaza el F29 completo (falta PPM, Honorarios y otras rentas), es una base para armarlo.</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:16,marginBottom:20}}>
+        {[{t:"Ventas (Debito Fiscal)",d:ventas,c:"var(--gn)"},{t:"Compras (Credito Fiscal)",d:compras,c:"var(--am)"}].map(({t,d,c})=><div key={t} style={{border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:16}}>
+          <div style={{fontSize:11,fontWeight:600,textTransform:"uppercase",letterSpacing:.5,color:"var(--tx3)",marginBottom:12}}>{t} · {d.docs} docs</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:6,fontSize:12}}>
+            <span style={{color:"var(--tx2)"}}>Neto</span><span style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(d.neto)}</span>
+            <span style={{color:"var(--tx2)"}}>Exento</span><span style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(d.exento)}</span>
+            <span style={{fontWeight:600}}>IVA</span><span style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontWeight:600,color:c}}>${fmt(d.iva)}</span>
+            <span style={{borderTop:"1px solid var(--bd)",paddingTop:6,fontWeight:600}}>Total</span><span style={{borderTop:"1px solid var(--bd)",paddingTop:6,textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontWeight:600}}>${fmt(d.total)}</span>
+          </div>
+        </div>)}
+      </div>
+      <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:20,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
+        <div>
+          <div style={{fontSize:11,fontWeight:600,textTransform:"uppercase",letterSpacing:.5,color:"var(--tx3)"}}>IVA Debito - IVA Credito</div>
+          <div style={{fontSize:11,color:"var(--tx3)",marginTop:2}}>{ivaDeterminado>=0?"IVA a pagar este periodo":"Remanente de credito a favor para el periodo siguiente"}</div>
+        </div>
+        <div style={{fontSize:26,fontWeight:800,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:ivaDeterminado>=0?"var(--rd)":"var(--gn)"}}>${fmt(Math.abs(ivaDeterminado))}</div>
+      </div>
+    </div>
+  </div>);
+}
 
 function LibroCV({empEntries,tipo,eObj,irAAsiento}){
   const [filtroAno,setFiltroAno]=useState("todos");
