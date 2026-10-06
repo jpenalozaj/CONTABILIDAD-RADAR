@@ -240,15 +240,16 @@ function Dashboard({session}){
   const [rems,setRems]=useState([]);
   const [trabajadores,setTrabajadores]=useState([]);
   const [procesosRem,setProcesosRem]=useState([]);
+  const [asistencia,setAsistencia]=useState([]);
   const [docs,setDocs]=useState([]);
   const [tareas,setTareas]=useState([]);
   const [reglas,setReglas]=useState([]);
   const [ccostos,setCcostos]=useState([]);
   const [activos,setActivos]=useState([]);
   const [sb,setSb]=useState(false);
-  const prevIds=useRef({e:new Set(),v:new Set(),l:new Set(),a:new Set(),en:new Set(),rm:new Set(),tb:new Set(),pr:new Set(),dc:new Set(),ta:new Set(),rg:new Set(),cc:new Set(),af:new Set()});
+  const prevIds=useRef({e:new Set(),v:new Set(),l:new Set(),a:new Set(),en:new Set(),rm:new Set(),tb:new Set(),pr:new Set(),as:new Set(),dc:new Set(),ta:new Set(),rg:new Set(),cc:new Set(),af:new Set()});
   useEffect(()=>{let cancelled=false;(async()=>{
-    const[e,v,l,a,en,rm,tb,pr,dc,ta,rg,cc,af]=await Promise.all([
+    const[e,v,l,a,en,rm,tb,pr,as,dc,ta,rg,cc,af]=await Promise.all([
       loadCollection(userId,"empresas",[]),
       loadCollection(userId,"evaluaciones",[]),
       loadCollection(userId,"log",[]),
@@ -257,6 +258,7 @@ function Dashboard({session}){
       loadCollection(userId,"remuneraciones",[]),
       loadCollection(userId,"trabajadores",[]),
       loadCollection(userId,"procesos_rem",[]),
+      loadCollection(userId,"asistencia",[]),
       loadCollection(userId,"documentos",[]),
       loadCollection(userId,"tareas",[]),
       loadCollection(userId,"reglas_categorizacion",[]),
@@ -267,10 +269,10 @@ function Dashboard({session}){
     prevIds.current={
       e:new Set(e.map(x=>String(x.id))),v:new Set(v.map(x=>String(x.id))),l:new Set(l.map(x=>String(x.id))),
       a:new Set(a.map(x=>String(x.cd))),en:new Set(en.map(x=>String(x.id))),rm:new Set(rm.map(x=>String(x.id))),
-      tb:new Set(tb.map(x=>String(x.id))),pr:new Set(pr.map(x=>String(x.id))),
+      tb:new Set(tb.map(x=>String(x.id))),pr:new Set(pr.map(x=>String(x.id))),as:new Set(as.map(x=>String(x.id))),
       dc:new Set(dc.map(x=>String(x.id))),ta:new Set(ta.map(x=>String(x.id))),rg:new Set(rg.map(x=>String(x.id))),cc:new Set(cc.map(x=>String(x.id))),af:new Set(af.map(x=>String(x.id))),
     };
-    setEmps(e);setEvs(v);setLog(l);setAccts(a);setEntries(en);setRems(rm);setTrabajadores(tb);setProcesosRem(pr);setDocs(dc);setTareas(ta);setReglas(rg);setCcostos(cc);setActivos(af);
+    setEmps(e);setEvs(v);setLog(l);setAccts(a);setEntries(en);setRems(rm);setTrabajadores(tb);setProcesosRem(pr);setAsistencia(as);setDocs(dc);setTareas(ta);setReglas(rg);setCcostos(cc);setActivos(af);
     if(e.length>0)setAEmp(e[0].id);setRdy(true);
   })();return()=>{cancelled=true}},[userId]);
   useEffect(()=>{if(rdy)saveCollection(userId,"empresas",emps,prevIds.current.e).then(s=>prevIds.current.e=s)},[emps,rdy]);
@@ -281,6 +283,7 @@ function Dashboard({session}){
   useEffect(()=>{if(rdy)saveCollection(userId,"remuneraciones",rems,prevIds.current.rm).then(s=>prevIds.current.rm=s)},[rems,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"trabajadores",trabajadores,prevIds.current.tb).then(s=>prevIds.current.tb=s)},[trabajadores,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"procesos_rem",procesosRem,prevIds.current.pr).then(s=>prevIds.current.pr=s)},[procesosRem,rdy]);
+  useEffect(()=>{if(rdy)saveCollection(userId,"asistencia",asistencia,prevIds.current.as).then(s=>prevIds.current.as=s)},[asistencia,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"documentos",docs,prevIds.current.dc).then(s=>prevIds.current.dc=s)},[docs,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"tareas",tareas,prevIds.current.ta).then(s=>prevIds.current.ta=s)},[tareas,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"reglas_categorizacion",reglas,prevIds.current.rg).then(s=>prevIds.current.rg=s)},[reglas,rdy]);
@@ -296,6 +299,7 @@ function Dashboard({session}){
   const empRems=useMemo(()=>rems.filter(r=>r.empresaId===aEmp),[rems,aEmp]);
   const empTrabajadores=useMemo(()=>trabajadores.filter(t=>t.empresaId===aEmp),[trabajadores,aEmp]);
   const empProcesosRem=useMemo(()=>procesosRem.filter(p=>p.empresaId===aEmp),[procesosRem,aEmp]);
+  const empAsistencia=useMemo(()=>asistencia.filter(a=>a.empresaId===aEmp),[asistencia,aEmp]);
   const empDocs=useMemo(()=>docs.filter(d=>d.empresaId===aEmp),[docs,aEmp]);
   const empTareas=useMemo(()=>tareas.filter(t=>t.empresaId===aEmp),[tareas,aEmp]);
   const leafAccts=useMemo(()=>accts.filter(a=>!accts.some(b=>b.cd!==a.cd&&b.cd.startsWith(a.cd+"."))),[accts]);
@@ -324,7 +328,7 @@ function Dashboard({session}){
         {pg==="empresas"&&<EmpP emps={emps} setEmps={setEmps} aEmp={aEmp} setAEmp={setAEmp} aLog={aLog}/>}
         {pg==="radar"&&<RadP eObj={eObj} evs={evs} setEvs={setEvs} eEvs={eEvs} aLog={aLog} go={go}/>}
         {pg==="contabilidad"&&<ContabP eObj={eObj} accts={accts} setAccts={setAccts} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go} reglas={empReglas} setReglas={setReglas} ccostos={empCcostos} setCcostos={setCcostos} activos={empActivos} setActivos={setActivos}/>}
-        {pg==="remuneraciones"&&<RemP eObj={eObj} rems={rems} setRems={setRems} empRems={empRems} trabajadores={trabajadores} setTrabajadores={setTrabajadores} empTrabajadores={empTrabajadores} procesosRem={procesosRem} setProcesosRem={setProcesosRem} empProcesosRem={empProcesosRem} ccostos={empCcostos} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go}/>}
+        {pg==="remuneraciones"&&<RemP eObj={eObj} rems={rems} setRems={setRems} empRems={empRems} trabajadores={trabajadores} setTrabajadores={setTrabajadores} empTrabajadores={empTrabajadores} procesosRem={procesosRem} setProcesosRem={setProcesosRem} empProcesosRem={empProcesosRem} asistencia={asistencia} setAsistencia={setAsistencia} empAsistencia={empAsistencia} ccostos={empCcostos} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go}/>}
         {pg==="documentos"&&<DocsP eObj={eObj} docs={docs} setDocs={setDocs} empDocs={empDocs} aLog={aLog} go={go}/>}
         {pg==="planificacion"&&<PlanP eObj={eObj} tareas={tareas} setTareas={setTareas} empTareas={empTareas} aLog={aLog} go={go}/>}
         {pg==="portal"&&<PortalP eObj={eObj} empEntries={empEntries} empDocs={empDocs} empRems={empRems} eEvs={eEvs} accts={accts} leafAccts={leafAccts} go={go}/>}
@@ -2134,7 +2138,20 @@ function calcImpUnico(baseImponible,utm){
 
 function calcRem(emp){
   const params=getParamsPrevired();
-  const sb=emp.sueldoBase||0;const grat=emp.gratificacion||0;const bonos=emp.bonos||0;const horasExtra=emp.horasExtra||0;const colacion=emp.colacion||0;const movilizacion=emp.movilizacion||0;
+  const sbNominal=emp.sueldoBase||0;
+  // Dias sin goce de sueldo (ausencia injustificada o permiso sin goce) y
+  // dias de licencia medica NO los paga la empresa -- se descuentan del
+  // sueldo base en proporcion a los dias del mes (licencia medica queda
+  // cubierta por el subsidio de la Isapre/Fonasa/Mutual, que se gestiona
+  // aparte; RADAR no calcula ese monto, solo deja de cobrarselo a la
+  // empresa). Permisos CON goce no restan nada.
+  const diasMes=emp.periodo?new Date(parseInt(emp.periodo.slice(0,4),10),parseInt(emp.periodo.slice(5,7),10),0).getDate():30;
+  const diasSinGoce=emp.diasSinGoce||0;
+  const diasLicencia=emp.diasLicencia||0;
+  const diasDescuento=diasSinGoce+diasLicencia;
+  const descuentoAsistencia=diasDescuento>0?Math.round(sbNominal/diasMes*diasDescuento):0;
+  const sb=Math.max(0,sbNominal-descuentoAsistencia);
+  const grat=emp.gratificacion||0;const bonos=emp.bonos||0;const horasExtra=emp.horasExtra||0;const colacion=emp.colacion||0;const movilizacion=emp.movilizacion||0;
   const totalImponible=sb+grat+bonos+horasExtra;
   const totalNoImponible=colacion+movilizacion;
   const totalHaberes=totalImponible+totalNoImponible;
@@ -2153,15 +2170,42 @@ function calcRem(emp){
   const totalDescuentos=afpMonto+saludMonto+cesantiaTrab+impUnico;
   const liquido=totalHaberes-totalDescuentos;
   const costoEmpresa=totalHaberes+cesantiaEmp+sisMonto;
-  return{totalImponible,totalNoImponible,totalHaberes,afpMonto,sisMonto,saludMonto,cesantiaTrab,cesantiaEmp,impUnico,baseImpUnico,totalDescuentos,liquido,costoEmpresa,topeImponible,baseCotizable};
+  return{totalImponible,totalNoImponible,totalHaberes,afpMonto,sisMonto,saludMonto,cesantiaTrab,cesantiaEmp,impUnico,baseImpUnico,totalDescuentos,liquido,costoEmpresa,topeImponible,baseCotizable,sbNominal,descuentoAsistencia,diasSinGoce,diasLicencia};
 }
 
-function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabajadores,procesosRem,setProcesosRem,empProcesosRem,ccostos,entries,setEntries,empEntries,leafAccts,aLog,go}){
+const TIPOS_ASISTENCIA=[
+  {id:"ausencia",l:"Ausencia injustificada",goce:false},
+  {id:"licencia",l:"Licencia medica",goce:false},
+  {id:"permiso_con_goce",l:"Permiso con goce de sueldo",goce:true},
+  {id:"permiso_sin_goce",l:"Permiso sin goce de sueldo",goce:false},
+];
+// Cuenta, para un trabajador y un periodo (AAAA-MM), cuantos dias de cada
+// tipo de ausencia caen dentro de ese mes -- se usa para prellenar (y
+// luego recalcular) el descuento por inasistencia de la liquidacion.
+function diasAsistenciaEnPeriodo(eventos,trabajadorId,periodo){
+  if(!periodo)return{diasSinGoce:0,diasLicencia:0};
+  const[y,m]=periodo.split("-").map(Number);
+  const desdeMes=new Date(y,m-1,1);const hastaMes=new Date(y,m,0);
+  let diasSinGoce=0,diasLicencia=0;
+  eventos.filter(e=>e.trabajadorId===trabajadorId).forEach(e=>{
+    const tipo=TIPOS_ASISTENCIA.find(t=>t.id===e.tipo);
+    if(!tipo||tipo.goce)return;
+    const ini=new Date(e.fechaInicio+"T12:00:00");const fin=new Date((e.fechaFin||e.fechaInicio)+"T12:00:00");
+    const desde=ini<desdeMes?desdeMes:ini;const hasta=fin>hastaMes?hastaMes:fin;
+    if(desde>hasta)return;
+    const dias=Math.round((hasta-desde)/86400000)+1;
+    if(e.tipo==="licencia")diasLicencia+=dias;else diasSinGoce+=dias;
+  });
+  return{diasSinGoce,diasLicencia};
+}
+
+function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabajadores,procesosRem,setProcesosRem,empProcesosRem,asistencia,setAsistencia,empAsistencia,ccostos,entries,setEntries,empEntries,leafAccts,aLog,go}){
   const [vw,setVw]=useState("list");
   const [eid,setEid]=useState(null);
   const [fm,setFm]=useState({});
   const [tid,setTid]=useState(null);
   const [tfm,setTfm]=useState({});
+  const [afm,setAfm]=useState(null);
   const [ftab,setFtab]=useState("resumen");
   const [periodoSel,setPeriodoSel]=useState(null);
   const ESTADOS_PROCESO=[{id:"iniciado",l:"Iniciado",c:"var(--tx3)",bg:"var(--sf2)"},{id:"revision",l:"En Revision",c:"#92400E",bg:"rgba(180,83,9,.14)"},{id:"pagado",l:"Pagado",c:"#1B4D2E",bg:"var(--cy-fill)"}];
@@ -2242,8 +2286,8 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
 
   // ── Ficha de Trabajador ──
   const emptyTF=()=>({activo:true,nombre:"",apellido:"",segundoApellido:"",rut:"",fechaNacimiento:"",sexo:"",estadoCivil:"",telefono:"",email:"",direccion:"",cargo:"",fechaIngreso:"",afp:"habitat",isapre:"fonasa",contratoTipo:"indefinido",sueldoBase:0,gratificacion:0,colacion:0,movilizacion:0,centroCosto:""});
-  const openNewT=()=>{setTfm(emptyTF());setTid(null);setFtab("resumen");setVw("trabajadorForm")};
-  const openEditT=(t,tab)=>{setTfm({...emptyTF(),...t});setTid(t.id);setFtab(tab||"resumen");setVw("trabajadorForm")};
+  const openNewT=()=>{setTfm(emptyTF());setTid(null);setFtab("resumen");setAfm(null);setVw("trabajadorForm")};
+  const openEditT=(t,tab)=>{setTfm({...emptyTF(),...t});setTid(t.id);setFtab(tab||"resumen");setAfm(null);setVw("trabajadorForm")};
   const doSaveT=()=>{
     if(!tfm.nombre||!tfm.rut)return;
     const rec={...tfm,id:tid||uid(),empresaId:eObj.id};
@@ -2256,12 +2300,31 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
     setTrabajadores(p=>p.filter(t=>t.id!==id));
   };
 
+  // ── Asistencia (ausencias/licencias/permisos) ──
+  const emptyAF=()=>({tipo:"ausencia",fechaInicio:new Date().toISOString().slice(0,10),fechaFin:new Date().toISOString().slice(0,10),observacion:""});
+  const openNewAsistencia=()=>setAfm(emptyAF());
+  const doSaveAsistencia=()=>{
+    if(!afm.fechaInicio)return;
+    const fechaFin=afm.fechaFin&&afm.fechaFin>=afm.fechaInicio?afm.fechaFin:afm.fechaInicio;
+    setAsistencia(p=>[...p,{id:uid(),empresaId:eObj.id,trabajadorId:tid,tipo:afm.tipo,fechaInicio:afm.fechaInicio,fechaFin,observacion:afm.observacion}]);
+    aLog("Evento de asistencia registrado",(TIPOS_ASISTENCIA.find(t=>t.id===afm.tipo)?.l||afm.tipo)+" - "+(tfm.nombre||""));
+    setAfm(null);
+  };
+  const doDelAsistencia=id=>setAsistencia(p=>p.filter(a=>a.id!==id));
+
   // ── Liquidaciones ──
-  const emptyF=()=>({trabajadorId:"",nombre:"",rut:"",cargo:"",afp:"habitat",isapre:"fonasa",contratoTipo:"indefinido",sueldoBase:0,gratificacion:0,bonos:0,horasExtra:0,colacion:0,movilizacion:0,periodo:new Date().toISOString().slice(0,7)});
+  const emptyF=()=>({trabajadorId:"",nombre:"",rut:"",cargo:"",afp:"habitat",isapre:"fonasa",contratoTipo:"indefinido",sueldoBase:0,gratificacion:0,bonos:0,horasExtra:0,colacion:0,movilizacion:0,periodo:new Date().toISOString().slice(0,7),diasSinGoce:0,diasLicencia:0});
   const elegirTrabajador=idT=>{
     const t=empTrabajadores.find(x=>x.id===idT);
     if(!t){setFm(p=>({...p,trabajadorId:""}));return}
-    setFm(p=>({...p,trabajadorId:idT,nombre:t.nombre+(t.apellido?" "+t.apellido:""),rut:t.rut,cargo:t.cargo||"",afp:t.afp||"habitat",isapre:t.isapre||"fonasa",contratoTipo:t.contratoTipo||"indefinido",sueldoBase:t.sueldoBase||0,gratificacion:t.gratificacion||0,colacion:t.colacion||0,movilizacion:t.movilizacion||0}));
+    setFm(p=>{
+      const{diasSinGoce,diasLicencia}=diasAsistenciaEnPeriodo(empAsistencia,idT,p.periodo);
+      return{...p,trabajadorId:idT,nombre:t.nombre+(t.apellido?" "+t.apellido:""),rut:t.rut,cargo:t.cargo||"",afp:t.afp||"habitat",isapre:t.isapre||"fonasa",contratoTipo:t.contratoTipo||"indefinido",sueldoBase:t.sueldoBase||0,gratificacion:t.gratificacion||0,colacion:t.colacion||0,movilizacion:t.movilizacion||0,diasSinGoce,diasLicencia};
+    });
+  };
+  const cambiarPeriodoForm=periodo=>{
+    const{diasSinGoce,diasLicencia}=fm.trabajadorId?diasAsistenciaEnPeriodo(empAsistencia,fm.trabajadorId,periodo):{diasSinGoce:fm.diasSinGoce||0,diasLicencia:fm.diasLicencia||0};
+    setFm(p=>({...p,periodo,diasSinGoce,diasLicencia}));
   };
   const openNew=()=>{setFm(emptyF());setEid(null);setVw("form")};
   const openNewParaPeriodo=p=>{setFm({...emptyF(),periodo:p});setEid(null);setVw("form")};
@@ -2326,7 +2389,7 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
           {empTrabajadores.length===0&&<div style={{fontSize:11,color:"var(--tx3)",marginTop:6}}>Todavia no tienes trabajadores creados. <button type="button" onClick={openNewT} style={{background:"none",border:"none",color:"var(--cy)",padding:0,cursor:"pointer",fontSize:11,textDecoration:"underline"}}>Crear el primero</button></div>}
         </div>
         <Fi l="Cargo (este periodo)" v={fm.cargo} s={v=>setFm(p=>({...p,cargo:v}))}/>
-        <Fi l="Periodo" v={fm.periodo} s={v=>setFm(p=>({...p,periodo:v}))} t="month"/>
+        <Fi l="Periodo" v={fm.periodo} s={cambiarPeriodoForm} t="month"/>
       </FG></Sc>
       <Sc t="Prevision"><FG>
         <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>AFP</label><select value={fm.afp} onChange={e=>setFm(p=>({...p,afp:e.target.value}))}>{Object.keys(params.afp).map(k=><option key={k} value={k}>{k.charAt(0).toUpperCase()+k.slice(1)} ({params.afp[k].r}%)</option>)}</select></div>
@@ -2343,10 +2406,17 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
         <Fi l="Colacion" v={fm.colacion} s={v=>setFm(p=>({...p,colacion:parseInt(v)||0}))} t="number"/>
         <Fi l="Movilizacion" v={fm.movilizacion} s={v=>setFm(p=>({...p,movilizacion:parseInt(v)||0}))} t="number"/>
       </FG></Sc>
+      <Sc t="Asistencia del periodo"><FG>
+        <Fi l="Dias sin goce / ausencia injustificada" v={fm.diasSinGoce} s={v=>setFm(p=>({...p,diasSinGoce:parseInt(v)||0}))} t="number"/>
+        <Fi l="Dias de licencia medica" v={fm.diasLicencia} s={v=>setFm(p=>({...p,diasLicencia:parseInt(v)||0}))} t="number"/>
+      </FG></Sc>
+      <div style={{fontSize:11,color:"var(--tx3)",marginBottom:20,marginTop:-12}}>Se precargan solos desde la pestana Asistencia de la ficha del trabajador para este periodo — se pueden ajustar aqui si hace falta. Los permisos con goce de sueldo no restan nada. La licencia medica descuenta del sueldo que paga la empresa; el subsidio de la Isapre/Fonasa/Mutual se gestiona aparte, RADAR no lo calcula.</div>
 
       {preview&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:20,marginBottom:20}}>
         <div style={{fontSize:11,fontWeight:600,textTransform:"uppercase",letterSpacing:1,color:"var(--cy)",marginBottom:12}}>Preview Liquidacion</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,fontSize:12}}>
+          {preview.descuentoAsistencia>0&&<><div style={{color:"var(--tx3)"}}>Sueldo Base nominal</div><div style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:"var(--tx3)"}}>${fmt(preview.sbNominal)}</div>
+          <div style={{color:"var(--rd)"}}>Descuento asistencia ({preview.diasSinGoce+preview.diasLicencia} dia{preview.diasSinGoce+preview.diasLicencia!==1?"s":""})</div><div style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:"var(--rd)"}}>-${fmt(preview.descuentoAsistencia)}</div></>}
           <div style={{color:"var(--tx2)"}}>Total Imponible</div><div style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(preview.totalImponible)}</div>
           <div style={{color:"var(--tx2)"}}>Total No Imponible</div><div style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(preview.totalNoImponible)}</div>
           <div style={{fontWeight:600}}>Total Haberes</div><div style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontWeight:600}}>${fmt(preview.totalHaberes)}</div>
@@ -2368,7 +2438,8 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
     const hist=tid?empRems.filter(r=>r.trabajadorId===tid).sort((a,b)=>(b.periodo||"").localeCompare(a.periodo||"")):[];
     const totLiqHist=hist.reduce((s,r)=>s+(r.liquido||0),0);
     const totCostoHist=hist.reduce((s,r)=>s+(r.costoEmpresa||0),0);
-    const fichaTabs=[{id:"resumen",l:"Resumen"},{id:"liquidaciones",l:"Liquidaciones"+(hist.length>0?" ("+hist.length+")":"")},{id:"documentos",l:"Documentos"},{id:"vacaciones",l:"Vacaciones"}];
+    const eventosAsistencia=tid?empAsistencia.filter(a=>a.trabajadorId===tid).sort((a,b)=>(b.fechaInicio||"").localeCompare(a.fechaInicio||"")):[];
+    const fichaTabs=[{id:"resumen",l:"Resumen"},{id:"liquidaciones",l:"Liquidaciones"+(hist.length>0?" ("+hist.length+")":"")},{id:"asistencia",l:"Asistencia"+(eventosAsistencia.length>0?" ("+eventosAsistencia.length+")":"")},{id:"documentos",l:"Documentos"},{id:"vacaciones",l:"Vacaciones"}];
     return(<div style={{maxWidth:700,margin:"0 auto"}}>
     <Bk onClick={()=>setVw("trabajadores")}>Volver</Bk>
 
@@ -2451,6 +2522,37 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
           </div>)}</div>
         </div>);
       })}
+    </div>}
+
+    {tid&&ftab==="asistencia"&&<div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:12}}>
+        <div style={{fontSize:11,color:"var(--tx3)"}}>Ausencias, licencias y permisos -- se usan para descontar automaticamente el sueldo al crear una liquidacion de este trabajador.</div>
+        {!afm&&<Bt onClick={openNewAsistencia} p={true}>{IC.plus} Registrar evento</Bt>}
+      </div>
+      {afm&&<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20,marginBottom:16}}>
+        <FG>
+          <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Tipo</label><select value={afm.tipo} onChange={e=>setAfm(p=>({...p,tipo:e.target.value}))}>{TIPOS_ASISTENCIA.map(t=><option key={t.id} value={t.id}>{t.l}</option>)}</select></div>
+          <Fi l="Desde" v={afm.fechaInicio} s={v=>setAfm(p=>({...p,fechaInicio:v}))} t="date"/>
+          <Fi l="Hasta" v={afm.fechaFin} s={v=>setAfm(p=>({...p,fechaFin:v}))} t="date"/>
+          <Fi l="Observacion (opcional)" v={afm.observacion} s={v=>setAfm(p=>({...p,observacion:v}))}/>
+        </FG>
+        <div style={{fontSize:11,color:"var(--tx3)",marginBottom:16}}>{TIPOS_ASISTENCIA.find(t=>t.id===afm.tipo)?.goce?"No descuenta nada del sueldo.":"Descuenta del sueldo base en proporcion a los dias, en la liquidacion del periodo que corresponda."}</div>
+        <div style={{display:"flex",gap:12}}><Bt onClick={doSaveAsistencia} p={true}>Guardar</Bt><Bt onClick={()=>setAfm(null)}>Cancelar</Bt></div>
+      </div>}
+      {eventosAsistencia.length===0?<Ey i="📅" t="Sin eventos de asistencia" d="Este trabajador no tiene ausencias, licencias ni permisos registrados."/>
+      :<div style={{display:"flex",flexDirection:"column",gap:8}}>{eventosAsistencia.map(ev=>{
+        const tipo=TIPOS_ASISTENCIA.find(t=>t.id===ev.tipo);
+        const dias=Math.round((new Date(ev.fechaFin+"T12:00:00")-new Date(ev.fechaInicio+"T12:00:00"))/86400000)+1;
+        return(<div key={ev.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16}}>
+          <div style={{width:8,height:8,borderRadius:999,background:tipo?.goce?"var(--gn)":"var(--am)",flexShrink:0}}/>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:13,fontWeight:600}}>{tipo?.l||ev.tipo}</div>
+            <div style={{fontSize:11,color:"var(--tx3)"}}>{fD(ev.fechaInicio)}{ev.fechaFin!==ev.fechaInicio?" — "+fD(ev.fechaFin):""}{ev.observacion?" · "+ev.observacion:""}</div>
+          </div>
+          <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600}}>{dias} dia{dias!==1?"s":""}</div><div style={{fontSize:10,color:"var(--tx3)"}}>{tipo?.goce?"Con goce":"Sin goce"}</div></div>
+          <button onClick={()=>doDelAsistencia(ev.id)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5,padding:4}}>x</button>
+        </div>);
+      })}</div>}
     </div>}
 
     {tid&&ftab==="documentos"&&<Ey i="📁" t="Documentos" d="Contratos, anexos y certificados del trabajador. Proximamente."/>}
