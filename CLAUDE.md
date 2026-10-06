@@ -37,7 +37,7 @@ explícitamente lo contrario.
 - [ ] Fase 4 — Documentos del cierre (Libro de Remuneraciones XLSX corporativo — en curso, dependencia `write-excel-file` ya instalada —, nómina bancaria, archivo de pago Previred, Libro Electrónico/LRE).
 
 **Honorarios**
-- [ ] Módulo completo: boletas, tasa de retención parametrizable (15.25% hoy, sube a 17% hacia 2028 por ley — debe ser un parámetro, no hardcode), Libro de Retención de Honorarios, Certificado de Honorarios anual, asiento automático vía cuenta "Honorarios por Pagar".
+- [x] Módulo completo — componente `HonorariosP` (3 vistas: Boletas/Libro de Retención/Certificado Anual), nueva cuenta leaf `2.1.01.004 Honorarios por Pagar` (con migración aditiva para empresas ya creadas), cada boleta genera su asiento automático (Gasto Honorarios 5.2.02.001 / Retención Honorarios 2.1.02.002 / Honorarios por Pagar 2.1.01.004) al guardarla. La tasa de retención (`HONORARIOS_TASA_DEFAULT=15.25`) es un campo editable por boleta, no un parámetro de sistema de solo lectura — a diferencia de UF/UTM/Previred, cada boleta debe conservar la tasa vigente al momento de emitirse porque la ley la sube en tramos hasta 17% hacia 2028 — hecho, commit `c59c5c7`.
 
 **Contabilidad / SII**
 - [x] Resumen IVA Ventas/Compras — tab nuevo en Reportes, Neto/Exento/IVA/Total por período para Ventas y Compras + IVA Determinado (a pagar/remanente). Suma las Notas de Crédito/Débito con su signo correcto (`signoDocTributario`) — hecho, commit `72ceeae`.
