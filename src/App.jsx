@@ -15,6 +15,7 @@ input,select,textarea{font-family:inherit;background:var(--sf);border:1px solid 
 input:focus,select:focus,textarea:focus{border-color:var(--cy);box-shadow:0 0 0 3px var(--cyg)}
 input::placeholder,textarea::placeholder{color:var(--tx3)}
 select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='%237A7868' stroke-width='2' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:16px;padding-right:36px}
+input[type=checkbox],input[type=radio]{accent-color:var(--cy2);width:auto;padding:0;cursor:pointer}
 textarea{resize:vertical;min-height:80px}button{font-family:inherit;cursor:pointer;transition:transform .1s ease-out}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
 @keyframes rpulse{0%,100%{opacity:1}50%{opacity:.4}}
@@ -1070,7 +1071,7 @@ function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog,ccostos,res
       <div style={{fontSize:13,fontWeight:600,marginBottom:12}}>{editId?"Editar Asiento N "+(empEntries.find(e=>e.id===editId)?.num||""):"Asiento N "+nxt}</div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}><input type="date" value={fm.date} onChange={e=>setFm(p=>({...p,date:e.target.value}))}/><input placeholder="Glosa / Descripcion" value={fm.desc} onChange={e=>setFm(p=>({...p,desc:e.target.value}))}/></div>
       {ccostos?.length>0&&<div style={{marginBottom:16}}><select value={fm.centroCosto} onChange={e=>setFm(p=>({...p,centroCosto:e.target.value}))} style={{maxWidth:300}}><option value="">Sin centro de costo</option>{ccostos.map(c=><option key={c.id} value={c.id}>{c.nombre}</option>)}</select></div>}
-      <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:16,fontSize:12,color:"var(--tx2)",cursor:"pointer"}}><input type="checkbox" checked={fm.recurrente} onChange={e=>setFm(p=>({...p,recurrente:e.target.checked}))}/>Repetir este asiento cada mes (arriendo, sueldos base, etc.)</label>
+      <div style={{marginBottom:16}}><Sw checked={fm.recurrente} onChange={v=>setFm(p=>({...p,recurrente:v}))} label="Repetir este asiento cada mes (arriendo, sueldos base, etc.)"/></div>
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         <div style={{display:"grid",gridTemplateColumns:"1fr 90px 90px 32px",gap:8,fontSize:10,color:"var(--tx3)",fontWeight:500,padding:"0 4px"}}><span>Cuenta</span><span style={{textAlign:"right"}}>Debe</span><span style={{textAlign:"right"}}>Haber</span><span></span></div>
         {fm.lines.map((ln,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 90px 90px 32px",gap:8}}>
@@ -1224,7 +1225,7 @@ function EERR({empEntries,accts,leafAccts,eObj,ccostos,irACuenta}){
     <ReportHeader eObj={eObj} title="Estado de Resultados" subtitle={(ccNombre?"Centro de costo: "+ccNombre+" — ":"")+(anio==="todos"?"Todo el historial":"Año "+anio)}/>
     <div className="no-print" style={{display:"flex",justifyContent:"flex-end",gap:8,marginBottom:8,flexWrap:"wrap",alignItems:"center"}}>
       <select value={anio} onChange={e=>setAnio(e.target.value)} style={{fontSize:11,padding:"6px 10px",maxWidth:160}}><option value="todos">Todo el historial</option>{anios.map(a=><option key={a} value={a}>{a}</option>)}</select>
-      {anio!=="todos"&&<label style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:"var(--tx3)"}}><input type="checkbox" checked={comparar} onChange={e=>setComparar(e.target.checked)}/>Comparar con {anioAnterior}</label>}
+      {anio!=="todos"&&<Sw checked={comparar} onChange={setComparar} label={"Comparar con "+anioAnterior}/>}
       {ccostos?.length>0&&<select value={filtroCC} onChange={e=>setFiltroCC(e.target.value)} style={{fontSize:11,padding:"6px 10px",maxWidth:220}}><option value="todos">Todos los centros de costo</option>{ccostos.map(c=><option key={c.id} value={c.id}>{c.nombre}</option>)}</select>}
       <BtnCSV onClick={()=>{
         const rows=[["Seccion","Grupo","Cuenta","Monto"]];
@@ -2479,7 +2480,7 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
     {tid&&<div style={{display:"flex",gap:16,marginBottom:20,flexWrap:"wrap",borderBottom:"1px solid var(--bd)"}}>{fichaTabs.map(ft=><button key={ft.id} onClick={()=>setFtab(ft.id)} style={{padding:"10px 2px",borderRadius:0,border:"none",borderBottom:"2px solid transparent",fontSize:12,fontWeight:ftab===ft.id?700:500,background:"none",color:ftab===ft.id?"var(--cy2)":"var(--tx3)",cursor:"pointer"}}><span style={{position:"relative"}}>{ft.l}{ftab===ft.id&&<svg aria-hidden viewBox="0 0 100 8" preserveAspectRatio="none" style={{position:"absolute",left:0,bottom:-10,width:"100%",height:6,overflow:"visible"}}><path d="M0,5 C10,0 20,0 30,5 C40,10 50,10 60,5 C70,0 80,0 90,5 C95,7.5 98,6 100,5" fill="none" stroke="var(--cy)" strokeWidth="1.6" strokeLinecap="round"/></svg>}</span></button>)}</div>}
 
     {(!tid||ftab==="resumen")&&<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28}}>
-      <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:24,fontSize:12,color:"var(--tx2)",cursor:"pointer"}}><input type="checkbox" checked={tfm.activo!==false} onChange={e=>setTfm(p=>({...p,activo:e.target.checked}))}/>Trabajador activo</label>
+      <div style={{marginBottom:24}}><Sw checked={tfm.activo!==false} onChange={v=>setTfm(p=>({...p,activo:v}))} label="Trabajador activo"/></div>
 
       <Sc t="Datos Personales"><FG>
         <Fi l="Nombre" v={tfm.nombre} s={v=>setTfm(p=>({...p,nombre:v}))}/>
@@ -3198,10 +3199,14 @@ function PortalP({eObj,empEntries,empDocs,empRems,eEvs,accts,leafAccts,go}){
         {l:"Resultado",v:"$"+fmt(resultado),c:resultado>=0?"var(--gn)":"var(--rd)"},
         {l:"Liquidez",v:liquidez,c:parseFloat(liquidez)>=1?"var(--gn)":"var(--rd)"},
         {l:"Endeudamiento",v:endeudam+"%",c:parseFloat(endeudam)>70?"var(--rd)":"var(--gn)"},
-      ].map((k,i)=><div key={i} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}>
-        <div style={{fontSize:10,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:6}}>{k.l}</div>
-        <div style={{fontSize:18,fontWeight:700,color:k.c}}>{k.v}</div>
-      </div>)}
+      ].map((k,i)=>{
+        const len=String(k.v).length;
+        const fs=len>13?13:len>10?15:len>8?17:18;
+        return(<div key={i} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,minWidth:0}}>
+          <div style={{fontSize:10,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:6}}>{k.l}</div>
+          <div style={{fontSize:fs,fontWeight:700,color:k.c,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",wordBreak:"break-word",overflowWrap:"anywhere",lineHeight:1.25}}>{k.v}</div>
+        </div>);
+      })}
     </div>
 
     {/* Alerts */}
@@ -3253,6 +3258,16 @@ function PortalP({eObj,empEntries,empDocs,empRems,eEvs,accts,leafAccts,go}){
 function Bt({children,onClick,p}){return<button onClick={onClick} style={{display:"flex",alignItems:"center",gap:8,background:p?"var(--cy-fill)":"var(--sf2)",color:p?"#1B4D2E":"var(--tx2)",border:p?"none":"1px solid var(--bd)",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600}}>{children}</button>}
 function Bk({onClick,children}){return<button onClick={onClick} style={{background:"none",border:"none",color:"var(--tx3)",fontSize:12,display:"flex",alignItems:"center",gap:6,marginBottom:16,padding:0}}>{IC.back}{children}</button>}
 function Tg({children,c}){return<span style={{fontSize:12,padding:"6px 14px",borderRadius:20,background:c+"15",color:c,border:"1px solid "+c+"30",fontWeight:500}}>{children}</span>}
+// Toggle propio de RADAR -- reemplaza el checkbox azul nativo del navegador
+// en los flags binarios (activo/inactivo, repetir, comparar, etc.).
+function Sw({checked,onChange,label}){return(
+  <label style={{display:"inline-flex",alignItems:"center",gap:10,cursor:"pointer"}}>
+    <span onClick={()=>onChange(!checked)} role="switch" aria-checked={checked} style={{width:38,height:22,borderRadius:999,background:checked?"var(--cy-fill)":"var(--bd)",position:"relative",transition:"background .18s ease",flexShrink:0,display:"inline-block"}}>
+      <span style={{position:"absolute",top:2,left:checked?18:2,width:18,height:18,borderRadius:"50%",background:checked?"#1B4D2E":"var(--sf)",boxShadow:"var(--shadow)",transition:"left .18s ease"}}/>
+    </span>
+    {label&&<span style={{fontSize:12,color:"var(--tx2)"}}>{label}</span>}
+  </label>
+)}
 function Ey({i,t,d,children}){return<div style={{textAlign:"center",padding:"60px 20px",background:"var(--sf)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",border:"1px solid var(--bd)"}}><div style={{fontSize:40,marginBottom:12}}>{i}</div><div style={{fontSize:15,fontWeight:600,marginBottom:6}}>{t}</div><div style={{fontSize:13,color:"var(--tx3)",marginBottom:20}}>{d}</div>{children}</div>}
 function IC2({t,items}){return<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20}}><div style={{fontSize:11,fontWeight:600,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:14}}>{t}</div>{items.map((it,i)=><div key={i} style={{marginBottom:10}}><div style={{fontSize:10,color:"var(--tx3)",marginBottom:2}}>{it.l}</div><div style={{fontSize:13,fontWeight:500,color:it.v?"var(--tx)":"var(--tx3)"}}>{it.v||"\u2014"}</div></div>)}</div>}
 function Sc({t,children}){return<div style={{marginBottom:24}}><div style={{fontSize:11,fontWeight:600,textTransform:"uppercase",letterSpacing:1.5,color:"var(--cy)",marginBottom:14,paddingBottom:8,borderBottom:"1px solid var(--bd)"}}>{t}</div>{children}</div>}
