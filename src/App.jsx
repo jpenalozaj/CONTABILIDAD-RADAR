@@ -298,10 +298,11 @@ function Dashboard({session}){
   const [ccostos,setCcostos]=useState([]);
   const [activos,setActivos]=useState([]);
   const [honorarios,setHonorarios]=useState([]);
+  const [cartolas,setCartolas]=useState([]);
   const [sb,setSb]=useState(false);
-  const prevIds=useRef({e:new Set(),v:new Set(),l:new Set(),a:new Set(),en:new Set(),rm:new Set(),tb:new Set(),pr:new Set(),as:new Set(),dc:new Set(),ta:new Set(),rg:new Set(),cc:new Set(),af:new Set(),ho:new Set()});
+  const prevIds=useRef({e:new Set(),v:new Set(),l:new Set(),a:new Set(),en:new Set(),rm:new Set(),tb:new Set(),pr:new Set(),as:new Set(),dc:new Set(),ta:new Set(),rg:new Set(),cc:new Set(),af:new Set(),ho:new Set(),ct:new Set()});
   useEffect(()=>{let cancelled=false;(async()=>{
-    const[e,v,l,a,en,rm,tb,pr,as,dc,ta,rg,ho,cc,af]=await Promise.all([
+    const[e,v,l,a,en,rm,tb,pr,as,dc,ta,rg,ho,cc,af,ct]=await Promise.all([
       loadCollection(userId,"empresas",[]),
       loadCollection(userId,"evaluaciones",[]),
       loadCollection(userId,"log",[]),
@@ -317,6 +318,7 @@ function Dashboard({session}){
       loadCollection(userId,"honorarios",[]),
       loadCollection(userId,"centros_costo",[]),
       loadCollection(userId,"activos_fijos",[]),
+      loadCollection(userId,"cartolas",[]),
     ]);
     if(cancelled)return;
     // Migracion aditiva: empresas creadas antes de que existiera el modulo
@@ -328,9 +330,9 @@ function Dashboard({session}){
       e:new Set(e.map(x=>String(x.id))),v:new Set(v.map(x=>String(x.id))),l:new Set(l.map(x=>String(x.id))),
       a:new Set(a.map(x=>String(x.cd))),en:new Set(en.map(x=>String(x.id))),rm:new Set(rm.map(x=>String(x.id))),
       tb:new Set(tb.map(x=>String(x.id))),pr:new Set(pr.map(x=>String(x.id))),as:new Set(as.map(x=>String(x.id))),
-      dc:new Set(dc.map(x=>String(x.id))),ta:new Set(ta.map(x=>String(x.id))),rg:new Set(rg.map(x=>String(x.id))),cc:new Set(cc.map(x=>String(x.id))),af:new Set(af.map(x=>String(x.id))),ho:new Set(ho.map(x=>String(x.id))),
+      dc:new Set(dc.map(x=>String(x.id))),ta:new Set(ta.map(x=>String(x.id))),rg:new Set(rg.map(x=>String(x.id))),cc:new Set(cc.map(x=>String(x.id))),af:new Set(af.map(x=>String(x.id))),ho:new Set(ho.map(x=>String(x.id))),ct:new Set(ct.map(x=>String(x.id))),
     };
-    setEmps(e);setEvs(v);setLog(l);setAccts(accFinal);setEntries(en);setRems(rm);setTrabajadores(tb);setProcesosRem(pr);setAsistencia(as);setDocs(dc);setTareas(ta);setReglas(rg);setCcostos(cc);setActivos(af);setHonorarios(ho);
+    setEmps(e);setEvs(v);setLog(l);setAccts(accFinal);setEntries(en);setRems(rm);setTrabajadores(tb);setProcesosRem(pr);setAsistencia(as);setDocs(dc);setTareas(ta);setReglas(rg);setCcostos(cc);setActivos(af);setHonorarios(ho);setCartolas(ct);
     if(e.length>0)setAEmp(e[0].id);setRdy(true);
   })();return()=>{cancelled=true}},[userId]);
   useEffect(()=>{if(rdy)saveCollection(userId,"empresas",emps,prevIds.current.e).then(s=>prevIds.current.e=s)},[emps,rdy]);
@@ -348,6 +350,7 @@ function Dashboard({session}){
   useEffect(()=>{if(rdy)saveCollection(userId,"centros_costo",ccostos,prevIds.current.cc).then(s=>prevIds.current.cc=s)},[ccostos,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"activos_fijos",activos,prevIds.current.af).then(s=>prevIds.current.af=s)},[activos,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"honorarios",honorarios,prevIds.current.ho).then(s=>prevIds.current.ho=s)},[honorarios,rdy]);
+  useEffect(()=>{if(rdy)saveCollection(userId,"cartolas",cartolas,prevIds.current.ct).then(s=>prevIds.current.ct=s)},[cartolas,rdy]);
   const aLog=(a,d)=>setLog(p=>[{id:uid(),time:new Date().toISOString(),action:a,detail:d},...p].slice(0,50));
   const eObj=useMemo(()=>emps.find(e=>e.id===aEmp),[emps,aEmp]);
   const eEvs=useMemo(()=>evs.filter(e=>e.empresaId===aEmp),[evs,aEmp]);
@@ -356,6 +359,7 @@ function Dashboard({session}){
   const empCcostos=useMemo(()=>ccostos.filter(c=>c.empresaId===aEmp),[ccostos,aEmp]);
   const empActivos=useMemo(()=>activos.filter(a=>a.empresaId===aEmp),[activos,aEmp]);
   const empHonorarios=useMemo(()=>honorarios.filter(h=>h.empresaId===aEmp),[honorarios,aEmp]);
+  const empCartolas=useMemo(()=>cartolas.filter(c=>c.empresaId===aEmp),[cartolas,aEmp]);
   const empRems=useMemo(()=>rems.filter(r=>r.empresaId===aEmp),[rems,aEmp]);
   const empTrabajadores=useMemo(()=>trabajadores.filter(t=>t.empresaId===aEmp),[trabajadores,aEmp]);
   const empProcesosRem=useMemo(()=>procesosRem.filter(p=>p.empresaId===aEmp),[procesosRem,aEmp]);
@@ -387,7 +391,7 @@ function Dashboard({session}){
         {pg==="inicio"&&<HomeP emps={emps} eObj={eObj} evs={evs} log={log}/>}
         {pg==="empresas"&&<EmpP emps={emps} setEmps={setEmps} aEmp={aEmp} setAEmp={setAEmp} aLog={aLog}/>}
         {pg==="radar"&&<RadP eObj={eObj} evs={evs} setEvs={setEvs} eEvs={eEvs} aLog={aLog} go={go}/>}
-        {pg==="contabilidad"&&<ContabP eObj={eObj} accts={accts} setAccts={setAccts} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go} reglas={empReglas} setReglas={setReglas} ccostos={empCcostos} setCcostos={setCcostos} activos={empActivos} setActivos={setActivos} honorarios={empHonorarios} setHonorarios={setHonorarios}/>}
+        {pg==="contabilidad"&&<ContabP eObj={eObj} accts={accts} setAccts={setAccts} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go} reglas={empReglas} setReglas={setReglas} ccostos={empCcostos} setCcostos={setCcostos} activos={empActivos} setActivos={setActivos} honorarios={empHonorarios} setHonorarios={setHonorarios} cartolas={empCartolas} setCartolas={setCartolas}/>}
         {pg==="remuneraciones"&&<RemP eObj={eObj} rems={rems} setRems={setRems} empRems={empRems} trabajadores={trabajadores} setTrabajadores={setTrabajadores} empTrabajadores={empTrabajadores} procesosRem={procesosRem} setProcesosRem={setProcesosRem} empProcesosRem={empProcesosRem} asistencia={asistencia} setAsistencia={setAsistencia} empAsistencia={empAsistencia} ccostos={empCcostos} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go}/>}
         {pg==="documentos"&&<DocsP eObj={eObj} docs={docs} setDocs={setDocs} empDocs={empDocs} aLog={aLog} go={go}/>}
         {pg==="planificacion"&&<PlanP eObj={eObj} tareas={tareas} setTareas={setTareas} empTareas={empTareas} aLog={aLog} go={go}/>}
@@ -776,7 +780,7 @@ const CONTAB_TAB_GROUPS=[
   {g:"Configuracion",items:[{id:"plan",l:"Plan de Cuentas"}]},
 ];
 
-function ContabP({eObj,accts,setAccts,entries,setEntries,empEntries,leafAccts,aLog,go,reglas,setReglas,ccostos,setCcostos,activos,setActivos,honorarios,setHonorarios}){
+function ContabP({eObj,accts,setAccts,entries,setEntries,empEntries,leafAccts,aLog,go,reglas,setReglas,ccostos,setCcostos,activos,setActivos,honorarios,setHonorarios,cartolas,setCartolas}){
   const [tab,setTab]=useState("dashboard");
   const [navTarget,setNavTarget]=useState(null);
   const [openGrp,setOpenGrp]=useState("Resumen");
@@ -815,7 +819,7 @@ function ContabP({eObj,accts,setAccts,entries,setEntries,empEntries,leafAccts,aL
     {tab==="lventas"&&<LibroCV empEntries={empEntries} tipo="venta" eObj={eObj} irAAsiento={irAAsiento}/>}
     {tab==="porclasificar"&&<PorClasificar empEntries={empEntries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} aLog={aLog} reglas={reglas} setReglas={setReglas} irAAsiento={irAAsiento}/>}
     {tab==="honorarios"&&<HonorariosP honorarios={honorarios} setHonorarios={setHonorarios} empEntries={empEntries} setEntries={setEntries} eObj={eObj} aLog={aLog} irAAsiento={irAAsiento}/>}
-    {tab==="conciliacion"&&<ConciliacionP entries={entries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} empEntries={empEntries} aLog={aLog} reglas={reglas} setReglas={setReglas}/>}
+    {tab==="conciliacion"&&<ConciliacionP entries={entries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} empEntries={empEntries} aLog={aLog} reglas={reglas} setReglas={setReglas} cartolas={cartolas} setCartolas={setCartolas}/>}
     {tab==="diario"&&<LDiario empEntries={empEntries} accts={accts} eObj={eObj} ccostos={ccostos} irAAsiento={irAAsiento}/>}
     {tab==="mayor"&&<LMayor empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj} irAAsiento={irAAsiento} cuentaInicial={navTarget?.tipo==="cuenta"?navTarget:null}/>}
     {tab==="auxiliar"&&<LibroAuxiliar empEntries={empEntries} eObj={eObj} irAAsiento={irAAsiento}/>}
@@ -2247,19 +2251,31 @@ function LibroCV({empEntries,tipo,eObj,irAAsiento}){
 }
 
 // ═══ CONCILIACION BANCARIA ═══
-function ConciliacionP({entries,setEntries,leafAccts,eObj,empEntries,aLog,reglas}){
+function ConciliacionP({entries,setEntries,leafAccts,eObj,empEntries,aLog,reglas,setReglas,cartolas,setCartolas}){
   const [cuentaBanco,setCuentaBanco]=useState("");
   const [movs,setMovs]=useState(null); // null = sin cartola cargada
+  const [nombreArchivo,setNombreArchivo]=useState("");
   const [err,setErr]=useState(null);
   const [loading,setLoading]=useState(false);
   const [clasif,setClasif]=useState({}); // {movId: {contracuenta, candidatoId}}
+  const [sel,setSel]=useState(()=>new Set());
+  const [cuentaLote,setCuentaLote]=useState("");
+  const [nuevaPalabra,setNuevaPalabra]=useState("");
+  const [nuevaPalabraCta,setNuevaPalabraCta]=useState("");
 
   const bancoLeaf=useMemo(()=>leafAccts.filter(a=>a.cd.startsWith("1.1.01.")),[leafAccts]);
   const nxtNum=useMemo(()=>{const ns=empEntries.map(e=>parseInt(e.num)||0);return Math.max(0,...ns)+1},[empEntries]);
+  const saldoCuenta=cd=>empEntries.reduce((s,e)=>s+e.lines.filter(l=>l.ac===cd).reduce((s2,l)=>s2+(l.db||0)-(l.cr||0),0),0);
+  const ultimaCartolaPorCuenta=useMemo(()=>{
+    const m={};
+    (cartolas||[]).forEach(c=>{if(!m[c.cuentaBanco]||c.fechaCarga>m[c.cuentaBanco])m[c.cuentaBanco]=c.fechaCarga});
+    return m;
+  },[cartolas]);
+  const reglasPalabra=useMemo(()=>(reglas||[]).filter(r=>r.criterio==="palabra"),[reglas]);
 
   const cargarCartola=(file)=>{
     if(!cuentaBanco){setErr("Primero elige a que cuenta bancaria corresponde esta cartola.");return}
-    setErr(null);setLoading(true);setMovs(null);setClasif({});
+    setErr(null);setLoading(true);setMovs(null);setClasif({});setSel(new Set());setNombreArchivo(file.name);
     file.arrayBuffer().then(parseCartolaSantander).then(parsed=>{setMovs(parsed);setLoading(false)}).catch(e=>{setErr(e.message);setLoading(false)});
   };
 
@@ -2276,6 +2292,13 @@ function ConciliacionP({entries,setEntries,leafAccts,eObj,empEntries,aLog,reglas
 
   const setContracuenta=(movId,cd)=>setClasif(p=>({...p,[movId]:{...p[movId],contracuenta:cd}}));
   const elegirCandidato=(movId,cand)=>setClasif(p=>({...p,[movId]:{...p[movId],contracuenta:cand.mov.cargoAbono==="C"?"2.1.01.001":"1.1.02.001",candidatoId:cand.id,rut:cand.rut}}));
+  const toggleSel=id=>setSel(p=>{const n=new Set(p);n.has(id)?n.delete(id):n.add(id);return n});
+  const toggleSelAll=()=>setSel(p=>analisis&&p.size===analisis.pend.length&&analisis.pend.length>0?new Set():new Set((analisis?.pend||[]).map(({mov})=>mov.id)));
+  const aplicarLote=()=>{
+    if(!cuentaLote||sel.size===0)return;
+    setClasif(p=>{const n={...p};sel.forEach(id=>{n[id]={...n[id],contracuenta:cuentaLote}});return n});
+    setSel(new Set());setCuentaLote("");
+  };
 
   const generarAsientos=()=>{
     if(!analisis)return;
@@ -2288,16 +2311,37 @@ function ConciliacionP({entries,setEntries,leafAccts,eObj,empEntries,aLog,reglas
     });
     if(nuevos.length===0){setErr("No hay ningun movimiento clasificado todavia — elige contracuenta al menos en uno.");return}
     setEntries(p=>[...p,...nuevos]);
+    setCartolas(p=>[...p,{id:uid(),empresaId:eObj.id,cuentaBanco,nombreArchivo:nombreArchivo||"cartola.xlsx",fechaCarga:new Date().toISOString(),totalMovs:movs.length,contabilizados:analisis.contab.length,generados:nuevos.length,pendientes:analisis.pend.length-nuevos.length}]);
     aLog("Conciliacion bancaria",nuevos.length+" asientos generados - "+eObj.name);
-    setMovs(null);setClasif({});setErr(null);
+    setMovs(null);setClasif({});setSel(new Set());setErr(null);
   };
 
+  const agregarReglaPalabra=()=>{
+    if(!nuevaPalabra.trim()||!nuevaPalabraCta)return;
+    setReglas(p=>[...p,{id:uid(),empresaId:eObj.id,criterio:"palabra",valor:nuevaPalabra.trim(),contracuenta:nuevaPalabraCta,creada:new Date().toISOString()}]);
+    setNuevaPalabra("");setNuevaPalabraCta("");
+  };
+  const borrarReglaPalabra=id=>setReglas(p=>p.filter(r=>r.id!==id));
+
   const fmtRut=r=>{const n=normRut(r);return n?n.slice(0,-1)+"-"+n.slice(-1):""};
+  const nombreCta=cd=>leafAccts.find(a=>a.cd===cd)?.nm||cd;
 
   return(<div>
+    <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Conciliacion Bancaria</div>
+    <div style={{fontSize:12,color:"var(--tx3)",marginBottom:16}}>Sube la cartola del banco (Santander, formato Historica/Provisoria). Primero se detecta que movimientos ya tienen un asiento contabilizado; para el resto se sugiere la contracuenta cruzando con Compras/Ventas SII ya importadas.</div>
+
+    {bancoLeaf.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10,marginBottom:16}}>{bancoLeaf.map(a=>{
+      const saldo=saldoCuenta(a.cd);
+      const ult=ultimaCartolaPorCuenta[a.cd];
+      const activa=cuentaBanco===a.cd;
+      return<button key={a.cd} onClick={()=>setCuentaBanco(a.cd)} style={{textAlign:"left",background:activa?"var(--cy-fill)":"var(--sf)",border:"1px solid "+(activa?"var(--cy2)":"var(--bd)"),borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:14,cursor:"pointer"}}>
+        <div style={{fontSize:12,fontWeight:600,color:activa?"#1B4D2E":"var(--tx)"}}>{a.nm}</div>
+        <div style={{fontSize:16,fontWeight:700,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",marginTop:4,color:activa?"#1B4D2E":"var(--tx)"}}>${fmt(saldo)}</div>
+        <div style={{fontSize:10,color:activa?"#1B4D2E":"var(--tx3)",opacity:.8,marginTop:4}}>{ult?"Ultima cartola "+fD(ult.slice(0,10)):"Sin cartolas cargadas"}</div>
+      </button>;
+    })}</div>}
+
     <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:24,marginBottom:16}}>
-      <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Conciliacion Bancaria</div>
-      <div style={{fontSize:12,color:"var(--tx3)",marginBottom:16}}>Sube la cartola del banco (Santander, formato Historica/Provisoria). Primero se detecta que movimientos ya tienen un asiento contabilizado; para el resto se sugiere la contracuenta cruzando con Compras/Ventas SII ya importadas.</div>
       <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:12,alignItems:"end"}}>
         <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Cuenta bancaria (Disponible)</label>
           <select value={cuentaBanco} onChange={e=>setCuentaBanco(e.target.value)}><option value="">-- Selecciona --</option>{bancoLeaf.map(a=><option key={a.cd} value={a.cd}>{a.cd} {a.nm}</option>)}</select>
@@ -2314,15 +2358,25 @@ function ConciliacionP({entries,setEntries,leafAccts,eObj,empEntries,aLog,reglas
         <div style={{flex:1,background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,textAlign:"center"}}><div style={{fontSize:24,fontWeight:700,letterSpacing:-.4,lineHeight:1.15,color:"var(--am)"}}>{analisis.pend.length}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Pendientes de clasificar</div></div>
       </div>
 
+      {analisis.pend.length>0&&<div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap",marginBottom:12,background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:12}}>
+        <span style={{fontSize:12,color:"var(--tx3)"}}>{sel.size} seleccionados</span>
+        <select value={cuentaLote} onChange={e=>setCuentaLote(e.target.value)} style={{maxWidth:280}}>
+          <option value="">-- Contracuenta en lote --</option>
+          {leafAccts.map(a=><option key={a.cd} value={a.cd}>{a.cd} {a.nm}</option>)}
+        </select>
+        <button onClick={aplicarLote} disabled={!cuentaLote||sel.size===0} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"#1B4D2E",fontSize:12,fontWeight:600,cursor:(!cuentaLote||sel.size===0)?"default":"pointer",opacity:(!cuentaLote||sel.size===0)?.5:1}}>Aplicar a seleccionados</button>
+      </div>}
+
       <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden",marginBottom:16}}>
         <div style={{padding:"14px 20px",borderBottom:"1px solid var(--bd)",background:"var(--sf2)",fontSize:13,fontWeight:600}}>Pendientes de clasificar</div>
         {analisis.pend.length===0?<div style={{padding:24,textAlign:"center",color:"var(--tx3)",fontSize:13}}>Todo lo de esta cartola ya esta contabilizado.</div>:
         <div style={{overflowX:"auto"}}><table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
-          <thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:10,color:"var(--tx3)"}}><th style={{textAlign:"left",padding:"8px 12px"}}>Fecha</th><th style={{textAlign:"left",padding:"8px 8px"}}>Glosa</th><th style={{textAlign:"right",padding:"8px 8px"}}>Monto</th><th style={{textAlign:"center",padding:"8px 8px"}}>C/A</th><th style={{textAlign:"left",padding:"8px 12px",minWidth:260}}>Contracuenta / sugerencia</th></tr></thead>
+          <thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:10,color:"var(--tx3)"}}><th style={{padding:"8px 12px"}}><input type="checkbox" checked={sel.size===analisis.pend.length&&analisis.pend.length>0} onChange={toggleSelAll}/></th><th style={{textAlign:"left",padding:"8px 8px"}}>Fecha</th><th style={{textAlign:"left",padding:"8px 8px"}}>Glosa</th><th style={{textAlign:"right",padding:"8px 8px"}}>Monto</th><th style={{textAlign:"center",padding:"8px 8px"}}>C/A</th><th style={{textAlign:"left",padding:"8px 12px",minWidth:260}}>Contracuenta / sugerencia</th></tr></thead>
           <tbody>{analisis.pend.map(({mov,sugerencia})=>{
             const c=clasif[mov.id];
             return<tr key={mov.id} style={{borderBottom:"1px solid var(--bd)"}}>
-              <td style={{padding:"8px 12px",whiteSpace:"nowrap"}}>{fD(mov.fecha)}</td>
+              <td style={{padding:"8px 12px"}}><input type="checkbox" checked={sel.has(mov.id)} onChange={()=>toggleSel(mov.id)}/></td>
+              <td style={{padding:"8px 8px",whiteSpace:"nowrap"}}>{fD(mov.fecha)}</td>
               <td style={{padding:"8px 8px"}}>{mov.descripcion}</td>
               <td style={{padding:"8px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(mov.monto)}</td>
               <td style={{padding:"8px 8px",textAlign:"center"}}>{mov.cargoAbono==="C"?"Cargo":"Abono"}</td>
@@ -2333,7 +2387,7 @@ function ConciliacionP({entries,setEntries,leafAccts,eObj,empEntries,aLog,reglas
                     {sugerencia.candidatos.map(cand=><option key={cand.id} value={cand.id}>F{cand.folio} {cand.razonSocial} ({fmtRut(cand.rut)})</option>)}
                   </select>
                 :sugerencia.estado==="match"?
-                  <div style={{fontSize:11,color:sugerencia.confianza==="alta"?"var(--gn)":"var(--am)",marginBottom:4}}>{sugerencia.confianza==="alta"?"✓ ":"⚠ "}F{sugerencia.candidato.folio} {sugerencia.candidato.razonSocial} ({fmtRut(sugerencia.candidato.rut)})</div>
+                  <div style={{fontSize:11,color:sugerencia.confianza==="alta"?"var(--gn)":"var(--am)",marginBottom:4}}>{sugerencia.confianza==="alta"?"✓ Coincidencia exacta — ":"⚠ Coincidencia parcial — "}F{sugerencia.candidato.folio} {sugerencia.candidato.razonSocial} ({fmtRut(sugerencia.candidato.rut)})</div>
                 :sugerencia.estado==="regla"?
                   <div style={{fontSize:11,color:"var(--cy)",marginBottom:4}}>⚙ {sugerencia.motivo}</div>
                 :<div style={{fontSize:11,color:"var(--tx3)",marginBottom:4}}>{sugerencia.motivo}</div>}
@@ -2357,6 +2411,44 @@ function ConciliacionP({entries,setEntries,leafAccts,eObj,empEntries,aLog,reglas
 
       <Bt onClick={generarAsientos} p={true}>Generar asientos de los clasificados</Bt>
     </>}
+
+    <details style={{marginTop:24}}>
+      <summary style={{cursor:"pointer",fontSize:13,fontWeight:600,padding:"10px 0"}}>Historial de Cartolas ({(cartolas||[]).length})</summary>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden",marginTop:8}}>
+        {(!cartolas||cartolas.length===0)?<div style={{padding:16,textAlign:"center",color:"var(--tx3)",fontSize:12}}>Ninguna cartola cargada todavia.</div>:
+        <div style={{overflowX:"auto"}}><table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
+          <thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:10,color:"var(--tx3)"}}><th style={{textAlign:"left",padding:"8px 12px"}}>Fecha de carga</th><th style={{textAlign:"left",padding:"8px 8px"}}>Cuenta</th><th style={{textAlign:"left",padding:"8px 8px"}}>Archivo</th><th style={{textAlign:"right",padding:"8px 8px"}}>Movimientos</th><th style={{textAlign:"right",padding:"8px 8px"}}>Ya contab.</th><th style={{textAlign:"right",padding:"8px 8px"}}>Generados</th><th style={{textAlign:"right",padding:"8px 12px"}}>Sin clasificar</th></tr></thead>
+          <tbody>{[...cartolas].sort((a,b)=>b.fechaCarga.localeCompare(a.fechaCarga)).map(c=><tr key={c.id} style={{borderBottom:"1px solid var(--bd)"}}>
+            <td style={{padding:"8px 12px",whiteSpace:"nowrap"}}>{fD(c.fechaCarga.slice(0,10))}</td>
+            <td style={{padding:"8px 8px"}}>{nombreCta(c.cuentaBanco)}</td>
+            <td style={{padding:"8px 8px"}}>{c.nombreArchivo}</td>
+            <td style={{padding:"8px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{c.totalMovs}</td>
+            <td style={{padding:"8px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:"var(--gn)"}}>{c.contabilizados}</td>
+            <td style={{padding:"8px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:"var(--cy)"}}>{c.generados}</td>
+            <td style={{padding:"8px 12px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:c.pendientes>0?"var(--am)":"var(--tx3)"}}>{c.pendientes}</td>
+          </tr>)}</tbody>
+        </table></div>}
+      </div>
+    </details>
+
+    <details style={{marginTop:16}}>
+      <summary style={{cursor:"pointer",fontSize:13,fontWeight:600,padding:"10px 0"}}>Reglas de conciliacion por palabra clave ({reglasPalabra.length})</summary>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,marginTop:8}}>
+        <div style={{fontSize:11,color:"var(--tx3)",marginBottom:12}}>Para movimientos sin documento asociado (ej. "comision" → Gastos Bancarios). Las reglas por RUT se aprenden solas al reclasificar en "Por Clasificar".</div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
+          <input placeholder="Palabra clave en la glosa" value={nuevaPalabra} onChange={e=>setNuevaPalabra(e.target.value)} style={{maxWidth:220}}/>
+          <select value={nuevaPalabraCta} onChange={e=>setNuevaPalabraCta(e.target.value)} style={{maxWidth:280}}><option value="">-- Cuenta destino --</option>{leafAccts.map(a=><option key={a.cd} value={a.cd}>{a.cd} {a.nm}</option>)}</select>
+          <button onClick={agregarReglaPalabra} disabled={!nuevaPalabra.trim()||!nuevaPalabraCta} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"#1B4D2E",fontSize:12,fontWeight:600,cursor:(!nuevaPalabra.trim()||!nuevaPalabraCta)?"default":"pointer",opacity:(!nuevaPalabra.trim()||!nuevaPalabraCta)?.5:1}}>Agregar regla</button>
+        </div>
+        {reglasPalabra.length===0?<div style={{fontSize:12,color:"var(--tx3)"}}>Sin reglas por palabra clave todavia.</div>:
+        <div style={{display:"flex",flexDirection:"column",gap:6}}>{reglasPalabra.map(r=>
+          <div key={r.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:"8px 14px",fontSize:12}}>
+            <span>"{r.valor}" → {nombreCta(r.contracuenta)}</span>
+            <button onClick={()=>borrarReglaPalabra(r.id)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.6,fontSize:11}}>eliminar</button>
+          </div>
+        )}</div>}
+      </div>
+    </details>
   </div>);
 }
 
