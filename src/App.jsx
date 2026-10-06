@@ -241,6 +241,7 @@ const DFLT_ACCTS=[
   {cd:"5.2.03.002",nm:"Materiales de Oficina",tp:"expense",lv:4},
   {cd:"5.2.03.003",nm:"Gastos de Representacion",tp:"expense",lv:4},
   {cd:"5.2.03.004",nm:"Seguros",tp:"expense",lv:4},
+  {cd:"5.2.03.005",nm:"Diferencias de Cuadratura SII",tp:"expense",lv:4},
   {cd:"5.2.04",nm:"Servicios Basicos",tp:"expense",lv:3},
   {cd:"5.2.04.001",nm:"Electricidad",tp:"expense",lv:4},
   {cd:"5.2.04.002",nm:"Agua",tp:"expense",lv:4},
@@ -299,10 +300,11 @@ function Dashboard({session}){
   const [activos,setActivos]=useState([]);
   const [honorarios,setHonorarios]=useState([]);
   const [cartolas,setCartolas]=useState([]);
+  const [importacionesSii,setImportacionesSii]=useState([]);
   const [sb,setSb]=useState(false);
-  const prevIds=useRef({e:new Set(),v:new Set(),l:new Set(),a:new Set(),en:new Set(),rm:new Set(),tb:new Set(),pr:new Set(),as:new Set(),dc:new Set(),ta:new Set(),rg:new Set(),cc:new Set(),af:new Set(),ho:new Set(),ct:new Set()});
+  const prevIds=useRef({e:new Set(),v:new Set(),l:new Set(),a:new Set(),en:new Set(),rm:new Set(),tb:new Set(),pr:new Set(),as:new Set(),dc:new Set(),ta:new Set(),rg:new Set(),cc:new Set(),af:new Set(),ho:new Set(),ct:new Set(),si:new Set()});
   useEffect(()=>{let cancelled=false;(async()=>{
-    const[e,v,l,a,en,rm,tb,pr,as,dc,ta,rg,ho,cc,af,ct]=await Promise.all([
+    const[e,v,l,a,en,rm,tb,pr,as,dc,ta,rg,ho,cc,af,ct,si]=await Promise.all([
       loadCollection(userId,"empresas",[]),
       loadCollection(userId,"evaluaciones",[]),
       loadCollection(userId,"log",[]),
@@ -319,20 +321,22 @@ function Dashboard({session}){
       loadCollection(userId,"centros_costo",[]),
       loadCollection(userId,"activos_fijos",[]),
       loadCollection(userId,"cartolas",[]),
+      loadCollection(userId,"importaciones_sii",[]),
     ]);
     if(cancelled)return;
     // Migracion aditiva: empresas creadas antes de que existiera el modulo
     // de Honorarios no tienen esta cuenta en su plan de cuentas guardado
     // (solo las empresas nuevas parten de DFLT_ACCTS actualizado) -- se
     // agrega sola, sin tocar ninguna cuenta existente.
-    const accFinal=a.some(x=>x.cd==="2.1.01.004")?a:[...a,{cd:"2.1.01.004",nm:"Honorarios por Pagar",tp:"liability",lv:4}];
+    const cuentasNuevas=[{cd:"2.1.01.004",nm:"Honorarios por Pagar",tp:"liability",lv:4},{cd:"5.2.03.005",nm:"Diferencias de Cuadratura SII",tp:"expense",lv:4}].filter(nc=>!a.some(x=>x.cd===nc.cd));
+    const accFinal=cuentasNuevas.length?[...a,...cuentasNuevas]:a;
     prevIds.current={
       e:new Set(e.map(x=>String(x.id))),v:new Set(v.map(x=>String(x.id))),l:new Set(l.map(x=>String(x.id))),
       a:new Set(a.map(x=>String(x.cd))),en:new Set(en.map(x=>String(x.id))),rm:new Set(rm.map(x=>String(x.id))),
       tb:new Set(tb.map(x=>String(x.id))),pr:new Set(pr.map(x=>String(x.id))),as:new Set(as.map(x=>String(x.id))),
-      dc:new Set(dc.map(x=>String(x.id))),ta:new Set(ta.map(x=>String(x.id))),rg:new Set(rg.map(x=>String(x.id))),cc:new Set(cc.map(x=>String(x.id))),af:new Set(af.map(x=>String(x.id))),ho:new Set(ho.map(x=>String(x.id))),ct:new Set(ct.map(x=>String(x.id))),
+      dc:new Set(dc.map(x=>String(x.id))),ta:new Set(ta.map(x=>String(x.id))),rg:new Set(rg.map(x=>String(x.id))),cc:new Set(cc.map(x=>String(x.id))),af:new Set(af.map(x=>String(x.id))),ho:new Set(ho.map(x=>String(x.id))),ct:new Set(ct.map(x=>String(x.id))),si:new Set(si.map(x=>String(x.id))),
     };
-    setEmps(e);setEvs(v);setLog(l);setAccts(accFinal);setEntries(en);setRems(rm);setTrabajadores(tb);setProcesosRem(pr);setAsistencia(as);setDocs(dc);setTareas(ta);setReglas(rg);setCcostos(cc);setActivos(af);setHonorarios(ho);setCartolas(ct);
+    setEmps(e);setEvs(v);setLog(l);setAccts(accFinal);setEntries(en);setRems(rm);setTrabajadores(tb);setProcesosRem(pr);setAsistencia(as);setDocs(dc);setTareas(ta);setReglas(rg);setCcostos(cc);setActivos(af);setHonorarios(ho);setCartolas(ct);setImportacionesSii(si);
     if(e.length>0)setAEmp(e[0].id);setRdy(true);
   })();return()=>{cancelled=true}},[userId]);
   useEffect(()=>{if(rdy)saveCollection(userId,"empresas",emps,prevIds.current.e).then(s=>prevIds.current.e=s)},[emps,rdy]);
@@ -351,6 +355,7 @@ function Dashboard({session}){
   useEffect(()=>{if(rdy)saveCollection(userId,"activos_fijos",activos,prevIds.current.af).then(s=>prevIds.current.af=s)},[activos,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"honorarios",honorarios,prevIds.current.ho).then(s=>prevIds.current.ho=s)},[honorarios,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"cartolas",cartolas,prevIds.current.ct).then(s=>prevIds.current.ct=s)},[cartolas,rdy]);
+  useEffect(()=>{if(rdy)saveCollection(userId,"importaciones_sii",importacionesSii,prevIds.current.si).then(s=>prevIds.current.si=s)},[importacionesSii,rdy]);
   const aLog=(a,d)=>setLog(p=>[{id:uid(),time:new Date().toISOString(),action:a,detail:d},...p].slice(0,50));
   const eObj=useMemo(()=>emps.find(e=>e.id===aEmp),[emps,aEmp]);
   const eEvs=useMemo(()=>evs.filter(e=>e.empresaId===aEmp),[evs,aEmp]);
@@ -360,6 +365,7 @@ function Dashboard({session}){
   const empActivos=useMemo(()=>activos.filter(a=>a.empresaId===aEmp),[activos,aEmp]);
   const empHonorarios=useMemo(()=>honorarios.filter(h=>h.empresaId===aEmp),[honorarios,aEmp]);
   const empCartolas=useMemo(()=>cartolas.filter(c=>c.empresaId===aEmp),[cartolas,aEmp]);
+  const empImportacionesSii=useMemo(()=>importacionesSii.filter(i=>i.empresaId===aEmp),[importacionesSii,aEmp]);
   const empRems=useMemo(()=>rems.filter(r=>r.empresaId===aEmp),[rems,aEmp]);
   const empTrabajadores=useMemo(()=>trabajadores.filter(t=>t.empresaId===aEmp),[trabajadores,aEmp]);
   const empProcesosRem=useMemo(()=>procesosRem.filter(p=>p.empresaId===aEmp),[procesosRem,aEmp]);
@@ -391,7 +397,7 @@ function Dashboard({session}){
         {pg==="inicio"&&<HomeP emps={emps} eObj={eObj} evs={evs} log={log}/>}
         {pg==="empresas"&&<EmpP emps={emps} setEmps={setEmps} aEmp={aEmp} setAEmp={setAEmp} aLog={aLog}/>}
         {pg==="radar"&&<RadP eObj={eObj} evs={evs} setEvs={setEvs} eEvs={eEvs} aLog={aLog} go={go}/>}
-        {pg==="contabilidad"&&<ContabP eObj={eObj} accts={accts} setAccts={setAccts} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go} reglas={empReglas} setReglas={setReglas} ccostos={empCcostos} setCcostos={setCcostos} activos={empActivos} setActivos={setActivos} honorarios={empHonorarios} setHonorarios={setHonorarios} cartolas={empCartolas} setCartolas={setCartolas}/>}
+        {pg==="contabilidad"&&<ContabP eObj={eObj} accts={accts} setAccts={setAccts} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go} reglas={empReglas} setReglas={setReglas} ccostos={empCcostos} setCcostos={setCcostos} activos={empActivos} setActivos={setActivos} honorarios={empHonorarios} setHonorarios={setHonorarios} cartolas={empCartolas} setCartolas={setCartolas} importacionesSii={empImportacionesSii} setImportacionesSii={setImportacionesSii}/>}
         {pg==="remuneraciones"&&<RemP eObj={eObj} rems={rems} setRems={setRems} empRems={empRems} trabajadores={trabajadores} setTrabajadores={setTrabajadores} empTrabajadores={empTrabajadores} procesosRem={procesosRem} setProcesosRem={setProcesosRem} empProcesosRem={empProcesosRem} asistencia={asistencia} setAsistencia={setAsistencia} empAsistencia={empAsistencia} ccostos={empCcostos} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go}/>}
         {pg==="documentos"&&<DocsP eObj={eObj} docs={docs} setDocs={setDocs} empDocs={empDocs} aLog={aLog} go={go}/>}
         {pg==="planificacion"&&<PlanP eObj={eObj} tareas={tareas} setTareas={setTareas} empTareas={empTareas} aLog={aLog} go={go}/>}
@@ -780,7 +786,7 @@ const CONTAB_TAB_GROUPS=[
   {g:"Configuracion",items:[{id:"plan",l:"Plan de Cuentas"}]},
 ];
 
-function ContabP({eObj,accts,setAccts,entries,setEntries,empEntries,leafAccts,aLog,go,reglas,setReglas,ccostos,setCcostos,activos,setActivos,honorarios,setHonorarios,cartolas,setCartolas}){
+function ContabP({eObj,accts,setAccts,entries,setEntries,empEntries,leafAccts,aLog,go,reglas,setReglas,ccostos,setCcostos,activos,setActivos,honorarios,setHonorarios,cartolas,setCartolas,importacionesSii,setImportacionesSii}){
   const [tab,setTab]=useState("dashboard");
   const [navTarget,setNavTarget]=useState(null);
   const [openGrp,setOpenGrp]=useState("Resumen");
@@ -814,7 +820,7 @@ function ContabP({eObj,accts,setAccts,entries,setEntries,empEntries,leafAccts,aL
     {tab==="dashboard"&&<DashboardFin empEntries={empEntries} leafAccts={leafAccts} eObj={eObj}/>}
     {tab==="plan"&&<PlanCtas accts={accts} setAccts={setAccts} aLog={aLog}/>}
     {tab==="asientos"&&<Asientos entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} eObj={eObj} aLog={aLog} ccostos={ccostos} resaltar={navTarget?.tipo==="asiento"?navTarget:null}/>}
-    {tab==="csv"&&<CSVSII entries={entries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} empEntries={empEntries} aLog={aLog} reglas={reglas}/>}
+    {tab==="csv"&&<CSVSII entries={entries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} empEntries={empEntries} aLog={aLog} reglas={reglas} importaciones={importacionesSii} setImportaciones={setImportacionesSii}/>}
     {tab==="lcompras"&&<LibroCV empEntries={empEntries} tipo="compra" eObj={eObj} irAAsiento={irAAsiento}/>}
     {tab==="lventas"&&<LibroCV empEntries={empEntries} tipo="venta" eObj={eObj} irAAsiento={irAAsiento}/>}
     {tab==="porclasificar"&&<PorClasificar empEntries={empEntries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} aLog={aLog} reglas={reglas} setReglas={setReglas} irAAsiento={irAAsiento}/>}
@@ -1790,67 +1796,167 @@ function LibroAuxiliar({empEntries,eObj,irAAsiento}){
 }
 
 // ═══ CSV SII (Compras/Ventas) ═══
-function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog,reglas}){
+// Parsea el texto del CSV/export del SII a filas "en borrador" (sin tocar
+// entries todavia) -- el commit real pasa por confirmarImportacionSII,
+// despues de que el usuario revise cuadratura y cuenta por documento.
+function parsearFilasSII(text,tipo,periodoTrib,reglas){
+  const rows=text.split("\n").filter(r=>r.trim());
+  if(rows.length<2)return{error:"Archivo vacio o sin datos"};
+  const isCompra=tipo==="compra";
+  const dataRows=rows.slice(1);const filas=[];
+  const ctpAcDefault=isCompra?"1.1.05.001":"4.1.01.001";
+  dataRows.forEach(row=>{
+    const c=row.split(";").map(x=>x.trim().replace(/^"|"$/g,""));
+    if(c.length<7)return;
+    // "exento" (documentos no afectos/exentos, ej. tipo 34) no tiene IVA
+    // pero si un monto a contabilizar -- si solo se mira neto/iva, esos
+    // documentos quedan con menos de 2 lineas y se descartan en silencio.
+    let neto=0,exento=0,iva=0,total=0,fecha="",rut="",razon="",folio="",tipoDocCod="";
+    const toNum=s=>parseInt((s||"").replace(/\./g,"").replace(/,/g,""))||0;
+    if(c.length>=13){fecha=c[5]||"";rut=c[1]||"";razon=c[2]||"";folio=c[3]||"";neto=toNum(c[7]);iva=toNum(c[9]);total=toNum(c[12])}
+    else if(c.length>=9){fecha=c[0]||"";rut=c[1]||"";razon=c[2]||"";folio=c[3]||"";neto=toNum(c[4]);exento=toNum(c[5]);iva=toNum(c[6]);total=toNum(c[7]);tipoDocCod=c[8]||""}
+    else if(c.length>=8){fecha=c[0]||"";rut=c[1]||"";razon=c[2]||"";folio=c[3]||"";neto=toNum(c[4]);exento=toNum(c[5]);iva=toNum(c[6]);total=toNum(c[7])}
+    else{fecha=c[0]||"";rut=c[1]||"";razon=c[2]||"";folio=c[3]||"";neto=toNum(c[4]);iva=toNum(c[5]);total=toNum(c[6])}
+    if(!total)total=neto+exento+iva;
+    if(total===0)return;
+    const dt=fecha.includes("/")?(()=>{const p=fecha.split("/");return(p[2]||"2026")+"-"+(p[1]||"01").padStart(2,"0")+"-"+(p[0]||"01").padStart(2,"0")})():fecha||new Date().toISOString().slice(0,10);
+    // Si ya aprendimos (o definiste a mano) que las facturas de este RUT
+    // van a una cuenta especifica, se preasigna directo en vez de caer en
+    // "Gastos por Clasificar" a la espera de que las reclasifiques.
+    const reglaRut=isCompra?buscarReglaPorRut(reglas,rut):null;
+    filas.push({_k:uid(),tipoDoc:isCompra?"compra":"venta",tipoDocCod,date:dt,periodo:periodoTrib||dt.slice(0,7).replace("-",""),folio,rut,razonSocial:razon,neto:Math.abs(neto),exento:Math.abs(exento),iva:Math.abs(iva),total:Math.abs(total),cuentaDestino:reglaRut?.contracuenta||ctpAcDefault,ajuste:"total"});
+  });
+  return{filas,totalRegistros:dataRows.length};
+}
+const cuadraFilaSII=f=>Math.abs(f.total-(f.neto+f.exento+f.iva))<1;
+const CTA_DIFERENCIA_SII="5.2.03.005";
+// Construye las lineas contables de una fila segun la estrategia de
+// cuadratura elegida -- siempre queda balanceada (debe=haber), incluso en
+// "no_ajustar", absorbiendo la diferencia en una cuenta aparte en vez de
+// descuadrar el asiento.
+function lineasFilaSII(f){
+  const isCompra=f.tipoDoc==="compra";
+  const ivaAc=isCompra?"1.1.03.001":"2.1.02.001";
+  const tpAc=isCompra?"2.1.01.001":"1.1.02.001";
+  let netoExento,totalFinal,diff=0;
+  if(f.ajuste==="neto"){netoExento=f.neto+f.exento;totalFinal=netoExento+f.iva}
+  else if(f.ajuste==="no_ajustar"){netoExento=f.neto+f.exento;totalFinal=f.total;diff=totalFinal-(netoExento+f.iva)}
+  else{totalFinal=f.total;netoExento=Math.max(0,totalFinal-f.iva)}
+  const lines=[];
+  if(isCompra){
+    if(netoExento>0)lines.push({ac:f.cuentaDestino,db:netoExento,cr:0});
+    if(f.iva>0)lines.push({ac:ivaAc,db:f.iva,cr:0});
+    lines.push({ac:tpAc,db:0,cr:totalFinal});
+    if(diff>0)lines.push({ac:CTA_DIFERENCIA_SII,db:diff,cr:0});
+    if(diff<0)lines.push({ac:CTA_DIFERENCIA_SII,db:0,cr:-diff});
+  }else{
+    lines.push({ac:tpAc,db:totalFinal,cr:0});
+    if(netoExento>0)lines.push({ac:f.cuentaDestino,db:0,cr:netoExento});
+    if(f.iva>0)lines.push({ac:ivaAc,db:0,cr:f.iva});
+    if(diff>0)lines.push({ac:CTA_DIFERENCIA_SII,db:0,cr:diff});
+    if(diff<0)lines.push({ac:CTA_DIFERENCIA_SII,db:-diff,cr:0});
+  }
+  return lines;
+}
+const AJUSTE_LABELS={total:"Ajustado al Total",neto:"Ajustado al Neto",no_ajustar:"Sin ajustar (con diferencia)"};
+
+function CuadraturaModal({fila,onElegir,onClose}){
+  const diff=fila.total-(fila.neto+fila.exento+fila.iva);
+  return(<div onClick={onClose} style={{position:"fixed",inset:0,zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(27,77,46,.3)",backdropFilter:"blur(3px)",padding:20}}>
+    <div onClick={e=>e.stopPropagation()} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:24,maxWidth:420,width:"100%"}}>
+      <div style={{fontSize:14,fontWeight:700,marginBottom:4}}>Cuadratura de documento</div>
+      <div style={{fontSize:12,color:"var(--tx3)",marginBottom:16}}>F{fila.folio} {fila.razonSocial} — Neto+Exento+IVA ({fmt(fila.neto+fila.exento+fila.iva)}) no coincide con el Total reportado ({fmt(fila.total)}). Diferencia: ${fmt(Math.abs(diff))}.</div>
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        <button onClick={()=>onElegir("neto")} style={{textAlign:"left",padding:"12px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",cursor:"pointer"}}>
+          <div style={{fontSize:12,fontWeight:600}}>Ajustar al Neto</div><div style={{fontSize:11,color:"var(--tx3)",marginTop:2}}>Confia en Neto+Exento+IVA reportados; el Total se recalcula.</div>
+        </button>
+        <button onClick={()=>onElegir("total")} style={{textAlign:"left",padding:"12px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",cursor:"pointer"}}>
+          <div style={{fontSize:12,fontWeight:600}}>Ajustar al Total</div><div style={{fontSize:11,color:"var(--tx3)",marginTop:2}}>Confia en el Total reportado; Neto+Exento se recalcula desde Total-IVA.</div>
+        </button>
+        <button onClick={()=>onElegir("no_ajustar")} style={{textAlign:"left",padding:"12px 14px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",cursor:"pointer"}}>
+          <div style={{fontSize:12,fontWeight:600}}>No ajustar</div><div style={{fontSize:11,color:"var(--tx3)",marginTop:2}}>Registra los 3 montos tal cual vienen; la diferencia va a "Diferencias de Cuadratura SII".</div>
+        </button>
+      </div>
+      <button onClick={onClose} style={{marginTop:14,background:"none",border:"none",color:"var(--tx3)",fontSize:12,cursor:"pointer"}}>Cancelar</button>
+    </div>
+  </div>);
+}
+
+function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog,reglas,importaciones,setImportaciones}){
   const [result,setResult]=useState(null);
   const [periodo,setPeriodo]=useState("");
   const [autoBusy,setAutoBusy]=useState(null);
+  const [preview,setPreview]=useState({compra:null,venta:null}); // {fuente,rows} por tipo, o null
+  const [previewTab,setPreviewTab]=useState("compra");
+  const [sel,setSel]=useState({compra:new Set(),venta:new Set()});
+  const [cuentaLote,setCuentaLote]=useState({compra:"",venta:""});
+  const [modalFila,setModalFila]=useState(null); // {tipo,idx}
   const nxtNum=useMemo(()=>{const ns=empEntries.map(e=>parseInt(e.num)||0);return Math.max(0,...ns)+1},[empEntries]);
+
   // periodoTrib = periodo tributario (AAAAMM) que corresponde ante el SII —
   // puede diferir del mes de la fecha de emision del documento (ej. una
   // factura emitida a fin de mes pero reconocida/recibida el mes siguiente).
-  // Se guarda aparte de "date" (fecha de emision) para armar el Libro de
-  // Compras/Ventas mensual agrupado correctamente.
-  const processCSVText=(text,tipo,periodoTrib)=>{try{
-    const rows=text.split("\n").filter(r=>r.trim());
-    if(rows.length<2){setResult({ok:false,msg:"Archivo vacio o sin datos"});return}
-    const isCompra=tipo==="compra";
-    const dataRows=rows.slice(1);const imported=[];let n=nxtNum;
-    const ivaAc=isCompra?"1.1.03.001":"2.1.02.001";const ctpAcDefault=isCompra?"1.1.05.001":"4.1.01.001";const tpAc=isCompra?"2.1.01.001":"1.1.02.001";
-    dataRows.forEach(row=>{
-      const c=row.split(";").map(x=>x.trim().replace(/^"|"$/g,""));
-      if(c.length<7)return;
-      // "exento" (documentos no afectos/exentos, ej. tipo 34) no tiene IVA
-      // pero si un monto a contabilizar -- si solo se mira neto/iva, esos
-      // documentos quedan con menos de 2 lineas y se descartan en silencio.
-      let neto=0,exento=0,iva=0,total=0,fecha="",rut="",razon="",folio="",tipoDocCod="";
-      const toNum=s=>parseInt((s||"").replace(/\./g,"").replace(/,/g,""))||0;
-      if(c.length>=13){fecha=c[5]||"";rut=c[1]||"";razon=c[2]||"";folio=c[3]||"";neto=toNum(c[7]);iva=toNum(c[9]);total=toNum(c[12])}
-      else if(c.length>=9){fecha=c[0]||"";rut=c[1]||"";razon=c[2]||"";folio=c[3]||"";neto=toNum(c[4]);exento=toNum(c[5]);iva=toNum(c[6]);total=toNum(c[7]);tipoDocCod=c[8]||""}
-      else if(c.length>=8){fecha=c[0]||"";rut=c[1]||"";razon=c[2]||"";folio=c[3]||"";neto=toNum(c[4]);exento=toNum(c[5]);iva=toNum(c[6]);total=toNum(c[7])}
-      else{fecha=c[0]||"";rut=c[1]||"";razon=c[2]||"";folio=c[3]||"";neto=toNum(c[4]);iva=toNum(c[5]);total=toNum(c[6])}
-      if(!total)total=neto+exento+iva;
-      if(total===0)return;
-      const dt=fecha.includes("/")?(()=>{const p=fecha.split("/");return(p[2]||"2026")+"-"+(p[1]||"01").padStart(2,"0")+"-"+(p[0]||"01").padStart(2,"0")})():fecha||new Date().toISOString().slice(0,10);
-      const glosa=(isCompra?"Compra":"Venta")+" F"+folio+" "+razon.slice(0,30);
-      // Si ya aprendimos (o definiste a mano) que las facturas de este RUT
-      // van a una cuenta especifica, se contabilizan ahi directo en vez de
-      // caer en "Gastos por Clasificar" a la espera de que las reclasifiques.
-      const reglaRut=isCompra?buscarReglaPorRut(reglas,rut):null;
-      const ctpAc=reglaRut?.contracuenta||ctpAcDefault;
-      // Se junta neto+exento en una sola linea contable (misma contracuenta),
-      // y el total-iva define esa linea para que el asiento cuadre exacto
-      // aunque los montos del SII tengan alguna diferencia de redondeo.
-      const netoExento=Math.abs(total)-Math.abs(iva);
-      const lines=[];
-      if(isCompra){if(netoExento>0)lines.push({ac:ctpAc,db:netoExento,cr:0});if(iva>0)lines.push({ac:ivaAc,db:Math.abs(iva),cr:0});lines.push({ac:tpAc,db:0,cr:Math.abs(total)})}
-      else{lines.push({ac:tpAc,db:Math.abs(total),cr:0});if(netoExento>0)lines.push({ac:ctpAc,db:0,cr:netoExento});if(iva>0)lines.push({ac:ivaAc,db:0,cr:Math.abs(iva)})}
-      if(lines.length>=2)imported.push({id:uid(),empresaId:eObj.id,num:String(n++).padStart(4,"0"),date:dt,desc:glosa,lines,origen:"sii",rut:rut,folio:folio,razonSocial:razon,tipoDoc:isCompra?"compra":"venta",tipoDocCod:tipoDocCod,periodo:periodoTrib||dt.slice(0,7).replace("-",""),neto:Math.abs(neto),exento:Math.abs(exento),iva:Math.abs(iva),total:Math.abs(total)});
-    });
-    if(imported.length>0){
-      // Reimportar el mismo periodo (ej. para corregir un bug de un import
-      // anterior) reemplaza los asientos con el mismo folio+RUT en vez de
-      // duplicarlos.
-      const claves=new Set(imported.map(im=>im.tipoDoc+"|"+im.folio+"|"+im.rut));
-      setEntries(p=>[...p.filter(e=>!(e.empresaId===eObj.id&&e.tipoDoc===(isCompra?"compra":"venta")&&claves.has(e.tipoDoc+"|"+e.folio+"|"+e.rut))),...imported]);
-      aLog("CSV "+tipo+" importado",imported.length+" asientos - "+eObj.name);
-      setResult({ok:true,msg:imported.length+" asientos importados de "+dataRows.length+" registros"});
-    }
-    else setResult({ok:false,msg:"No se pudieron importar asientos. Verifica el formato del CSV."})
-  }catch(err){setResult({ok:false,msg:"Error: "+err.message})}};
+  const stageText=(text,tipo,periodoTrib,fuente)=>{
+    const{error,filas,totalRegistros}=parsearFilasSII(text,tipo,periodoTrib,reglas);
+    if(error){setResult({ok:false,msg:error});return}
+    if(filas.length===0){setResult({ok:false,msg:"No se encontraron documentos validos. Verifica el formato del CSV."});return}
+    setPreview(p=>({...p,[tipo]:{fuente,periodo:periodoTrib,rows:filas}}));
+    setSel(p=>({...p,[tipo]:new Set()}));
+    setPreviewTab(tipo);
+    setResult({ok:true,msg:filas.length+" de "+totalRegistros+" registros listos para revisar en la pestaña \""+(tipo==="compra"?"Compras":"Ventas")+"\" antes de importar."});
+  };
   const processCSV=(file,tipo)=>{
     if(!/^\d{6}$/.test(periodo)){setResult({ok:false,msg:"Antes de cargar el CSV, ingresa el periodo tributario (AAAAMM) al que corresponde ese libro."});return}
-    const rd=new FileReader();rd.onload=ev=>processCSVText(ev.target.result,tipo,periodo);rd.readAsText(file);
+    const rd=new FileReader();rd.onload=ev=>stageText(ev.target.result,tipo,periodo,"manual");rd.readAsText(file);
   };
+  const importarAuto=async(tipo)=>{
+    if(!/^\d{6}$/.test(periodo)){setResult({ok:false,msg:"Ingresa el periodo en formato AAAAMM, ej: 202605"});return}
+    setAutoBusy(tipo);setResult(null);
+    try{
+      const resp=await fetch(`http://localhost:4001/export?periodo=${periodo}&tipo=${tipo}`);
+      const text=await resp.text();
+      if(!resp.ok)throw new Error(text||("HTTP "+resp.status));
+      stageText(text,tipo,periodo,"auto");
+    }catch(err){
+      setResult({ok:false,msg:"No se pudo conectar al puente local del SII. Corre 'node tools/sii-local-server.mjs' en tu computador (ver tools/README.md) y vuelve a intentar. ("+err.message+")"});
+    }finally{setAutoBusy(null)}
+  };
+  const actualizarDesdeHistorial=row=>{
+    if(row.fuente!=="auto")return;
+    setPeriodo(row.periodo);
+    importarAuto(row.tipo);
+  };
+
+  const actualizarFila=(tipo,k,campo,valor)=>setPreview(p=>({...p,[tipo]:{...p[tipo],rows:p[tipo].rows.map(f=>f._k===k?{...f,[campo]:valor}:f)}}));
+  const toggleSel=(tipo,k)=>setSel(p=>{const n=new Set(p[tipo]);n.has(k)?n.delete(k):n.add(k);return{...p,[tipo]:n}});
+  const toggleSelAll=tipo=>setSel(p=>{const rows=preview[tipo]?.rows||[];return{...p,[tipo]:p[tipo].size===rows.length&&rows.length>0?new Set():new Set(rows.map(f=>f._k))}});
+  const aplicarCuentaLote=tipo=>{
+    const cta=cuentaLote[tipo];if(!cta||sel[tipo].size===0)return;
+    setPreview(p=>({...p,[tipo]:{...p[tipo],rows:p[tipo].rows.map(f=>sel[tipo].has(f._k)?{...f,cuentaDestino:cta}:f)}}));
+    setSel(p=>({...p,[tipo]:new Set()}));setCuentaLote(p=>({...p,[tipo]:""}));
+  };
+  const descartarPreview=tipo=>{setPreview(p=>({...p,[tipo]:null}));setSel(p=>({...p,[tipo]:new Set()}))};
+
+  const confirmarImportacion=()=>{
+    const tipos=["compra","venta"].filter(t=>preview[t]&&preview[t].rows.length>0);
+    if(tipos.length===0)return;
+    let n=nxtNum;const porTipo={};
+    tipos.forEach(tipo=>{
+      const{fuente,periodo:periodoLote,rows}=preview[tipo];
+      const imported=rows.map(f=>{
+        const glosa=(tipo==="compra"?"Compra":"Venta")+" F"+f.folio+" "+f.razonSocial.slice(0,30);
+        return{id:uid(),empresaId:eObj.id,num:String(n++).padStart(4,"0"),date:f.date,desc:glosa,lines:lineasFilaSII(f),origen:"sii",rut:f.rut,folio:f.folio,razonSocial:f.razonSocial,tipoDoc:tipo,tipoDocCod:f.tipoDocCod,periodo:f.periodo,neto:f.neto,exento:f.exento,iva:f.iva,total:f.total};
+      });
+      const claves=new Set(imported.map(im=>im.tipoDoc+"|"+im.folio+"|"+im.rut));
+      setEntries(p=>[...p.filter(e=>!(e.empresaId===eObj.id&&e.tipoDoc===tipo&&claves.has(e.tipoDoc+"|"+e.folio+"|"+e.rut))),...imported]);
+      setImportaciones(p=>[...p,{id:uid(),empresaId:eObj.id,periodo:periodoLote,tipo,fuente,cantidad:imported.length,fecha:new Date().toISOString()}]);
+      aLog("SII "+tipo+" importado",imported.length+" asientos - "+eObj.name);
+      porTipo[tipo]=imported.length;
+    });
+    setResult({ok:true,msg:"Importado: "+tipos.map(t=>porTipo[t]+" "+(t==="compra"?"compras":"ventas")).join(" · ")+"."});
+    setPreview({compra:null,venta:null});setSel({compra:new Set(),venta:new Set()});
+  };
+
   const limpiarDuplicados=()=>{
     const relevantes=empEntries.filter(e=>(e.tipoDoc==="compra"||e.tipoDoc==="venta")&&e.folio&&e.rut);
     const porClave=new Map();
@@ -1868,61 +1974,104 @@ function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog,reglas}){
     aLog("Duplicados eliminados",eliminarIds.size+" asientos - "+eObj.name);
     setResult({ok:true,msg:eliminarIds.size+" asientos duplicados o vacios eliminados."});
   };
-  const importarAuto=async(tipo)=>{
-    if(!/^\d{6}$/.test(periodo)){setResult({ok:false,msg:"Ingresa el periodo en formato AAAAMM, ej: 202605"});return}
-    setAutoBusy(tipo);setResult(null);
-    try{
-      const resp=await fetch(`http://localhost:4001/export?periodo=${periodo}&tipo=${tipo}`);
-      const text=await resp.text();
-      if(!resp.ok)throw new Error(text||("HTTP "+resp.status));
-      processCSVText(text,tipo,periodo);
-    }catch(err){
-      setResult({ok:false,msg:"No se pudo conectar al puente local del SII. Corre 'node tools/sii-local-server.mjs' en tu computador (ver tools/README.md) y vuelve a intentar. ("+err.message+")"});
-    }finally{setAutoBusy(null)}
-  };
+
+  const nombreCta=cd=>leafAccts.find(a=>a.cd===cd)?.nm||cd;
+  const fmtPeriodoCorto=p=>/^\d{6}$/.test(p||"")?p.slice(4,6)+"/"+p.slice(0,4):(p||"—");
+  const hayPreview=preview.compra||preview.venta;
+  const filasActivas=preview[previewTab]?.rows||[];
 
   return(<div>
     <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:24,marginBottom:16}}>
-      <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Periodo tributario</div>
-      <div style={{fontSize:12,color:"var(--tx3)",marginBottom:12}}>El mes que corresponde este libro ante el SII (AAAAMM) — no siempre es el mismo mes de la fecha de emision de cada documento. Se usa tanto para importar automatico como para la carga manual, y define en que mes queda cada documento dentro del Libro de Compras/Libro de Ventas.</div>
+      <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Paso 1 — Periodo tributario</div>
+      <div style={{fontSize:12,color:"var(--tx3)",marginBottom:12}}>El mes que corresponde este libro ante el SII (AAAAMM) — no siempre es el mismo mes de la fecha de emision de cada documento. Define en que mes queda cada documento dentro del Libro de Compras/Libro de Ventas.</div>
       <input value={periodo} onChange={e=>setPeriodo(e.target.value.replace(/\D/g,"").slice(0,6))} placeholder="Periodo AAAAMM, ej: 202605" style={{padding:"8px 12px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx)",fontSize:13,width:200}}/>
     </div>
     <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:24,marginBottom:16}}>
-      <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Importar automatico desde el SII</div>
-      <div style={{fontSize:12,color:"var(--tx3)",marginBottom:16}}>Requiere el puente local corriendo en tu computador: <code>node tools/sii-local-server.mjs</code> (despues de <code>sii auth login</code>). Ver <code>tools/README.md</code> para instalarlo.</div>
-      <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap"}}>
-        <button onClick={()=>importarAuto("compra")} disabled={!!autoBusy} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"#1B4D2E",fontSize:12,fontWeight:600,cursor:autoBusy?"default":"pointer",opacity:autoBusy?.6:1}}>{autoBusy==="compra"?"Importando...":"Importar Compras"}</button>
-        <button onClick={()=>importarAuto("venta")} disabled={!!autoBusy} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--pu)",color:"#fff",fontSize:12,fontWeight:600,cursor:autoBusy?"default":"pointer",opacity:autoBusy?.6:1}}>{autoBusy==="venta"?"Importando...":"Importar Ventas"}</button>
+      <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Paso 2 — Trae los documentos</div>
+      <div style={{fontSize:12,color:"var(--tx3)",marginBottom:16}}>Automatico (requiere <code>node tools/sii-local-server.mjs</code> corriendo, ver <code>tools/README.md</code>) o CSV descargado a mano. Ninguno de los dos crea asientos todavia — primero quedan en revision abajo.</div>
+      <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap",marginBottom:16}}>
+        <button onClick={()=>importarAuto("compra")} disabled={!!autoBusy} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"#1B4D2E",fontSize:12,fontWeight:600,cursor:autoBusy?"default":"pointer",opacity:autoBusy?.6:1}}>{autoBusy==="compra"?"Trayendo...":"Traer Compras (automatico)"}</button>
+        <button onClick={()=>importarAuto("venta")} disabled={!!autoBusy} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--pu)",color:"#fff",fontSize:12,fontWeight:600,cursor:autoBusy?"default":"pointer",opacity:autoBusy?.6:1}}>{autoBusy==="venta"?"Trayendo...":"Traer Ventas (automatico)"}</button>
       </div>
-      <div style={{fontSize:11,color:"var(--tx3)",marginTop:12}}>Si reimportas el mismo periodo, reemplaza los asientos con el mismo folio+RUT en vez de duplicarlos.</div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+        <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:16,textAlign:"center"}}>
+          <div style={{fontSize:12,fontWeight:600,marginBottom:10}}>CSV Libro de Compras</div>
+          <label style={{display:"inline-flex",alignItems:"center",gap:8,background:"var(--sf)",border:"1px solid var(--bd)",color:"var(--tx2)",padding:"8px 20px",borderRadius:"var(--rs)",fontSize:12,fontWeight:600,cursor:"pointer"}}>Cargar CSV<input type="file" accept=".csv" onChange={e=>{if(e.target.files?.[0])processCSV(e.target.files[0],"compra");e.target.value=""}} style={{display:"none"}}/></label>
+        </div>
+        <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:16,textAlign:"center"}}>
+          <div style={{fontSize:12,fontWeight:600,marginBottom:10}}>CSV Libro de Ventas</div>
+          <label style={{display:"inline-flex",alignItems:"center",gap:8,background:"var(--sf)",border:"1px solid var(--bd)",color:"var(--tx2)",padding:"8px 20px",borderRadius:"var(--rs)",fontSize:12,fontWeight:600,cursor:"pointer"}}>Cargar CSV<input type="file" accept=".csv" onChange={e=>{if(e.target.files?.[0])processCSV(e.target.files[0],"venta");e.target.value=""}} style={{display:"none"}}/></label>
+        </div>
+      </div>
     </div>
+
+    {result&&<div style={{background:result.ok?"rgba(16,185,129,.1)":"rgba(239,68,68,.1)",border:"1px solid "+(result.ok?"rgba(16,185,129,.3)":"rgba(239,68,68,.3)"),borderRadius:"var(--rs)",padding:16,fontSize:13,color:result.ok?"var(--gn)":"var(--rd)",marginBottom:16}}>{result.ok?"✓ ":"✗ "}{result.msg}</div>}
+
+    {hayPreview&&<div style={{marginBottom:16}}>
+      <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Paso 3 — Revision por documento</div>
+      <div style={{fontSize:12,color:"var(--tx3)",marginBottom:12}}>Ajusta la cuenta de cada documento y resuelve la cuadratura donde falte antes de confirmar.</div>
+      <div style={{display:"flex",gap:6,marginBottom:12}}>
+        {["compra","venta"].map(t=><button key={t} onClick={()=>setPreviewTab(t)} disabled={!preview[t]} style={{padding:"8px 16px",borderRadius:"var(--rs)",border:"1px solid "+(previewTab===t?"var(--cy2)":"var(--bd)"),background:previewTab===t?"var(--cy-fill)":"var(--sf)",color:previewTab===t?"#1B4D2E":preview[t]?"var(--tx2)":"var(--tx3)",fontSize:12,fontWeight:600,cursor:preview[t]?"pointer":"default",opacity:preview[t]?1:.5}}>{t==="compra"?"Compras":"Ventas"}{preview[t]?" ("+preview[t].rows.length+")":""}</button>)}
+      </div>
+      {!preview[previewTab]?<div style={{fontSize:12,color:"var(--tx3)"}}>Nada en revision para {previewTab==="compra"?"compras":"ventas"} todavia.</div>:<>
+        {sel[previewTab].size>0&&<div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap",marginBottom:12,background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:12}}>
+          <span style={{fontSize:12,color:"var(--tx3)"}}>{sel[previewTab].size} seleccionados</span>
+          <select value={cuentaLote[previewTab]} onChange={e=>setCuentaLote(p=>({...p,[previewTab]:e.target.value}))} style={{maxWidth:280}}><option value="">-- Cuenta destino en lote --</option>{leafAccts.map(a=><option key={a.cd} value={a.cd}>{a.cd} {a.nm}</option>)}</select>
+          <button onClick={()=>aplicarCuentaLote(previewTab)} disabled={!cuentaLote[previewTab]} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"#1B4D2E",fontSize:12,fontWeight:600,cursor:cuentaLote[previewTab]?"pointer":"default",opacity:cuentaLote[previewTab]?1:.5}}>Aplicar a seleccionados</button>
+        </div>}
+        <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden",marginBottom:12}}>
+          <div style={{overflowX:"auto"}}><table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
+            <thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:10,color:"var(--tx3)",background:"var(--sf2)"}}>
+              <th style={{padding:"8px 12px"}}><input type="checkbox" checked={sel[previewTab].size===filasActivas.length&&filasActivas.length>0} onChange={()=>toggleSelAll(previewTab)}/></th>
+              <th style={{textAlign:"left",padding:"8px 8px"}}>Folio</th><th style={{textAlign:"left",padding:"8px 8px"}}>RUT</th><th style={{textAlign:"left",padding:"8px 8px"}}>Razon social</th>
+              <th style={{textAlign:"right",padding:"8px 8px"}}>Total</th><th style={{textAlign:"center",padding:"8px 8px"}}>Cuadratura</th><th style={{textAlign:"left",padding:"8px 12px",minWidth:220}}>Cuenta destino</th>
+            </tr></thead>
+            <tbody>{filasActivas.map(f=>{const cuadra=cuadraFilaSII(f);return(
+              <tr key={f._k} style={{borderBottom:"1px solid var(--bd)"}}>
+                <td style={{padding:"8px 12px"}}><input type="checkbox" checked={sel[previewTab].has(f._k)} onChange={()=>toggleSel(previewTab,f._k)}/></td>
+                <td style={{padding:"8px 8px",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{f.folio}</td>
+                <td style={{padding:"8px 8px",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{f.rut}</td>
+                <td style={{padding:"8px 8px"}}>{f.razonSocial}</td>
+                <td style={{padding:"8px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(f.total)}</td>
+                <td style={{padding:"8px 8px",textAlign:"center"}}>{cuadra?<span style={{fontSize:10,color:"var(--gn)"}}>✓ Cuadra</span>:<button onClick={()=>setModalFila({tipo:previewTab,k:f._k})} style={{fontSize:10,color:"var(--am)",background:"none",border:"1px solid var(--am)",borderRadius:4,padding:"3px 8px",cursor:"pointer"}}>⚠ {AJUSTE_LABELS[f.ajuste]}</button>}</td>
+                <td style={{padding:"8px 12px"}}><select value={f.cuentaDestino} onChange={e=>actualizarFila(previewTab,f._k,"cuentaDestino",e.target.value)} style={{fontSize:11}}>{leafAccts.map(a=><option key={a.cd} value={a.cd}>{a.cd} {a.nm}</option>)}</select></td>
+              </tr>);})}</tbody>
+          </table></div>
+        </div>
+        <div style={{display:"flex",gap:8}}><Bt onClick={()=>descartarPreview(previewTab)}>Descartar {previewTab==="compra"?"compras":"ventas"} en revision</Bt></div>
+      </>}
+      <div style={{marginTop:16}}><Bt onClick={confirmarImportacion} p={true}>Confirmar e importar {["compra","venta"].reduce((s,t)=>s+(preview[t]?.rows.length||0),0)} documentos</Bt></div>
+    </div>}
+
+    {modalFila&&<CuadraturaModal fila={preview[modalFila.tipo].rows.find(f=>f._k===modalFila.k)} onElegir={ajuste=>{actualizarFila(modalFila.tipo,modalFila.k,"ajuste",ajuste);setModalFila(null)}} onClose={()=>setModalFila(null)}/>}
+
     <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:24,marginBottom:16}}>
       <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Limpieza</div>
-      <div style={{fontSize:12,color:"var(--tx3)",marginBottom:12}}>Si algo quedo duplicado de una importacion anterior (ej. de antes de este arreglo), esto elimina las copias sin monto y deja solo una por documento (folio+RUT).</div>
+      <div style={{fontSize:12,color:"var(--tx3)",marginBottom:12}}>Si algo quedo duplicado de una importacion anterior, esto elimina las copias sin monto y deja solo una por documento (folio+RUT).</div>
       <button onClick={limpiarDuplicados} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"1px solid var(--bd)",background:"transparent",color:"var(--tx2)",fontSize:12,fontWeight:600,cursor:"pointer"}}>Eliminar duplicados</button>
     </div>
-    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:24,marginBottom:16}}>
-      <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Carga manual de Libros SII</div>
-      <div style={{fontSize:12,color:"var(--tx3)",marginBottom:20}}>O sube el CSV descargado del SII a mano (con el periodo de arriba ya puesto). Las compras se contabilizan como: Gastos por Clasificar (debe) + IVA CF (debe) / Proveedores (haber). Las ventas como: Clientes (debe) / Ventas (haber) + IVA DF (haber).</div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
-        <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:20,textAlign:"center"}}>
-          <div style={{fontSize:28,marginBottom:8}}>📥</div>
-          <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>Libro de Compras</div>
-          <div style={{fontSize:11,color:"var(--tx3)",marginBottom:12}}>CSV del registro de compras SII</div>
-          <label style={{display:"inline-flex",alignItems:"center",gap:8,background:"var(--cy-fill)",color:"#1B4D2E",padding:"8px 20px",borderRadius:"var(--rs)",fontSize:12,fontWeight:600,cursor:"pointer"}}>Cargar CSV<input type="file" accept=".csv" onChange={e=>{if(e.target.files?.[0])processCSV(e.target.files[0],"compra");e.target.value=""}} style={{display:"none"}}/></label>
-        </div>
-        <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:20,textAlign:"center"}}>
-          <div style={{fontSize:28,marginBottom:8}}>📤</div>
-          <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>Libro de Ventas</div>
-          <div style={{fontSize:11,color:"var(--tx3)",marginBottom:12}}>CSV del registro de ventas SII</div>
-          <label style={{display:"inline-flex",alignItems:"center",gap:8,background:"var(--pu)",color:"#fff",padding:"8px 20px",borderRadius:"var(--rs)",fontSize:12,fontWeight:600,cursor:"pointer"}}>Cargar CSV<input type="file" accept=".csv" onChange={e=>{if(e.target.files?.[0])processCSV(e.target.files[0],"venta");e.target.value=""}} style={{display:"none"}}/></label>
-        </div>
+
+    <details style={{marginBottom:16}}>
+      <summary style={{cursor:"pointer",fontSize:13,fontWeight:600,padding:"10px 0"}}>Historial de importaciones ({(importaciones||[]).length})</summary>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden",marginTop:8}}>
+        {(!importaciones||importaciones.length===0)?<div style={{padding:16,textAlign:"center",color:"var(--tx3)",fontSize:12}}>Ninguna importacion todavia.</div>:
+        <div style={{overflowX:"auto"}}><table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
+          <thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:10,color:"var(--tx3)"}}><th style={{textAlign:"left",padding:"8px 12px"}}>Periodo</th><th style={{textAlign:"left",padding:"8px 8px"}}>Tipo</th><th style={{textAlign:"left",padding:"8px 8px"}}>Fuente</th><th style={{textAlign:"right",padding:"8px 8px"}}>Documentos</th><th style={{textAlign:"left",padding:"8px 8px"}}>Fecha</th><th style={{width:90}}></th></tr></thead>
+          <tbody>{[...importaciones].sort((a,b)=>b.fecha.localeCompare(a.fecha)).map(row=><tr key={row.id} style={{borderBottom:"1px solid var(--bd)"}}>
+            <td style={{padding:"8px 12px",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{fmtPeriodoCorto(row.periodo)}</td>
+            <td style={{padding:"8px 8px"}}>{row.tipo==="compra"?"Compras":"Ventas"}</td>
+            <td style={{padding:"8px 8px",fontSize:11,color:"var(--tx3)"}}>{row.fuente==="auto"?"Automatico":"CSV manual"}</td>
+            <td style={{padding:"8px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{row.cantidad}</td>
+            <td style={{padding:"8px 8px",whiteSpace:"nowrap"}}>{fD(row.fecha.slice(0,10))}</td>
+            <td style={{padding:"8px 8px",textAlign:"right"}}>{row.fuente==="auto"&&<button onClick={()=>actualizarDesdeHistorial(row)} disabled={!!autoBusy} style={{fontSize:10,padding:"4px 10px",borderRadius:4,border:"1px solid var(--bd)",background:"var(--sf2)",color:"var(--tx2)",cursor:autoBusy?"default":"pointer"}}>Actualizar</button>}</td>
+          </tr>)}</tbody>
+        </table></div>}
       </div>
-    </div>
-    {result&&<div style={{background:result.ok?"rgba(16,185,129,.1)":"rgba(239,68,68,.1)",border:"1px solid "+(result.ok?"rgba(16,185,129,.3)":"rgba(239,68,68,.3)"),borderRadius:"var(--rs)",padding:16,fontSize:13,color:result.ok?"var(--gn)":"var(--rd)",marginBottom:16}}>{result.ok?"✓ ":"✗ "}{result.msg}</div>}
+    </details>
+
     <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:16}}>
       <div style={{fontSize:11,color:"var(--tx3)",fontWeight:600,marginBottom:8}}>Formato esperado del CSV SII</div>
-      <div style={{fontSize:11,color:"var(--tx3)"}}>El sistema acepta el CSV estandar del SII (separado por punto y coma) y el que genera <code>tools/sii-rcv-export.mjs</code> (con o sin columna de Exento). Detecta automaticamente las columnas de Neto, Exento, IVA y Total. Las compras van a la cuenta "Gastos por Clasificar" (1.1.05.001) para que reclasifiques despues.</div>
+      <div style={{fontSize:11,color:"var(--tx3)"}}>El sistema acepta el CSV estandar del SII (separado por punto y coma) y el que genera <code>tools/sii-rcv-export.mjs</code> (con o sin columna de Exento). Detecta automaticamente las columnas de Neto, Exento, IVA y Total. Las compras van por defecto a "Gastos por Clasificar" (1.1.05.001) salvo que ya exista una regla para ese RUT, o que la reasignes en la revision de arriba.</div>
     </div>
   </div>);
 }
