@@ -760,7 +760,7 @@ const tpC={asset:"#6B7408",liability:"#DC2626",equity:"#5F6B4A",income:"#0D8A5F"
 const CONTAB_TAB_GROUPS=[
   {g:"Resumen",items:[{id:"dashboard",l:"Dashboard"}]},
   {g:"Registro",items:[{id:"asientos",l:"Asientos"},{id:"csv",l:"Compras/Ventas SII"},{id:"porclasificar",l:"Por Clasificar"}]},
-  {g:"Procesos",items:[{id:"conciliacion",l:"Conciliacion Bancaria"},{id:"ccostos",l:"Centros de Costo"},{id:"activos",l:"Activos Fijos"}]},
+  {g:"Procesos",items:[{id:"centralizacion",l:"Centralizacion"},{id:"conciliacion",l:"Conciliacion Bancaria"},{id:"ccostos",l:"Centros de Costo"},{id:"activos",l:"Activos Fijos"}]},
   {g:"Libros",items:[{id:"diario",l:"Libro Diario"},{id:"mayor",l:"Libro Mayor"},{id:"lcompras",l:"Libro de Compras"},{id:"lventas",l:"Libro de Ventas"},{id:"auxiliar",l:"Auxiliares"},{id:"librocaja",l:"Libro de Caja"}]},
   {g:"Reportes",items:[{id:"resumeniva",l:"Resumen IVA"},{id:"balance",l:"Balance"},{id:"eerr",l:"Estado Resultados"},{id:"b8",l:"8 Columnas"}]},
   {g:"Configuracion",items:[{id:"plan",l:"Plan de Cuentas"}]},
@@ -810,6 +810,7 @@ function ContabP({eObj,accts,setAccts,entries,setEntries,empEntries,leafAccts,aL
     {tab==="auxiliar"&&<LibroAuxiliar empEntries={empEntries} eObj={eObj} irAAsiento={irAAsiento}/>}
     {tab==="librocaja"&&<LibroCaja empEntries={empEntries} accts={accts} eObj={eObj} irAAsiento={irAAsiento}/>}
     {tab==="ccostos"&&<CentrosCosto ccostos={ccostos} setCcostos={setCcostos} eObj={eObj} aLog={aLog}/>}
+    {tab==="centralizacion"&&<AsistenteCentralizacion empEntries={empEntries} setEntries={setEntries} activos={activos} eObj={eObj} aLog={aLog}/>}
     {tab==="activos"&&<ActivosFijos activos={activos} setActivos={setActivos} empEntries={empEntries} setEntries={setEntries} leafAccts={leafAccts} eObj={eObj} aLog={aLog}/>}
     {tab==="resumeniva"&&<ResumenIVA empEntries={empEntries} eObj={eObj}/>}
     {tab==="balance"&&<Balance empEntries={empEntries} accts={accts} leafAccts={leafAccts} eObj={eObj} irACuenta={irACuenta}/>}
@@ -852,6 +853,89 @@ function CentrosCosto({ccostos,setCcostos,eObj,aLog}){
 // segun como ya vienen apareadas en el plan de cuentas por defecto.
 const ACTIVO_DEP_MAP={"1.2.01.002":"1.2.02.001","1.2.01.003":"1.2.02.002","1.2.01.004":"1.2.02.003","1.2.01.005":"1.2.02.004","1.2.01.006":"1.2.02.005"};
 const CUENTA_GASTO_DEP="5.2.05.001";
+function calcularDepreciacionActivo(a,empEntries,mesActual){
+  const depMensual=(a.valorCompra-(a.valorResidual||0))/(a.vidaUtilAnios*12);
+  const cuentaDep=ACTIVO_DEP_MAP[a.cuentaActivo];
+  const generados=empEntries.filter(e=>e.depreciacionActivoId===a.id);
+  const acumulada=generados.reduce((s,e)=>{const l=e.lines.find(x=>x.ac===cuentaDep);return s+(l?.cr||0)},0);
+  const valorLibro=Math.max(0,a.valorCompra-acumulada);
+  const generadoEsteMes=generados.some(e=>e.date.slice(0,7)===mesActual);
+  return{...a,depMensual,cuentaDep,acumulada,valorLibro,generadoEsteMes};
+}
+// Centro unico que genera asientos de depreciacion + recurrentes pendientes
+// -- un solo contador de numero de asiento compartido entre ambos tipos,
+// para que no se dupliquen numeros al generar varios de golpe (el mismo
+// bug que tenia antes la centralizacion de Remuneraciones).
+function generarCentralizacionPendientes(depItems,recurTemplates,empEntries,setEntries,eObj,mesActual){
+  let nCount=Math.max(0,...empEntries.map(e=>parseInt(e.num)||0));
+  const nuevos=[];
+  const hoy=new Date();
+  depItems.forEach(a=>{
+    if(!(a.valorLibro>0))return;
+    const monto=Math.round(Math.min(a.depMensual,a.valorLibro));
+    nCount+=1;
+    nuevos.push({id:uid(),empresaId:eObj.id,num:String(nCount).padStart(4,"0"),date:new Date().toISOString().slice(0,10),desc:"Depreciacion "+a.nombre+" - "+mesActual,origen:"depreciacion",depreciacionActivoId:a.id,lines:[{ac:CUENTA_GASTO_DEP,db:monto,cr:0},{ac:a.cuentaDep,db:0,cr:monto}]});
+  });
+  recurTemplates.forEach(t=>{
+    const dia=Math.min(parseInt(t.date.slice(8,10)),new Date(hoy.getFullYear(),hoy.getMonth()+1,0).getDate());
+    const fecha=hoy.getFullYear()+"-"+String(hoy.getMonth()+1).padStart(2,"0")+"-"+String(dia).padStart(2,"0");
+    nCount+=1;
+    nuevos.push({id:uid(),empresaId:eObj.id,num:String(nCount).padStart(4,"0"),date:fecha,desc:t.desc,tipo:t.tipo||null,origen:"recurrente",centroCosto:t.centroCosto||null,recurrenteOrigenId:t.id,lines:t.lines.map(l=>({...l}))});
+  });
+  if(nuevos.length>0)setEntries(p=>[...p,...nuevos]);
+  return nuevos;
+}
+
+// Asistente de Centralizacion: junta en una sola pantalla todo lo que RADAR
+// puede generar solo para el mes (depreciacion de Activos Fijos + asientos
+// recurrentes), en vez de tener que ir modulo por modulo a revisar que no
+// falte generar nada. Remuneraciones tiene su propio asistente dedicado
+// (Proceso de cierre, con estados Iniciado/En Revision/Pagado) porque ahi
+// ademas hay que decidir cuando "pagar" -- no se duplica esa logica aqui.
+function AsistenteCentralizacion({empEntries,setEntries,activos,eObj,aLog}){
+  const mesActual=new Date().toISOString().slice(0,7);
+  const depCalc=useMemo(()=>activos.map(a=>calcularDepreciacionActivo(a,empEntries,mesActual)).filter(a=>a.valorLibro>0&&!a.generadoEsteMes),[activos,empEntries,mesActual]);
+  const recurrentes=useMemo(()=>empEntries.filter(e=>e.recurrente),[empEntries]);
+  const recurrentesPendientes=useMemo(()=>recurrentes.filter(t=>!empEntries.some(e=>e.recurrenteOrigenId===t.id&&e.date.slice(0,7)===mesActual)),[recurrentes,empEntries,mesActual]);
+  const totalPendientes=depCalc.length+recurrentesPendientes.length;
+
+  const generarUnaDep=a=>{const n=generarCentralizacionPendientes([a],[],empEntries,setEntries,eObj,mesActual);if(n.length>0)aLog("Depreciacion generada",a.nombre+" - "+mesActual)};
+  const generarUnRecurrente=t=>{const n=generarCentralizacionPendientes([],[t],empEntries,setEntries,eObj,mesActual);if(n.length>0)aLog("Asiento recurrente generado",t.desc+" - "+fD(n[0].date))};
+  const generarTodo=()=>{
+    const n=generarCentralizacionPendientes(depCalc,recurrentesPendientes,empEntries,setEntries,eObj,mesActual);
+    if(n.length>0)aLog("Centralizacion general",n.length+" asientos generados - "+mesActual);
+  };
+
+  if(totalPendientes===0)return<Ey i="✅" t="Todo al dia" d={"No hay depreciaciones ni asientos recurrentes pendientes de generar para "+mesActual+"."}/>;
+
+  return(<div style={{maxWidth:700,margin:"0 auto"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12}}>
+      <div>
+        <div style={{fontSize:15,fontWeight:600}}>Asistente de Centralizacion</div>
+        <div style={{fontSize:12,color:"var(--tx3)",marginTop:2}}>{totalPendientes} pendiente{totalPendientes!==1?"s":""} para {mesActual}</div>
+      </div>
+      <Bt onClick={generarTodo} p={true}>{IC.check} Generar todo ({totalPendientes})</Bt>
+    </div>
+
+    {depCalc.length>0&&<div style={{marginBottom:24}}>
+      <div style={{fontSize:11,fontWeight:600,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:10}}>Depreciacion de Activos Fijos ({depCalc.length})</div>
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>{depCalc.map(a=><div key={a.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
+        <div style={{fontSize:13}}>{a.nombre}<span style={{color:"var(--tx3)"}}> · ${fmt(Math.round(Math.min(a.depMensual,a.valorLibro)))} este mes</span></div>
+        <Bt onClick={()=>generarUnaDep(a)}>Generar</Bt>
+      </div>)}</div>
+    </div>}
+
+    {recurrentesPendientes.length>0&&<div>
+      <div style={{fontSize:11,fontWeight:600,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:10}}>Asientos Recurrentes ({recurrentesPendientes.length})</div>
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>{recurrentesPendientes.map(t=><div key={t.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
+        <div style={{fontSize:13}}>{t.desc}<span style={{color:"var(--tx3)"}}> · ${fmt(t.lines.reduce((s,l)=>s+(l.db||0),0))} · dia {t.date.slice(8,10)}</span></div>
+        <Bt onClick={()=>generarUnRecurrente(t)}>Generar</Bt>
+      </div>)}</div>
+    </div>}
+
+    <div style={{marginTop:20,fontSize:11,color:"var(--tx3)"}}>Remuneraciones tiene su propio asistente de cierre (con estados Iniciado/En Revision/Pagado) en el modulo de Remuneraciones -- no se centraliza desde aqui.</div>
+  </div>);
+}
 
 function ActivosFijos({activos,setActivos,empEntries,setEntries,leafAccts,eObj,aLog}){
   const [showF,setShowF]=useState(false);
@@ -871,23 +955,12 @@ function ActivosFijos({activos,setActivos,empEntries,setEntries,leafAccts,eObj,a
     setActivos(p=>p.filter(a=>a.id!==id));
   };
 
-  const conCalculo=useMemo(()=>activos.map(a=>{
-    const depMensual=(a.valorCompra-(a.valorResidual||0))/(a.vidaUtilAnios*12);
-    const cuentaDep=ACTIVO_DEP_MAP[a.cuentaActivo];
-    const generados=empEntries.filter(e=>e.depreciacionActivoId===a.id);
-    const acumulada=generados.reduce((s,e)=>{const l=e.lines.find(x=>x.ac===cuentaDep);return s+(l?.cr||0)},0);
-    const valorLibro=Math.max(0,a.valorCompra-acumulada);
-    const generadoEsteMes=generados.some(e=>e.date.slice(0,7)===mesActual);
-    return{...a,depMensual,cuentaDep,acumulada,valorLibro,generadoEsteMes};
-  }),[activos,empEntries,mesActual]);
+  const conCalculo=useMemo(()=>activos.map(a=>calcularDepreciacionActivo(a,empEntries,mesActual)),[activos,empEntries,mesActual]);
 
   const generarDepreciacion=(a)=>{
     if(a.valorLibro<=0)return;
-    const monto=Math.round(Math.min(a.depMensual,a.valorLibro));
-    const ns=empEntries.map(e=>parseInt(e.num)||0);const n=String(Math.max(0,...ns)+1).padStart(4,"0");
-    const nuevo={id:uid(),empresaId:eObj.id,num:n,date:new Date().toISOString().slice(0,10),desc:"Depreciacion "+a.nombre+" - "+mesActual,origen:"depreciacion",depreciacionActivoId:a.id,lines:[{ac:CUENTA_GASTO_DEP,db:monto,cr:0},{ac:a.cuentaDep,db:0,cr:monto}]};
-    setEntries(p=>[...p,nuevo]);
-    aLog("Depreciacion generada",a.nombre+" - "+mesActual);
+    const nuevos=generarCentralizacionPendientes([a],[],empEntries,setEntries,eObj,mesActual);
+    if(nuevos.length>0)aLog("Depreciacion generada",a.nombre+" - "+mesActual);
   };
 
   return(<div>
@@ -1129,12 +1202,8 @@ function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog,ccostos,res
   };
   const delE=id=>setEntries(p=>p.filter(e=>e.id!==id));
   const generarRecurrente=(t)=>{
-    const ns=empEntries.map(e=>parseInt(e.num)||0);const n=String(Math.max(0,...ns)+1).padStart(4,"0");
-    const hoy=new Date();const dia=Math.min(parseInt(t.date.slice(8,10)),new Date(hoy.getFullYear(),hoy.getMonth()+1,0).getDate());
-    const fecha=hoy.getFullYear()+"-"+String(hoy.getMonth()+1).padStart(2,"0")+"-"+String(dia).padStart(2,"0");
-    const nuevo={id:uid(),empresaId:eObj.id,num:n,date:fecha,desc:t.desc,tipo:t.tipo||null,origen:"recurrente",centroCosto:t.centroCosto||null,recurrenteOrigenId:t.id,lines:t.lines.map(l=>({...l}))};
-    setEntries(p=>[...p,nuevo]);
-    aLog("Asiento recurrente generado",t.desc+" - "+fD(fecha));
+    const nuevos=generarCentralizacionPendientes([],[t],empEntries,setEntries,eObj,"");
+    if(nuevos.length>0)aLog("Asiento recurrente generado",t.desc+" - "+fD(nuevos[0].date));
   };
   const mesActual=new Date().toISOString().slice(0,7);
   const recurrentes=useMemo(()=>empEntries.filter(e=>e.recurrente),[empEntries]);
