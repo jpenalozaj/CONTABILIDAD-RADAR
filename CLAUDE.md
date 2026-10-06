@@ -15,6 +15,12 @@ explícitamente lo contrario.
 
 ## Fases pendientes (identificadas, no todas diseñadas en detalle)
 
+**Revisión de diseño/correctitud (sesión del 2026-10-06)**
+- [x] Fase A — Asiento de Remuneraciones con cuentas reales (no inventadas), desglosado en subcuentas, un asiento por centro de costo; Score del Portal Cliente calculado automático (A-D) desde Liquidez/Endeudamiento/Resultado en vez de depender de una pregunta manual — hecho, commit `ef2621e`.
+- [ ] Fase B — Checkbox "Trabajador activo" → toggle con el diseño de RADAR; tarjetas de stat del Portal Cliente → fuente adaptable para montos largos.
+- [ ] Fase C — Nav de Contabilidad → menús desplegables por grupo (no filas fijas); Asientos → filtro por mes, tipo de comprobante, origen manual/automático, flujo de creación más guiado.
+- Principio del usuario: usar Buk/Nubox como referencia *funcional*, no visual — RADAR debe verse distintivo y propio (lima/verde oscuro/`rd-tilt`/garabato/JetBrains Mono), nunca "improvisado" ni inconsistente entre pantallas.
+
 **Remuneraciones**
 - [x] Fase 1 — separar Trabajador (ficha) de Liquidación (histórico) — hecho, commit `ff6ad3c`.
 - [x] Fase 3 — Historial por trabajador (vista `vw==="historial"` en `RemP`, botón "Historial" en la ficha) — hecho.
