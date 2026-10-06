@@ -239,15 +239,16 @@ function Dashboard({session}){
   const [entries,setEntries]=useState([]);
   const [rems,setRems]=useState([]);
   const [trabajadores,setTrabajadores]=useState([]);
+  const [procesosRem,setProcesosRem]=useState([]);
   const [docs,setDocs]=useState([]);
   const [tareas,setTareas]=useState([]);
   const [reglas,setReglas]=useState([]);
   const [ccostos,setCcostos]=useState([]);
   const [activos,setActivos]=useState([]);
   const [sb,setSb]=useState(false);
-  const prevIds=useRef({e:new Set(),v:new Set(),l:new Set(),a:new Set(),en:new Set(),rm:new Set(),tb:new Set(),dc:new Set(),ta:new Set(),rg:new Set(),cc:new Set(),af:new Set()});
+  const prevIds=useRef({e:new Set(),v:new Set(),l:new Set(),a:new Set(),en:new Set(),rm:new Set(),tb:new Set(),pr:new Set(),dc:new Set(),ta:new Set(),rg:new Set(),cc:new Set(),af:new Set()});
   useEffect(()=>{let cancelled=false;(async()=>{
-    const[e,v,l,a,en,rm,tb,dc,ta,rg,cc,af]=await Promise.all([
+    const[e,v,l,a,en,rm,tb,pr,dc,ta,rg,cc,af]=await Promise.all([
       loadCollection(userId,"empresas",[]),
       loadCollection(userId,"evaluaciones",[]),
       loadCollection(userId,"log",[]),
@@ -255,6 +256,7 @@ function Dashboard({session}){
       loadCollection(userId,"entries",[]),
       loadCollection(userId,"remuneraciones",[]),
       loadCollection(userId,"trabajadores",[]),
+      loadCollection(userId,"procesos_rem",[]),
       loadCollection(userId,"documentos",[]),
       loadCollection(userId,"tareas",[]),
       loadCollection(userId,"reglas_categorizacion",[]),
@@ -265,10 +267,10 @@ function Dashboard({session}){
     prevIds.current={
       e:new Set(e.map(x=>String(x.id))),v:new Set(v.map(x=>String(x.id))),l:new Set(l.map(x=>String(x.id))),
       a:new Set(a.map(x=>String(x.cd))),en:new Set(en.map(x=>String(x.id))),rm:new Set(rm.map(x=>String(x.id))),
-      tb:new Set(tb.map(x=>String(x.id))),
+      tb:new Set(tb.map(x=>String(x.id))),pr:new Set(pr.map(x=>String(x.id))),
       dc:new Set(dc.map(x=>String(x.id))),ta:new Set(ta.map(x=>String(x.id))),rg:new Set(rg.map(x=>String(x.id))),cc:new Set(cc.map(x=>String(x.id))),af:new Set(af.map(x=>String(x.id))),
     };
-    setEmps(e);setEvs(v);setLog(l);setAccts(a);setEntries(en);setRems(rm);setTrabajadores(tb);setDocs(dc);setTareas(ta);setReglas(rg);setCcostos(cc);setActivos(af);
+    setEmps(e);setEvs(v);setLog(l);setAccts(a);setEntries(en);setRems(rm);setTrabajadores(tb);setProcesosRem(pr);setDocs(dc);setTareas(ta);setReglas(rg);setCcostos(cc);setActivos(af);
     if(e.length>0)setAEmp(e[0].id);setRdy(true);
   })();return()=>{cancelled=true}},[userId]);
   useEffect(()=>{if(rdy)saveCollection(userId,"empresas",emps,prevIds.current.e).then(s=>prevIds.current.e=s)},[emps,rdy]);
@@ -278,6 +280,7 @@ function Dashboard({session}){
   useEffect(()=>{if(rdy)saveCollection(userId,"entries",entries,prevIds.current.en).then(s=>prevIds.current.en=s)},[entries,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"remuneraciones",rems,prevIds.current.rm).then(s=>prevIds.current.rm=s)},[rems,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"trabajadores",trabajadores,prevIds.current.tb).then(s=>prevIds.current.tb=s)},[trabajadores,rdy]);
+  useEffect(()=>{if(rdy)saveCollection(userId,"procesos_rem",procesosRem,prevIds.current.pr).then(s=>prevIds.current.pr=s)},[procesosRem,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"documentos",docs,prevIds.current.dc).then(s=>prevIds.current.dc=s)},[docs,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"tareas",tareas,prevIds.current.ta).then(s=>prevIds.current.ta=s)},[tareas,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"reglas_categorizacion",reglas,prevIds.current.rg).then(s=>prevIds.current.rg=s)},[reglas,rdy]);
@@ -292,6 +295,7 @@ function Dashboard({session}){
   const empActivos=useMemo(()=>activos.filter(a=>a.empresaId===aEmp),[activos,aEmp]);
   const empRems=useMemo(()=>rems.filter(r=>r.empresaId===aEmp),[rems,aEmp]);
   const empTrabajadores=useMemo(()=>trabajadores.filter(t=>t.empresaId===aEmp),[trabajadores,aEmp]);
+  const empProcesosRem=useMemo(()=>procesosRem.filter(p=>p.empresaId===aEmp),[procesosRem,aEmp]);
   const empDocs=useMemo(()=>docs.filter(d=>d.empresaId===aEmp),[docs,aEmp]);
   const empTareas=useMemo(()=>tareas.filter(t=>t.empresaId===aEmp),[tareas,aEmp]);
   const leafAccts=useMemo(()=>accts.filter(a=>!accts.some(b=>b.cd!==a.cd&&b.cd.startsWith(a.cd+"."))),[accts]);
@@ -320,7 +324,7 @@ function Dashboard({session}){
         {pg==="empresas"&&<EmpP emps={emps} setEmps={setEmps} aEmp={aEmp} setAEmp={setAEmp} aLog={aLog}/>}
         {pg==="radar"&&<RadP eObj={eObj} evs={evs} setEvs={setEvs} eEvs={eEvs} aLog={aLog} go={go}/>}
         {pg==="contabilidad"&&<ContabP eObj={eObj} accts={accts} setAccts={setAccts} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go} reglas={empReglas} setReglas={setReglas} ccostos={empCcostos} setCcostos={setCcostos} activos={empActivos} setActivos={setActivos}/>}
-        {pg==="remuneraciones"&&<RemP eObj={eObj} rems={rems} setRems={setRems} empRems={empRems} trabajadores={trabajadores} setTrabajadores={setTrabajadores} empTrabajadores={empTrabajadores} ccostos={empCcostos} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go}/>}
+        {pg==="remuneraciones"&&<RemP eObj={eObj} rems={rems} setRems={setRems} empRems={empRems} trabajadores={trabajadores} setTrabajadores={setTrabajadores} empTrabajadores={empTrabajadores} procesosRem={procesosRem} setProcesosRem={setProcesosRem} empProcesosRem={empProcesosRem} ccostos={empCcostos} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go}/>}
         {pg==="documentos"&&<DocsP eObj={eObj} docs={docs} setDocs={setDocs} empDocs={empDocs} aLog={aLog} go={go}/>}
         {pg==="planificacion"&&<PlanP eObj={eObj} tareas={tareas} setTareas={setTareas} empTareas={empTareas} aLog={aLog} go={go}/>}
         {pg==="portal"&&<PortalP eObj={eObj} empEntries={empEntries} empDocs={empDocs} empRems={empRems} eEvs={eEvs} accts={accts} leafAccts={leafAccts} go={go}/>}
@@ -2152,14 +2156,22 @@ function calcRem(emp){
   return{totalImponible,totalNoImponible,totalHaberes,afpMonto,sisMonto,saludMonto,cesantiaTrab,cesantiaEmp,impUnico,baseImpUnico,totalDescuentos,liquido,costoEmpresa,topeImponible,baseCotizable};
 }
 
-function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabajadores,ccostos,entries,setEntries,empEntries,leafAccts,aLog,go}){
+function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabajadores,procesosRem,setProcesosRem,empProcesosRem,ccostos,entries,setEntries,empEntries,leafAccts,aLog,go}){
   const [vw,setVw]=useState("list");
   const [eid,setEid]=useState(null);
   const [fm,setFm]=useState({});
   const [tid,setTid]=useState(null);
   const [tfm,setTfm]=useState({});
   const [ftab,setFtab]=useState("resumen");
-  const [filtroPeriodo,setFiltroPeriodo]=useState(null);
+  const [periodoSel,setPeriodoSel]=useState(null);
+  const ESTADOS_PROCESO=[{id:"iniciado",l:"Iniciado",c:"var(--tx3)",bg:"var(--sf2)"},{id:"revision",l:"En Revision",c:"#92400E",bg:"rgba(180,83,9,.14)"},{id:"pagado",l:"Pagado",c:"#1B4D2E",bg:"var(--cy-fill)"}];
+  const getEstadoProceso=p=>empProcesosRem.find(x=>x.periodo===p)?.estado||"iniciado";
+  const setEstadoProceso=(p,estado)=>{
+    const ex=empProcesosRem.find(x=>x.periodo===p);
+    if(ex)setProcesosRem(ps=>ps.map(x=>x.id===ex.id?{...x,estado}:x));
+    else setProcesosRem(ps=>[...ps,{id:uid(),empresaId:eObj.id,periodo:p,estado}]);
+    aLog("Estado de proceso de remuneraciones",p+" -> "+estado);
+  };
   const [params,setParamsSt]=useState(getParamsPrevired);
   const setParams=next=>{setParamsSt(next);sv("rd_param_previred",next)};
   // Los parametros previsionales (UF, UTM, tasas AFP) son valores legales
@@ -2252,6 +2264,7 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
     setFm(p=>({...p,trabajadorId:idT,nombre:t.nombre+(t.apellido?" "+t.apellido:""),rut:t.rut,cargo:t.cargo||"",afp:t.afp||"habitat",isapre:t.isapre||"fonasa",contratoTipo:t.contratoTipo||"indefinido",sueldoBase:t.sueldoBase||0,gratificacion:t.gratificacion||0,colacion:t.colacion||0,movilizacion:t.movilizacion||0}));
   };
   const openNew=()=>{setFm(emptyF());setEid(null);setVw("form")};
+  const openNewParaPeriodo=p=>{setFm({...emptyF(),periodo:p});setEid(null);setVw("form")};
   const openEdit=r=>{setFm({...emptyF(),...r});setEid(r.id);setVw("form")};
 
   const doSave=()=>{
@@ -2264,17 +2277,25 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
   };
   const doDel=id=>{setRems(p=>p.filter(r=>r.id!==id));setVw("list")};
 
-  const genAsiento=()=>{
-    if(empRems.length===0)return;
-    const tSB=empRems.reduce((s,r)=>s+r.totalImponible,0);
-    const tNI=empRems.reduce((s,r)=>s+r.totalNoImponible,0);
-    const tAFP=empRems.reduce((s,r)=>s+r.afpMonto,0);
-    const tSalud=empRems.reduce((s,r)=>s+r.saludMonto,0);
-    const tCes=empRems.reduce((s,r)=>s+r.cesantiaTrab,0);
-    const tImp=empRems.reduce((s,r)=>s+r.impUnico,0);
-    const tLiq=empRems.reduce((s,r)=>s+r.liquido,0);
-    const tCesEmp=empRems.reduce((s,r)=>s+r.cesantiaEmp,0);
-    const tSIS=empRems.reduce((s,r)=>s+r.sisMonto,0);
+  // Centraliza un periodo a la vez (si no se indica periodo, toma todo lo
+  // no centralizado es responsabilidad de quien llama filtrar). Antes
+  // sumaba TODOS los empRems sin filtrar por periodo, lo que mezclaba
+  // meses distintos en un solo asiento y los duplicaba si se centralizaba
+  // mas de una vez.
+  const descCentralizacion=p=>"Centralizacion remuneraciones "+p;
+  const estaCentralizado=p=>empEntries.some(e=>e.desc===descCentralizacion(p));
+  const genAsiento=(periodo)=>{
+    const rowsP=periodo?empRems.filter(r=>r.periodo===periodo):empRems;
+    if(rowsP.length===0)return;
+    const tSB=rowsP.reduce((s,r)=>s+r.totalImponible,0);
+    const tNI=rowsP.reduce((s,r)=>s+r.totalNoImponible,0);
+    const tAFP=rowsP.reduce((s,r)=>s+r.afpMonto,0);
+    const tSalud=rowsP.reduce((s,r)=>s+r.saludMonto,0);
+    const tCes=rowsP.reduce((s,r)=>s+r.cesantiaTrab,0);
+    const tImp=rowsP.reduce((s,r)=>s+r.impUnico,0);
+    const tLiq=rowsP.reduce((s,r)=>s+r.liquido,0);
+    const tCesEmp=rowsP.reduce((s,r)=>s+r.cesantiaEmp,0);
+    const tSIS=rowsP.reduce((s,r)=>s+r.sisMonto,0);
     const ns=empEntries.map(e=>parseInt(e.num)||0);
     const n=String(Math.max(0,...ns)+1).padStart(4,"0");
     const lines=[];
@@ -2283,10 +2304,10 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
     if(tCotiz>0)lines.push({ac:"2.1.08",db:0,cr:tCotiz});
     if(tImp>0)lines.push({ac:"2.1.05",db:0,cr:tImp});
     lines.push({ac:"2.1.07",db:0,cr:tLiq});
-    const entry={id:uid(),empresaId:eObj.id,num:n,date:new Date().toISOString().slice(0,10),desc:"Centralizacion remuneraciones "+empRems[0]?.periodo,lines};
+    const entry={id:uid(),empresaId:eObj.id,num:n,date:new Date().toISOString().slice(0,10),desc:descCentralizacion(periodo||rowsP[0]?.periodo),lines};
     setEntries(p=>[...p,entry]);
-    aLog("Asiento remuneraciones",empRems.length+" trabajadores - "+eObj.name);
-    alert("Asiento de centralizacion N"+n+" creado con "+empRems.length+" trabajadores");
+    aLog("Asiento remuneraciones",rowsP.length+" trabajadores - "+eObj.name);
+    alert("Asiento de centralizacion N"+n+" creado con "+rowsP.length+" trabajadores");
   };
 
   const preview=fm.sueldoBase>0?calcRem(fm):null;
@@ -2463,6 +2484,54 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
   </div>);
   }
 
+  if(vw==="proceso"){
+    const p=periodoSel;
+    const rowsP=empRems.filter(r=>r.periodo===p);
+    const totP=rowsP.reduce((s,r)=>s+(r.liquido||0),0);
+    const activosEsperados=empTrabajadores.filter(t=>t.activo!==false).length;
+    const liquidacionesListas=rowsP.length>0&&rowsP.length>=activosEsperados;
+    const centralizado=estaCentralizado(p);
+    const estado=getEstadoProceso(p);
+    const entregables=[
+      {id:"liq",l:"Liquidaciones generadas",done:rowsP.length>0,sub:rowsP.length+" de "+activosEsperados+" trabajador"+(activosEsperados!==1?"es":"")+" activo"+(activosEsperados!==1?"s":""),accion:!liquidacionesListas?{l:"Completar",onClick:()=>openNewParaPeriodo(p)}:null},
+      {id:"cent",l:"Centralizado (asiento contable)",done:centralizado,sub:centralizado?"Asiento ya generado":"Pendiente de generar",accion:!centralizado&&rowsP.length>0?{l:"Centralizar",onClick:()=>genAsiento(p)}:null},
+      {id:"pdf",l:"Liquidaciones en PDF",done:false,sub:"Proximamente",accion:null,proximamente:true},
+      {id:"previred",l:"Archivo de pago Previred",done:false,sub:"Proximamente",accion:null,proximamente:true},
+      {id:"lre",l:"Libro Electronico (LRE)",done:false,sub:"Proximamente",accion:null,proximamente:true},
+    ];
+    return(<div style={{maxWidth:700,margin:"0 auto"}}>
+      <Bk onClick={()=>setVw("list")}>Volver</Bk>
+
+      <div style={{background:"linear-gradient(135deg,var(--cy-fill),#F2F6D9)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20,marginBottom:16}}>
+        <div style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:.4,color:"#4A4836",marginBottom:4}}>Proceso de remuneraciones</div>
+        <div style={{fontSize:19,fontWeight:700,color:"#1B4D2E",textTransform:"capitalize"}}>{labelPeriodo(p)}</div>
+        <div style={{fontSize:12,color:"#4A4836",marginTop:2}}>{rowsP.length} liquidacion{rowsP.length!==1?"es":""} · ${fmt(totP)} liquido</div>
+      </div>
+
+      <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap"}}>
+        {ESTADOS_PROCESO.map(e=><button key={e.id} onClick={()=>setEstadoProceso(p,e.id)} style={{padding:"8px 16px",borderRadius:"var(--rs)",border:estado===e.id?"2px solid var(--cy2)":"1px solid var(--bd)",background:estado===e.id?e.bg:"var(--sf)",color:estado===e.id?e.c:"var(--tx2)",fontSize:12,fontWeight:estado===e.id?700:500,cursor:"pointer"}}>{e.l}</button>)}
+      </div>
+
+      <div style={{fontSize:12,fontWeight:600,marginBottom:10,color:"var(--tx2)"}}>Entregables del cierre</div>
+      <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:24}}>
+        {entregables.map(en=><div key={en.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:14,display:"flex",alignItems:"center",gap:12,opacity:en.proximamente?.6:1}}>
+          <div style={{width:22,height:22,borderRadius:7,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:en.done?"var(--gn)":"var(--sf2)",border:"1px solid var(--bd)",color:"#fff"}}>{en.done?IC.check:null}</div>
+          <div style={{flex:1,minWidth:0}}><div style={{fontSize:12,fontWeight:600,color:"var(--tx2)"}}>{en.l}</div><div style={{fontSize:11,color:"var(--tx3)"}}>{en.sub}</div></div>
+          {en.accion&&<Bt onClick={en.accion.onClick}>{en.accion.l}</Bt>}
+          {en.proximamente&&<span style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:.4,background:"var(--bd)",color:"var(--tx3)",padding:"3px 8px",borderRadius:4}}>Proximamente</span>}
+        </div>)}
+      </div>
+
+      <div style={{fontSize:12,fontWeight:600,marginBottom:10,color:"var(--tx2)"}}>Liquidaciones de este periodo</div>
+      {rowsP.length===0?<Ey i="👥" t="Sin liquidaciones" d="Todavia no hay liquidaciones para este periodo."><Bt onClick={()=>openNewParaPeriodo(p)} p={true}>Crear liquidacion</Bt></Ey>
+      :<div style={{display:"flex",flexDirection:"column",gap:8}}>{rowsP.map(r=><div key={r.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16,cursor:"pointer"}} onClick={()=>openEdit(r)}>
+        <div style={{width:40,height:40,borderRadius:10,background:"var(--sf2)",border:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"var(--tx2)",flexShrink:0}}>{(r.nombre||"?").slice(0,2).toUpperCase()}</div>
+        <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:600}}>{r.nombre}</div><div style={{fontSize:11,color:"var(--tx3)"}}>{r.cargo||"Sin cargo"}</div></div>
+        <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,color:"var(--gn)"}}>${fmt(r.liquido||0)}</div><div style={{fontSize:10,color:"var(--tx3)"}}>Liquido</div></div>
+        <button onClick={e=>{e.stopPropagation();doDel(r.id)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5,padding:4}}>x</button>
+      </div>)}</div>}
+    </div>);
+  }
 
   if(vw==="params"){
     const ultimaRev=[params.actualizadoUfUtm,params.actualizadoAfp].filter(Boolean).sort().pop();
@@ -2509,7 +2578,7 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
   const accionesModulo=[
     {id:"trabajadores",icon:IC.emp,label:"Trabajadores",sub:empTrabajadores.length+" ficha"+(empTrabajadores.length!==1?"s":""),onClick:()=>setVw("trabajadores")},
     {id:"params",icon:IC.contab,label:"Parametros Previsionales",sub:"UF $"+fmt(params.uf),onClick:()=>setVw("params")},
-    ...(empRems.length>0?[{id:"centralizar",icon:IC.check,label:"Centralizar",sub:"Generar asiento contable",onClick:genAsiento}]:[]),
+    ...(periodoActual&&!estaCentralizado(periodoActual)?[{id:"centralizar",icon:IC.check,label:"Centralizar",sub:"Periodo "+labelPeriodo(periodoActual),onClick:()=>genAsiento(periodoActual)}]:[]),
   ];
   return(<div style={{maxWidth:900,margin:"0 auto"}}>
     <div style={{display:"flex",flexWrap:"wrap",gap:12,marginBottom:20,alignItems:"center",justifyContent:"space-between"}}>
@@ -2534,22 +2603,25 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
       </button>)}
     </div>
 
-    {periodos.length>0&&<div style={{display:"flex",gap:10,overflowX:"auto",paddingBottom:6,marginBottom:20}}>
+    {periodos.length>0&&<div style={{display:"flex",gap:10,overflowX:"auto",paddingBottom:6,marginBottom:24}}>
       {periodos.map(p=>{
         const rowsP=empRems.filter(r=>r.periodo===p);
         const totP=rowsP.reduce((s,r)=>s+(r.liquido||0),0);
         const esActual=p===periodoActual;
-        const sel=filtroPeriodo===p;
-        return(<button key={p} onClick={()=>setFiltroPeriodo(sel?null:p)} className="rd-hover-lift" style={{textAlign:"left",flexShrink:0,minWidth:150,padding:"14px 16px",borderRadius:"var(--r)",border:sel?"2px solid var(--cy2)":"1px solid var(--bd)",background:esActual?"var(--cy-fill)":"var(--sf)",boxShadow:"var(--shadow)",cursor:"pointer"}}>
-          <div style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:.4,color:esActual?"#1B4D2E":"var(--tx3)",marginBottom:4}}>{esActual?"Periodo actual":"Periodo"}</div>
-          <div style={{fontSize:13,fontWeight:700,textTransform:"capitalize",color:esActual?"#1B4D2E":"var(--tx)"}}>{labelPeriodo(p)}</div>
-          <div style={{fontSize:11,color:esActual?"#1B4D2E":"var(--tx3)",marginTop:4}}>{rowsP.length} liq. · ${fmt(totP)}</div>
+        const est=ESTADOS_PROCESO.find(e=>e.id===getEstadoProceso(p));
+        return(<button key={p} onClick={()=>{setPeriodoSel(p);setVw("proceso")}} className="rd-hover-lift" style={{textAlign:"left",flexShrink:0,minWidth:160,padding:"14px 16px",borderRadius:"var(--r)",border:esActual?"2px solid var(--cy2)":"1px solid var(--bd)",background:"var(--sf)",boxShadow:"var(--shadow)",cursor:"pointer"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginBottom:6}}>
+            <span style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:.4,color:"var(--tx3)"}}>{esActual?"Periodo actual":"Periodo"}</span>
+            <span style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:.3,color:est.c,background:est.bg,padding:"2px 8px",borderRadius:999}}>{est.l}</span>
+          </div>
+          <div style={{fontSize:13,fontWeight:700,textTransform:"capitalize",color:"var(--tx)"}}>{labelPeriodo(p)}</div>
+          <div style={{fontSize:11,color:"var(--tx3)",marginTop:4}}>{rowsP.length} liq. · ${fmt(totP)}</div>
         </button>);
       })}
     </div>}
 
     {empRems.length===0?<Ey i="👥" t="Sin liquidaciones" d="Crea tu primera liquidacion de sueldo."><Bt onClick={openNew} p={true}>Crear liquidacion</Bt></Ey>
-    :(filtroPeriodo?[filtroPeriodo]:periodos).map(p=>{
+    :periodos.map(p=>{
       const rowsP=empRems.filter(r=>r.periodo===p);
       const totP=rowsP.reduce((s,r)=>s+(r.liquido||0),0);
       const esActual=p===periodoActual;
@@ -2558,7 +2630,6 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
           <div style={{fontSize:13,fontWeight:700,textTransform:"capitalize"}}>{labelPeriodo(p)}</div>
           {esActual&&<span style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:.4,color:"#1B4D2E",background:"var(--cy-fill)",padding:"3px 8px",borderRadius:999}}>Periodo actual</span>}
           <span style={{fontSize:11,color:"var(--tx3)"}}>{rowsP.length} liquidacion{rowsP.length!==1?"es":""} · ${fmt(totP)} liquido</span>
-          {filtroPeriodo&&<button onClick={()=>setFiltroPeriodo(null)} style={{marginLeft:"auto",background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",fontSize:11,textDecoration:"underline"}}>Ver todos los periodos</button>}
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:8}}>{rowsP.map(r=><div key={r.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16,cursor:"pointer"}} onClick={()=>openEdit(r)}>
           <div style={{width:40,height:40,borderRadius:10,background:"var(--sf2)",border:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"var(--tx2)",flexShrink:0}}>{(r.nombre||"?").slice(0,2).toUpperCase()}</div>
