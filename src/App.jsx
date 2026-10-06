@@ -2533,39 +2533,6 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
     </div>);
   }
 
-  if(vw==="params"){
-    const ultimaRev=[params.actualizadoUfUtm,params.actualizadoAfp].filter(Boolean).sort().pop();
-    return(<div style={{maxWidth:700,margin:"0 auto"}}>
-    <Bk onClick={()=>setVw("list")}>Volver</Bk>
-    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28}}>
-      <h2 style={{fontSize:18,fontWeight:700,marginBottom:4}}>Parametros Previsionales</h2>
-      <div style={{fontSize:12,color:"var(--tx3)",marginBottom:20}}>Valores legales nacionales (no dependen de la empresa). Se mantienen al dia solos, en segundo plano — no son editables aqui para que ninguna liquidacion quede mal calculada por un numero cambiado por error.</div>
-
-      <Sc t="UF / UTM del periodo"><FG>
-        <div><div style={{fontSize:11,color:"var(--tx3)",marginBottom:6,fontWeight:500}}>UF</div><div style={{fontSize:16,fontWeight:700,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(params.uf)}</div></div>
-        <div><div style={{fontSize:11,color:"var(--tx3)",marginBottom:6,fontWeight:500}}>UTM</div><div style={{fontSize:16,fontWeight:700,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(params.utm)}</div></div>
-      </FG></Sc>
-
-      <Sc t="Tope Imponible"><FG>
-        <div><div style={{fontSize:11,color:"var(--tx3)",marginBottom:6,fontWeight:500}}>Tope imponible</div><div style={{fontSize:16,fontWeight:700,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{params.topeImponibleUF} UF</div></div>
-      </FG></Sc>
-      <div style={{fontSize:11,color:"var(--tx3)",marginBottom:20}}>Hoy equivale a ${fmt(Math.round(params.topeImponibleUF*params.uf))} — las cotizaciones de AFP, salud y cesantia no se calculan sobre lo que exceda este monto.</div>
-
-      <div style={{fontSize:12,fontWeight:600,marginBottom:12,color:"var(--tx2)"}}>Tasas AFP (comision + SIS, %)</div>
-      <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:20}}>
-        <div style={{display:"grid",gridTemplateColumns:"100px 1fr 1fr",gap:8,fontSize:10,color:"var(--tx3)"}}><span></span><span>Comision AFP</span><span>SIS</span></div>
-        {Object.keys(params.afp).map(k=><div key={k} style={{display:"grid",gridTemplateColumns:"100px 1fr 1fr",gap:8,alignItems:"center"}}>
-          <span style={{fontSize:12,textTransform:"capitalize"}}>{k}</span>
-          <span style={{fontSize:12,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{params.afp[k].r}%</span>
-          <span style={{fontSize:12,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{params.afp[k].sis}%</span>
-        </div>)}
-      </div>
-
-      <div style={{fontSize:11,color:"var(--tx3)"}}>{ultimaRev?"Ultima revision automatica: "+new Date(ultimaRev).toLocaleDateString("es-CL"):"Valores base de RADAR, pendientes de la primera revision automatica."}</div>
-    </div>
-  </div>);
-  }
-
   // PANEL DE REMUNERACIONES (list) -- inspirado en el panel de control de
   // Buk: periodo vigente a la vista, variables (UF/UTM) junto a los KPIs,
   // accesos a modulos como tarjetas en vez de botones de texto sueltos, y
@@ -2577,7 +2544,6 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
   const labelPeriodo=p=>{try{return new Date(p+"-01T12:00:00").toLocaleDateString("es-CL",{month:"long",year:"numeric"})}catch{return p}};
   const accionesModulo=[
     {id:"trabajadores",icon:IC.emp,label:"Trabajadores",sub:empTrabajadores.length+" ficha"+(empTrabajadores.length!==1?"s":""),onClick:()=>setVw("trabajadores")},
-    {id:"params",icon:IC.contab,label:"Parametros Previsionales",sub:"UF $"+fmt(params.uf),onClick:()=>setVw("params")},
     ...(periodoActual&&!estaCentralizado(periodoActual)?[{id:"centralizar",icon:IC.check,label:"Centralizar",sub:"Periodo "+labelPeriodo(periodoActual),onClick:()=>genAsiento(periodoActual)}]:[]),
   ];
   return(<div style={{maxWidth:900,margin:"0 auto"}}>
