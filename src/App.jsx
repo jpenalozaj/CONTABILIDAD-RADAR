@@ -203,6 +203,7 @@ const DFLT_ACCTS=[
   {cd:"2.1.03.003",nm:"Salud por Pagar",tp:"liability",lv:4},
   {cd:"2.1.03.004",nm:"Seg Cesantia por Pagar",tp:"liability",lv:4},
   {cd:"2.1.03.005",nm:"Mutual por Pagar",tp:"liability",lv:4},
+  {cd:"2.1.03.006",nm:"Imposiciones por Pagar",tp:"liability",lv:4},
   {cd:"2.2",nm:"Pasivo No Corriente",tp:"liability",lv:2},
   {cd:"2.2.01",nm:"Obligaciones Financieras L/P",tp:"liability",lv:3},
   {cd:"2.2.01.001",nm:"Prestamos Bancarios L/P",tp:"liability",lv:4},
@@ -330,7 +331,7 @@ function Dashboard({session}){
     // de Honorarios no tienen esta cuenta en su plan de cuentas guardado
     // (solo las empresas nuevas parten de DFLT_ACCTS actualizado) -- se
     // agrega sola, sin tocar ninguna cuenta existente.
-    const cuentasNuevas=[{cd:"2.1.01.004",nm:"Honorarios por Pagar",tp:"liability",lv:4},{cd:"5.2.03.005",nm:"Diferencias de Cuadratura SII",tp:"expense",lv:4}].filter(nc=>!a.some(x=>x.cd===nc.cd));
+    const cuentasNuevas=[{cd:"2.1.01.004",nm:"Honorarios por Pagar",tp:"liability",lv:4},{cd:"5.2.03.005",nm:"Diferencias de Cuadratura SII",tp:"expense",lv:4},{cd:"2.1.03.006",nm:"Imposiciones por Pagar",tp:"liability",lv:4}].filter(nc=>!a.some(x=>x.cd===nc.cd));
     const accFinal=cuentasNuevas.length?[...a,...cuentasNuevas]:a;
     prevIds.current={
       e:new Set(e.map(x=>String(x.id))),v:new Set(v.map(x=>String(x.id))),l:new Set(l.map(x=>String(x.id))),
@@ -3382,9 +3383,12 @@ function RemP({userId,eObj,rems,setRems,empRems,trabajadores,setTrabajadores,emp
       if(tHE>0)lines.push({ac:"5.2.01.003",db:tHE,cr:0});
       if(tNI>0)lines.push({ac:"5.2.01.004",db:tNI,cr:0});
       if(tCostoPrev>0)lines.push({ac:"5.2.01.005",db:tCostoPrev,cr:0});
-      if(tAFP>0)lines.push({ac:"2.1.03.002",db:0,cr:tAFP});
-      if(tSalud>0)lines.push({ac:"2.1.03.003",db:0,cr:tSalud});
-      if(tCesPagar>0)lines.push({ac:"2.1.03.004",db:0,cr:tCesPagar});
+      // AFP+Salud+Cesantia van TODAS a una sola cuenta "Imposiciones por
+      // Pagar" -- en la realidad se pagan juntas en una sola planilla a
+      // Previred, asi que desglosarlas en 3 cuentas distintas en el
+      // comprobante de centralizacion no refleja el pago real.
+      const tImposiciones=tAFP+tSalud+tCesPagar;
+      if(tImposiciones>0)lines.push({ac:"2.1.03.006",db:0,cr:tImposiciones});
       if(tImp>0)lines.push({ac:"2.1.02.003",db:0,cr:tImp});
       lines.push({ac:"2.1.03.001",db:0,cr:tLiq});
       nCount+=1;
