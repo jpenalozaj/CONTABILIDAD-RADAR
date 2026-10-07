@@ -2909,6 +2909,11 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
   const [buscarL,setBuscarL]=useState("");
   const [ftab,setFtab]=useState("resumen");
   const [periodoSel,setPeriodoSel]=useState(null);
+  const [wizStepT,setWizStepT]=useState(1);
+  const [wizStepL,setWizStepL]=useState(1);
+  const WIZ_TRAB=[{n:1,l:"Datos basicos"},{n:2,l:"Previsionales"},{n:3,l:"Contrato"}];
+  const WIZ_LIQ=[{n:1,l:"Trabajador"},{n:2,l:"Variables del mes"},{n:3,l:"Vista previa"}];
+  const WizSteps=({steps,step})=><div style={{display:"flex",gap:8,marginBottom:24}}>{steps.map(s=><div key={s.n} style={{flex:1,textAlign:"center",padding:"10px 8px",borderRadius:"var(--rs)",border:"1px solid "+(step===s.n?"var(--cy2)":"var(--bd)"),background:step===s.n?"var(--cy-fill)":step>s.n?"var(--sf2)":"var(--sf)",color:step===s.n?"#1B4D2E":step>s.n?"var(--tx2)":"var(--tx3)",fontSize:11,fontWeight:step===s.n?700:500}}>{step>s.n?"✓ ":s.n+". "}{s.l}</div>)}</div>;
   const ESTADOS_PROCESO=[{id:"iniciado",l:"Iniciado",c:"var(--tx3)",bg:"var(--sf2)"},{id:"revision",l:"En Revision",c:"#92400E",bg:"rgba(180,83,9,.14)"},{id:"pagado",l:"Pagado",c:"#1B4D2E",bg:"var(--cy-fill)"}];
   const getEstadoProceso=p=>empProcesosRem.find(x=>x.periodo===p)?.estado||"iniciado";
   const setEstadoProceso=(p,estado)=>{
@@ -2987,7 +2992,7 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
 
   // ── Ficha de Trabajador ──
   const emptyTF=()=>({activo:true,nombre:"",apellido:"",segundoApellido:"",rut:"",fechaNacimiento:"",sexo:"",estadoCivil:"",telefono:"",email:"",direccion:"",cargo:"",fechaIngreso:"",afp:"habitat",isapre:"fonasa",contratoTipo:"indefinido",sueldoBase:0,gratificacion:0,colacion:0,movilizacion:0,centroCosto:""});
-  const openNewT=()=>{setTfm(emptyTF());setTid(null);setFtab("resumen");setAfm(null);setVw("trabajadorForm")};
+  const openNewT=()=>{setTfm(emptyTF());setTid(null);setFtab("resumen");setAfm(null);setWizStepT(1);setVw("trabajadorForm")};
   const openEditT=(t,tab)=>{setTfm({...emptyTF(),...t});setTid(t.id);setFtab(tab||"resumen");setAfm(null);setVw("trabajadorForm")};
   const doSaveT=()=>{
     if(!tfm.nombre||!tfm.rut)return;
@@ -3027,8 +3032,8 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
     const{diasSinGoce,diasLicencia}=fm.trabajadorId?diasAsistenciaEnPeriodo(empAsistencia,fm.trabajadorId,periodo):{diasSinGoce:fm.diasSinGoce||0,diasLicencia:fm.diasLicencia||0};
     setFm(p=>({...p,periodo,diasSinGoce,diasLicencia}));
   };
-  const openNew=()=>{setFm(emptyF());setEid(null);setVw("form")};
-  const openNewParaPeriodo=p=>{setFm({...emptyF(),periodo:p});setEid(null);setVw("form")};
+  const openNew=()=>{setFm(emptyF());setEid(null);setWizStepL(1);setVw("form")};
+  const openNewParaPeriodo=p=>{setFm({...emptyF(),periodo:p});setEid(null);setWizStepL(1);setVw("form")};
   const openEdit=r=>{setFm({...emptyF(),...r});setEid(r.id);setVw("form")};
   const openComprobante=r=>{setFm({...emptyF(),...r});setEid(r.id);setVw("comprobante")};
 
@@ -3104,7 +3109,8 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
     <Bk onClick={()=>setVw("list")}>Volver</Bk>
     <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28}}>
       <h2 style={{fontSize:18,fontWeight:700,marginBottom:24}}>{eid?"Editar":"Nueva"} Liquidacion</h2>
-      <Sc t="Trabajador"><FG>
+      {!eid&&<WizSteps steps={WIZ_LIQ} step={wizStepL}/>}
+      {(eid||wizStepL===1)&&<Sc t="Trabajador"><FG>
         <div style={{gridColumn:"1/-1"}}>
           <label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Trabajador</label>
           <select value={fm.trabajadorId} onChange={e=>elegirTrabajador(e.target.value)}>
@@ -3115,8 +3121,8 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
         </div>
         <Fi l="Cargo (este periodo)" v={fm.cargo} s={v=>setFm(p=>({...p,cargo:v}))}/>
         <Fi l="Periodo" v={fm.periodo} s={cambiarPeriodoForm} t="month"/>
-      </FG></Sc>
-      <Sc t="Prevision"><FG>
+      </FG></Sc>}
+      {(eid||wizStepL===2)&&<><Sc t="Prevision"><FG>
         <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>AFP</label><select value={fm.afp} onChange={e=>setFm(p=>({...p,afp:e.target.value}))}>{Object.keys(params.afp).map(k=><option key={k} value={k}>{k.charAt(0).toUpperCase()+k.slice(1)} ({params.afp[k].r}%)</option>)}</select></div>
         <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Salud</label><select value={fm.isapre} onChange={e=>setFm(p=>({...p,isapre:e.target.value}))}><option value="fonasa">Fonasa (7%)</option><option value="isapre">Isapre</option></select></div>
         <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Contrato</label><select value={fm.contratoTipo} onChange={e=>setFm(p=>({...p,contratoTipo:e.target.value}))}><option value="indefinido">Indefinido</option><option value="fijo">Plazo Fijo</option></select></div>
@@ -3137,8 +3143,9 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
         <Fi l="Dias de licencia medica" v={fm.diasLicencia} s={v=>setFm(p=>({...p,diasLicencia:parseInt(v)||0}))} t="number"/>
       </FG></Sc>
       <div style={{fontSize:11,color:"var(--tx3)",marginBottom:20,marginTop:-12}}>Se precargan solos desde la pestana Asistencia de la ficha del trabajador para este periodo — se pueden ajustar aqui si hace falta. Los permisos con goce de sueldo no restan nada. La licencia medica descuenta del sueldo que paga la empresa; el subsidio de la Isapre/Fonasa/Mutual se gestiona aparte, RADAR no lo calcula.</div>
+      </>}
 
-      {preview&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:20,marginBottom:20}}>
+      {(eid||wizStepL===3)&&preview&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:20,marginBottom:20}}>
         <div style={{fontSize:11,fontWeight:600,textTransform:"uppercase",letterSpacing:1,color:"var(--cy)",marginBottom:12}}>Preview Liquidacion</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,fontSize:12}}>
           {preview.descuentoAsistencia>0&&<><div style={{color:"var(--tx3)"}}>Sueldo Base nominal</div><div style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:"var(--tx3)"}}>${fmt(preview.sbNominal)}</div>
@@ -3156,7 +3163,15 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
         </div>
       </div>}
 
-      <div style={{display:"flex",gap:12}}><Bt onClick={doSave} p={true}>{eid?"Guardar":"Crear Liquidacion"}</Bt><Bt onClick={()=>setVw("list")}>Cancelar</Bt></div>
+      {eid?
+        <div style={{display:"flex",gap:12}}><Bt onClick={doSave} p={true}>Guardar</Bt><Bt onClick={()=>setVw("list")}>Cancelar</Bt></div>
+      :<div style={{display:"flex",justifyContent:"space-between"}}>
+        <div>{wizStepL>1&&<Bt onClick={()=>setWizStepL(s=>s-1)}>Atras</Bt>}</div>
+        <div style={{display:"flex",gap:12}}>
+          <Bt onClick={()=>setVw("list")}>Cancelar</Bt>
+          {wizStepL<3?<Bt onClick={()=>{if(wizStepL===1&&!fm.trabajadorId){rdAlert("Elige un trabajador antes de continuar.");return}setWizStepL(s=>s+1)}} p={true}>Siguiente</Bt>:<Bt onClick={doSave} p={true}>Crear Liquidacion</Bt>}
+        </div>
+      </div>}
     </div>
   </div>);
 
@@ -3248,7 +3263,7 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
 
     {tid&&<div style={{display:"flex",gap:16,marginBottom:20,flexWrap:"wrap",borderBottom:"1px solid var(--bd)"}}>{fichaTabs.map(ft=><button key={ft.id} onClick={()=>setFtab(ft.id)} style={{padding:"10px 2px",borderRadius:0,border:"none",borderBottom:"2px solid transparent",fontSize:12,fontWeight:ftab===ft.id?700:500,background:"none",color:ftab===ft.id?"var(--cy2)":"var(--tx3)",cursor:"pointer"}}><span style={{position:"relative"}}>{ft.l}{ftab===ft.id&&<svg aria-hidden viewBox="0 0 100 8" preserveAspectRatio="none" style={{position:"absolute",left:0,bottom:-10,width:"100%",height:6,overflow:"visible"}}><path d="M0,5 C10,0 20,0 30,5 C40,10 50,10 60,5 C70,0 80,0 90,5 C95,7.5 98,6 100,5" fill="none" stroke="var(--cy)" strokeWidth="1.6" strokeLinecap="round"/></svg>}</span></button>)}</div>}
 
-    {(!tid||ftab==="resumen")&&<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28}}>
+    {tid&&ftab==="resumen"&&<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28}}>
       <div style={{marginBottom:24}}><Sw checked={tfm.activo!==false} onChange={v=>setTfm(p=>({...p,activo:v}))} label="Trabajador activo"/></div>
 
       <Sc t="Datos Personales"><FG>
@@ -3285,7 +3300,47 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
         <span style={{fontSize:10,background:"var(--bd)",padding:"3px 10px",borderRadius:4,color:"var(--tx3)",fontWeight:600}}>Proximamente</span>
       </div>
 
-      <div style={{display:"flex",gap:12}}><Bt onClick={doSaveT} p={true}>{tid?"Guardar":"Crear Trabajador"}</Bt><Bt onClick={()=>setVw("trabajadores")}>Cancelar</Bt></div>
+      <div style={{display:"flex",gap:12}}><Bt onClick={doSaveT} p={true}>Guardar</Bt><Bt onClick={()=>setVw("trabajadores")}>Cancelar</Bt></div>
+    </div>}
+
+    {!tid&&<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28}}>
+      <WizSteps steps={WIZ_TRAB} step={wizStepT}/>
+      {wizStepT===1&&<>
+        <div style={{marginBottom:20}}><Sw checked={tfm.activo!==false} onChange={v=>setTfm(p=>({...p,activo:v}))} label="Trabajador activo"/></div>
+        <Sc t="Datos Basicos"><FG>
+          <Fi l="Nombre" v={tfm.nombre} s={v=>setTfm(p=>({...p,nombre:v}))}/>
+          <Fi l="Apellido" v={tfm.apellido} s={v=>setTfm(p=>({...p,apellido:v}))}/>
+          <Fi l="Segundo Apellido" v={tfm.segundoApellido} s={v=>setTfm(p=>({...p,segundoApellido:v}))}/>
+          <Fi l="RUT" v={tfm.rut} s={v=>setTfm(p=>({...p,rut:v}))}/>
+          <Fi l="Fecha de Nacimiento" v={tfm.fechaNacimiento} s={v=>setTfm(p=>({...p,fechaNacimiento:v}))} t="date"/>
+          <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Sexo</label><select value={tfm.sexo} onChange={e=>setTfm(p=>({...p,sexo:e.target.value}))}><option value="">Sin especificar</option><option value="F">Femenino</option><option value="M">Masculino</option><option value="otro">Otro</option></select></div>
+          <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Estado Civil</label><select value={tfm.estadoCivil} onChange={e=>setTfm(p=>({...p,estadoCivil:e.target.value}))}><option value="">Sin especificar</option><option value="soltero">Soltero/a</option><option value="casado">Casado/a</option><option value="divorciado">Divorciado/a</option><option value="viudo">Viudo/a</option></select></div>
+          <Fi l="Telefono" v={tfm.telefono} s={v=>setTfm(p=>({...p,telefono:v}))}/>
+          <Fi l="Email" v={tfm.email} s={v=>setTfm(p=>({...p,email:v}))}/>
+          <Fi l="Direccion" v={tfm.direccion} s={v=>setTfm(p=>({...p,direccion:v}))}/>
+        </FG></Sc>
+      </>}
+      {wizStepT===2&&<Sc t="Previsionales"><FG>
+        <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>AFP</label><select value={tfm.afp} onChange={e=>setTfm(p=>({...p,afp:e.target.value}))}>{Object.keys(params.afp).map(k=><option key={k} value={k}>{k.charAt(0).toUpperCase()+k.slice(1)} ({params.afp[k].r}%)</option>)}</select></div>
+        <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Salud</label><select value={tfm.isapre} onChange={e=>setTfm(p=>({...p,isapre:e.target.value}))}><option value="fonasa">Fonasa (7%)</option><option value="isapre">Isapre</option></select></div>
+      </FG></Sc>}
+      {wizStepT===3&&<Sc t="Contrato"><FG>
+        <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Tipo de Contrato</label><select value={tfm.contratoTipo} onChange={e=>setTfm(p=>({...p,contratoTipo:e.target.value}))}><option value="indefinido">Indefinido</option><option value="fijo">Plazo Fijo</option></select></div>
+        <Fi l="Cargo" v={tfm.cargo} s={v=>setTfm(p=>({...p,cargo:v}))}/>
+        <Fi l="Fecha de Ingreso" v={tfm.fechaIngreso} s={v=>setTfm(p=>({...p,fechaIngreso:v}))} t="date"/>
+        <Fi l="Sueldo Base" v={tfm.sueldoBase} s={v=>setTfm(p=>({...p,sueldoBase:parseInt(v)||0}))} t="number"/>
+        <Fi l="Gratificacion" v={tfm.gratificacion} s={v=>setTfm(p=>({...p,gratificacion:parseInt(v)||0}))} t="number"/>
+        <Fi l="Colacion" v={tfm.colacion} s={v=>setTfm(p=>({...p,colacion:parseInt(v)||0}))} t="number"/>
+        <Fi l="Movilizacion" v={tfm.movilizacion} s={v=>setTfm(p=>({...p,movilizacion:parseInt(v)||0}))} t="number"/>
+        {ccostos?.length>0&&<div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Centro de Costo</label><select value={tfm.centroCosto} onChange={e=>setTfm(p=>({...p,centroCosto:e.target.value}))}><option value="">Sin centro de costo</option>{ccostos.map(c=><option key={c.id} value={c.id}>{c.nombre}</option>)}</select></div>}
+      </FG></Sc>}
+      <div style={{display:"flex",justifyContent:"space-between",marginTop:8}}>
+        <div>{wizStepT>1&&<Bt onClick={()=>setWizStepT(s=>s-1)}>Atras</Bt>}</div>
+        <div style={{display:"flex",gap:12}}>
+          <Bt onClick={()=>setVw("trabajadores")}>Cancelar</Bt>
+          {wizStepT<3?<Bt onClick={()=>{if(wizStepT===1&&(!tfm.nombre||!tfm.rut)){rdAlert("Completa al menos Nombre y RUT antes de continuar.");return}setWizStepT(s=>s+1)}} p={true}>Siguiente</Bt>:<Bt onClick={doSaveT} p={true}>Crear Trabajador</Bt>}
+        </div>
+      </div>
     </div>}
 
     {tid&&ftab==="liquidaciones"&&<div>
