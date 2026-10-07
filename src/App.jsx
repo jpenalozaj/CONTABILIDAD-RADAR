@@ -304,10 +304,16 @@ function Dashboard({session}){
   const [honorarios,setHonorarios]=useState([]);
   const [cartolas,setCartolas]=useState([]);
   const [importacionesSii,setImportacionesSii]=useState([]);
+  const [carteraClientes,setCarteraClientes]=useState([]);
+  const [carteraIva,setCarteraIva]=useState([]);
+  const [carteraImposiciones,setCarteraImposiciones]=useState([]);
+  const [carteraRenta,setCarteraRenta]=useState([]);
+  const [carteraHonorarios,setCarteraHonorarios]=useState([]);
+  const [carteraTramites,setCarteraTramites]=useState([]);
   const [sb,setSb]=useState(false);
-  const prevIds=useRef({e:new Set(),v:new Set(),l:new Set(),a:new Set(),en:new Set(),rm:new Set(),tb:new Set(),pr:new Set(),as:new Set(),dc:new Set(),ta:new Set(),rg:new Set(),cc:new Set(),af:new Set(),ho:new Set(),ct:new Set(),si:new Set()});
+  const prevIds=useRef({e:new Set(),v:new Set(),l:new Set(),a:new Set(),en:new Set(),rm:new Set(),tb:new Set(),pr:new Set(),as:new Set(),dc:new Set(),ta:new Set(),rg:new Set(),cc:new Set(),af:new Set(),ho:new Set(),ct:new Set(),si:new Set(),kcl:new Set(),kiv:new Set(),kim:new Set(),kre:new Set(),khn:new Set(),ktr:new Set()});
   useEffect(()=>{let cancelled=false;(async()=>{
-    const[e,v,l,a,en,rm,tb,pr,as,dc,ta,rg,ho,cc,af,ct,si]=await Promise.all([
+    const[e,v,l,a,en,rm,tb,pr,as,dc,ta,rg,ho,cc,af,ct,si,kcl,kiv,kim,kre,khn,ktr]=await Promise.all([
       loadCollection(userId,"empresas",[]),
       loadCollection(userId,"evaluaciones",[]),
       loadCollection(userId,"log",[]),
@@ -325,6 +331,12 @@ function Dashboard({session}){
       loadCollection(userId,"activos_fijos",[]),
       loadCollection(userId,"cartolas",[]),
       loadCollection(userId,"importaciones_sii",[]),
+      loadCollection(userId,"cartera_clientes",[]),
+      loadCollection(userId,"cartera_iva",[]),
+      loadCollection(userId,"cartera_imposiciones",[]),
+      loadCollection(userId,"cartera_renta",[]),
+      loadCollection(userId,"cartera_honorarios",[]),
+      loadCollection(userId,"cartera_tramites",[]),
     ]);
     if(cancelled)return;
     // Migracion aditiva: empresas creadas antes de que existiera el modulo
@@ -338,8 +350,16 @@ function Dashboard({session}){
       a:new Set(a.map(x=>String(x.cd))),en:new Set(en.map(x=>String(x.id))),rm:new Set(rm.map(x=>String(x.id))),
       tb:new Set(tb.map(x=>String(x.id))),pr:new Set(pr.map(x=>String(x.id))),as:new Set(as.map(x=>String(x.id))),
       dc:new Set(dc.map(x=>String(x.id))),ta:new Set(ta.map(x=>String(x.id))),rg:new Set(rg.map(x=>String(x.id))),cc:new Set(cc.map(x=>String(x.id))),af:new Set(af.map(x=>String(x.id))),ho:new Set(ho.map(x=>String(x.id))),ct:new Set(ct.map(x=>String(x.id))),si:new Set(si.map(x=>String(x.id))),
+      kcl:new Set(kcl.map(x=>String(x.id))),kiv:new Set(kiv.map(x=>String(x.id))),kim:new Set(kim.map(x=>String(x.id))),kre:new Set(kre.map(x=>String(x.id))),khn:new Set(khn.map(x=>String(x.id))),ktr:new Set(ktr.map(x=>String(x.id))),
     };
     setEmps(e);setEvs(v);setLog(l);setAccts(accFinal);setEntries(en);setRems(rm);setTrabajadores(tb);setProcesosRem(pr);setAsistencia(as);setDocs(dc);setTareas(ta);setReglas(rg);setCcostos(cc);setActivos(af);setHonorarios(ho);setCartolas(ct);setImportacionesSii(si);
+    // Semilla unica: la primera vez que Jonas abre Cartera de Clientes (la
+    // coleccion llega vacia desde Supabase) se precarga con sus 16 clientes
+    // reales (vienen de Control_Contable_Clientes.xlsx, solo el registro --
+    // nunca el historial mensual ni las credenciales Usuario/Clave de
+    // Previred que traia esa planilla).
+    setCarteraClientes(kcl.length>0?kcl:CARTERA_SEED);
+    setCarteraIva(kiv);setCarteraImposiciones(kim);setCarteraRenta(kre);setCarteraHonorarios(khn);setCarteraTramites(ktr);
     if(e.length>0)setAEmp(e[0].id);setRdy(true);
   })();return()=>{cancelled=true}},[userId]);
   useEffect(()=>{if(rdy)saveCollection(userId,"empresas",emps,prevIds.current.e).then(s=>prevIds.current.e=s)},[emps,rdy]);
@@ -359,6 +379,12 @@ function Dashboard({session}){
   useEffect(()=>{if(rdy)saveCollection(userId,"honorarios",honorarios,prevIds.current.ho).then(s=>prevIds.current.ho=s)},[honorarios,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"cartolas",cartolas,prevIds.current.ct).then(s=>prevIds.current.ct=s)},[cartolas,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"importaciones_sii",importacionesSii,prevIds.current.si).then(s=>prevIds.current.si=s)},[importacionesSii,rdy]);
+  useEffect(()=>{if(rdy)saveCollection(userId,"cartera_clientes",carteraClientes,prevIds.current.kcl).then(s=>prevIds.current.kcl=s)},[carteraClientes,rdy]);
+  useEffect(()=>{if(rdy)saveCollection(userId,"cartera_iva",carteraIva,prevIds.current.kiv).then(s=>prevIds.current.kiv=s)},[carteraIva,rdy]);
+  useEffect(()=>{if(rdy)saveCollection(userId,"cartera_imposiciones",carteraImposiciones,prevIds.current.kim).then(s=>prevIds.current.kim=s)},[carteraImposiciones,rdy]);
+  useEffect(()=>{if(rdy)saveCollection(userId,"cartera_renta",carteraRenta,prevIds.current.kre).then(s=>prevIds.current.kre=s)},[carteraRenta,rdy]);
+  useEffect(()=>{if(rdy)saveCollection(userId,"cartera_honorarios",carteraHonorarios,prevIds.current.khn).then(s=>prevIds.current.khn=s)},[carteraHonorarios,rdy]);
+  useEffect(()=>{if(rdy)saveCollection(userId,"cartera_tramites",carteraTramites,prevIds.current.ktr).then(s=>prevIds.current.ktr=s)},[carteraTramites,rdy]);
   const aLog=(a,d)=>setLog(p=>[{id:uid(),time:new Date().toISOString(),action:a,detail:d},...p].slice(0,50));
   const eObj=useMemo(()=>emps.find(e=>e.id===aEmp),[emps,aEmp]);
   const eEvs=useMemo(()=>evs.filter(e=>e.empresaId===aEmp),[evs,aEmp]);
@@ -380,7 +406,8 @@ function Dashboard({session}){
   const docIcon=<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{width:20,height:20}}><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>;
   const planIcon=<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{width:20,height:20}}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>;
   const portalIcon=<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{width:20,height:20}}><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>;
-  const nav=[{id:"inicio",label:"Inicio",icon:IC.home},{id:"empresas",label:"Empresas",icon:IC.emp},{id:"radar",label:"RADAR",icon:IC.eval},{id:"contabilidad",label:"Contabilidad",icon:IC.contab},{id:"remuneraciones",label:"Remuneraciones",icon:remIcon},{id:"documentos",label:"Documentos",icon:docIcon},{id:"planificacion",label:"Planificacion",icon:planIcon},{id:"portal",label:"Portal Cliente",icon:portalIcon}];
+  const carteraIcon=<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{width:20,height:20}}><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/><path d="M2 13h20"/></svg>;
+  const nav=[{id:"inicio",label:"Inicio",icon:IC.home},{id:"empresas",label:"Empresas",icon:IC.emp},{id:"cartera",label:"Mis Clientes",icon:carteraIcon},{id:"radar",label:"RADAR",icon:IC.eval},{id:"contabilidad",label:"Contabilidad",icon:IC.contab},{id:"remuneraciones",label:"Remuneraciones",icon:remIcon},{id:"documentos",label:"Documentos",icon:docIcon},{id:"planificacion",label:"Planificacion",icon:planIcon},{id:"portal",label:"Portal Cliente",icon:portalIcon}];
   const go=p=>{if(!nav.find(n=>n.id===p)?.soon){setPg(p);setSb(false)}};
   if(!rdy)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#EDEAD9"}}><div style={{textAlign:"center",color:"#6B7408"}}><div style={{fontSize:24,fontWeight:800,letterSpacing:6,fontFamily:"'Fraunces',Georgia,serif"}}>RADAR</div><div style={{fontSize:12,color:"#7A7868",marginTop:8}}>Cargando...</div></div></div>;
   return(<><style>{ST}</style><DialogHost/><div style={{display:"flex",height:"100vh",overflow:"hidden",background:"var(--bg)"}}>
@@ -399,6 +426,7 @@ function Dashboard({session}){
       <div style={{flex:1,overflowY:"auto",padding:"24px 20px"}}>
         {pg==="inicio"&&<HomeP emps={emps} eObj={eObj} evs={evs} log={log}/>}
         {pg==="empresas"&&<EmpP emps={emps} setEmps={setEmps} aEmp={aEmp} setAEmp={setAEmp} aLog={aLog}/>}
+        {pg==="cartera"&&<CarteraP carteraClientes={carteraClientes} setCarteraClientes={setCarteraClientes} carteraIva={carteraIva} setCarteraIva={setCarteraIva} carteraImposiciones={carteraImposiciones} setCarteraImposiciones={setCarteraImposiciones} carteraRenta={carteraRenta} setCarteraRenta={setCarteraRenta} carteraHonorarios={carteraHonorarios} setCarteraHonorarios={setCarteraHonorarios} carteraTramites={carteraTramites} setCarteraTramites={setCarteraTramites} aLog={aLog}/>}
         {pg==="radar"&&<RadP eObj={eObj} evs={evs} setEvs={setEvs} eEvs={eEvs} aLog={aLog} go={go}/>}
         {pg==="contabilidad"&&<ContabP eObj={eObj} accts={accts} setAccts={setAccts} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go} reglas={empReglas} setReglas={setReglas} ccostos={empCcostos} setCcostos={setCcostos} activos={empActivos} setActivos={setActivos} honorarios={empHonorarios} setHonorarios={setHonorarios} cartolas={empCartolas} setCartolas={setCartolas} importacionesSii={empImportacionesSii} setImportacionesSii={setImportacionesSii}/>}
         {pg==="remuneraciones"&&<RemP userId={userId} eObj={eObj} rems={rems} setRems={setRems} empRems={empRems} trabajadores={trabajadores} setTrabajadores={setTrabajadores} empTrabajadores={empTrabajadores} procesosRem={procesosRem} setProcesosRem={setProcesosRem} empProcesosRem={empProcesosRem} asistencia={asistencia} setAsistencia={setAsistencia} empAsistencia={empAsistencia} ccostos={empCcostos} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go}/>}
@@ -4414,6 +4442,358 @@ function PortalP({eObj,empEntries,empDocs,empRems,eEvs,accts,leafAccts,go}){
         </div>)}
       </div>
     </div>
+  </div>);
+}
+
+// ═══ CARTERA DE CLIENTES ═══
+// Apartado privado de Jonas (el contador), NO es el Portal Cliente -- sus
+// clientes nunca lo ven. Reemplaza la planilla Excel "Control_Contable_
+// Clientes.xlsx" que usaba para llevar IVA Mensual, Imposiciones, Renta
+// Anual, Honorarios (sus propios cobros a los clientes) y Tramites
+// Puntuales de su cartera real. A diferencia de esa planilla, la pestaña
+// "Imposiciones" original traia columnas Usuario/Clave de Previred en
+// texto plano -- eso se descarta a proposito, nunca se replica (principio
+// no-negociable del proyecto: ninguna clave real toca Supabase/RADAR).
+const CARTERA_ESTADOS=["Pendiente","En Proceso","Completado","No Aplica"];
+const CARTERA_ESTADOS_TRAMITE=["Pendiente","En Proceso","Realizado"];
+const CARTERA_RESULTADOS_RENTA=["Pendiente","Por Pagar","Devolucion","Sin Movimiento"];
+const MESES_CORTOS=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+const periodoActualCartera=()=>new Date().toISOString().slice(0,7);
+const labelPeriodoCorto=p=>{const[y,m]=(p||"").split("-");return m?MESES_CORTOS[+m-1]+" "+y:(p||"")};
+const estColorCartera=e=>({Pendiente:"var(--rd)","En Proceso":"var(--am)",Completado:"var(--gn)","No Aplica":"var(--tx3)",Realizado:"var(--gn)","Por Pagar":"var(--am)",Devolucion:"var(--gn)","Sin Movimiento":"var(--tx3)"}[e]||"var(--tx3)");
+const emptyCarteraCliente=()=>({rut:"",nombre:"",tipo:"Empresa",responsable:"",telefono:"",correo:"",fechaIngreso:"",observaciones:"",servicios:{iva:true,imposiciones:false,renta:true,tramites:false},activo:true});
+// Semilla unica (primera carga): los 16 clientes reales de Jonas, extraidos
+// de la hoja "Resumen Clientes" de su planilla -- solo el registro (RUT,
+// nombre, tipo, responsable, que servicios le aplican), nunca el historial
+// mensual (eso lo va llenando el mismo desde ahora en adelante).
+const CARTERA_SEED=[
+  {rut:"9.907.576-7",nombre:"ANDREA DANIELA POBLETE LOPEZ",tipo:"Persona",responsable:"ANDREA",telefono:"+56 977373429",servicios:{iva:true,imposiciones:true,renta:true,tramites:true},observaciones:"Cliente activo"},
+  {rut:"77.105.731-4",nombre:"MAC CONSTRUCCIONES SPA",tipo:"Empresa",responsable:"SOFIA",servicios:{iva:true,imposiciones:false,renta:true,tramites:false},observaciones:"Cliente activo"},
+  {rut:"78.147.909-8",nombre:"ESTUDIO TATTOO INKEDSOUH LIMITADA",tipo:"Empresa",responsable:"SERGIO",servicios:{iva:true,imposiciones:true,renta:true,tramites:true},observaciones:"Cliente activo"},
+  {rut:"76.282.386-1",nombre:"INMOBILIARIA CRUZERO LIMITADA",tipo:"Empresa",responsable:"MARIO RAMIREZ",servicios:{iva:true,imposiciones:true,renta:true,tramites:false},observaciones:"Cliente activo"},
+  {rut:"77.409.790-2",nombre:"ASESORIAS DE INGENIERIA Y ADMINISTRACION I-NET LIMITADA",tipo:"Empresa",responsable:"MARIO RAMIREZ",servicios:{iva:true,imposiciones:true,renta:true,tramites:true},observaciones:"Cliente activo"},
+  {rut:"78.116.164-0",nombre:"ETEREO SALON Y PELUQUERIA LIMITADA",tipo:"Empresa",responsable:"MAIKY",servicios:{iva:true,imposiciones:false,renta:true,tramites:true},observaciones:"Cliente activo"},
+  {rut:"78.307.173-8",nombre:"RAZZA SPA",tipo:"Empresa",responsable:"VICENTE RAMIREZ",servicios:{iva:true,imposiciones:false,renta:true,tramites:true},observaciones:"Cliente activo"},
+  {rut:"78.325.615-0",nombre:"COMERCIAL BENYAMINS SPA",tipo:"Empresa",responsable:"BENYAMIN",servicios:{iva:true,imposiciones:false,renta:true,tramites:true},observaciones:"Cliente activo"},
+  {rut:"7.779.216-3",nombre:"JORGE CHRISTIAN GONZALEZ TORO",tipo:"Persona",responsable:"AMIGO ANDREA",servicios:{iva:true,imposiciones:false,renta:true,tramites:true},observaciones:"Cliente activo"},
+  {rut:"77.077.886-7",nombre:"SOCIEDAD GONZALEZ Y OTRO LIMITADA",tipo:"Empresa",responsable:"AMIGO ANDREA",servicios:{iva:true,imposiciones:false,renta:true,tramites:true},observaciones:"Cliente activo"},
+  {rut:"77.827.766-2",nombre:"KINNOVA",tipo:"Empresa",responsable:"KINNOVA",servicios:{iva:true,imposiciones:false,renta:true,tramites:true},observaciones:"Cliente activo"},
+  {rut:"77.465.771-1",nombre:"CAPACITACIONES MARCOS GUERRERO MORENO EIRL",tipo:"Empresa",responsable:"",servicios:{iva:true,imposiciones:true,renta:true,tramites:false},observaciones:"Cliente activo"},
+  {rut:"53.332.070-8",nombre:"SUCESION SIEGFRIED NEFIODOW FREIMANN",tipo:"Empresa",responsable:"",servicios:{iva:true,imposiciones:false,renta:true,tramites:true},observaciones:""},
+  {rut:"10.664.106-4",nombre:"ALEXANDRA NEFIODOW ZEHR",tipo:"Empresa",responsable:"",servicios:{iva:false,imposiciones:false,renta:false,tramites:false},observaciones:""},
+  {rut:"76.961.330-7",nombre:"INSOC",tipo:"Empresa",responsable:"",servicios:{iva:true,imposiciones:false,renta:true,tramites:false},observaciones:"Cliente activo"},
+  {rut:"76.071.865-3",nombre:"CUMBRES",tipo:"Empresa",responsable:"",servicios:{iva:true,imposiciones:false,renta:true,tramites:false},observaciones:"Cliente activo"},
+].map(c=>({...c,id:uid(),telefono:c.telefono||"",correo:"",fechaIngreso:"",activo:true}));
+function Se({l,v,s,opts}){return<div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>{l}</label><select value={v||opts[0]} onChange={e=>s(e.target.value)}>{opts.map(o=><option key={o} value={o}>{o}</option>)}</select></div>}
+function TdSel({v,onChange,opts,color}){return<select value={v||opts[0]} onChange={e=>onChange(e.target.value)} style={{padding:"4px 8px",fontSize:11,background:"var(--sf2)",color:color||"var(--tx)",border:"1px solid var(--bd)",borderRadius:6,fontWeight:600}}>{opts.map(o=><option key={o} value={o}>{o}</option>)}</select>}
+function TdInp({v,onChange,t,ph,w}){return<input type={t||"text"} value={v??""} placeholder={ph||""} onChange={e=>onChange(t==="number"?e.target.value:e.target.value)} style={{padding:"4px 8px",fontSize:11,background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:6,width:w||"100%"}}/>}
+
+function CarteraP({carteraClientes,setCarteraClientes,carteraIva,setCarteraIva,carteraImposiciones,setCarteraImposiciones,carteraRenta,setCarteraRenta,carteraHonorarios,setCarteraHonorarios,carteraTramites,setCarteraTramites,aLog}){
+  const [vw,setVw]=useState("lista");
+  const [selId,setSelId]=useState(null);
+  const [q,setQ]=useState("");
+  const [showNew,setShowNew]=useState(false);
+  const [nc,setNc]=useState(emptyCarteraCliente());
+  const periodo=periodoActualCartera();
+
+  const coincide=c=>{
+    const nq=q.trim().toLowerCase();
+    if(!nq)return true;
+    if((c.nombre||"").toLowerCase().includes(nq))return true;
+    const nrq=normRut(q);
+    return nrq.length>=3&&normRut(c.rut).includes(nrq);
+  };
+  const filtrados=useMemo(()=>carteraClientes.filter(coincide),[carteraClientes,q]);
+  const sel=carteraClientes.find(c=>c.id===selId);
+
+  const estadoPeriodo=(col,c)=>col.find(x=>x.clienteId===c.id&&x.periodo===periodo)?.estado;
+  const activosCli=carteraClientes.filter(c=>c.activo);
+  const ivaPend=activosCli.filter(c=>c.servicios?.iva&&!["Completado","No Aplica"].includes(estadoPeriodo(carteraIva,c))).length;
+  const impPend=activosCli.filter(c=>c.servicios?.imposiciones&&!["Completado","No Aplica"].includes(estadoPeriodo(carteraImposiciones,c))).length;
+  const saldoHonorarios=carteraHonorarios.reduce((s,h)=>s+((+h.facturado||0)-(+h.cobrado||0)),0);
+
+  const addCliente=()=>{
+    if(!nc.nombre.trim()){rdAlert("Falta el nombre del cliente");return}
+    setCarteraClientes(p=>[...p,{...nc,id:uid()}]);
+    aLog("Cliente agregado a Cartera",nc.nombre);
+    setNc(emptyCarteraCliente());setShowNew(false);
+  };
+  const delCliente=async c=>{
+    if(!await rdConfirm('Eliminar "'+c.nombre+'" de tu cartera? Se pierden todos sus registros de IVA, Imposiciones, Renta, Honorarios y Tramites.',{okLabel:"Eliminar"}))return;
+    setCarteraClientes(p=>p.filter(x=>x.id!==c.id));
+    setCarteraIva(p=>p.filter(x=>x.clienteId!==c.id));
+    setCarteraImposiciones(p=>p.filter(x=>x.clienteId!==c.id));
+    setCarteraRenta(p=>p.filter(x=>x.clienteId!==c.id));
+    setCarteraHonorarios(p=>p.filter(x=>x.clienteId!==c.id));
+    setCarteraTramites(p=>p.filter(x=>x.clienteId!==c.id));
+    aLog("Cliente eliminado de Cartera",c.nombre);
+    setVw("lista");setSelId(null);
+  };
+
+  if(vw==="detalle"&&sel)return<CarteraClienteDetalle cliente={sel} setCarteraClientes={setCarteraClientes} carteraIva={carteraIva} setCarteraIva={setCarteraIva} carteraImposiciones={carteraImposiciones} setCarteraImposiciones={setCarteraImposiciones} carteraRenta={carteraRenta} setCarteraRenta={setCarteraRenta} carteraHonorarios={carteraHonorarios} setCarteraHonorarios={setCarteraHonorarios} carteraTramites={carteraTramites} setCarteraTramites={setCarteraTramites} onBack={()=>{setVw("lista");setSelId(null)}} onDelete={()=>delCliente(sel)} aLog={aLog}/>;
+
+  return(<div style={{maxWidth:1000,margin:"0 auto"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",gap:12,marginBottom:20,flexWrap:"wrap"}}>
+      <div>
+        <h2 style={{fontSize:20,fontWeight:700,letterSpacing:-.3,margin:0}}>Cartera de Clientes</h2>
+        <div style={{fontSize:12,color:"var(--tx3)",marginTop:4}}>Gestion privada tuya — no la ven tus clientes · {carteraClientes.length} en total</div>
+      </div>
+      <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+        <input placeholder="Buscar por nombre o RUT..." value={q} onChange={e=>setQ(e.target.value)} style={{width:220}}/>
+        <Bt onClick={()=>setShowNew(s=>!s)} p={true}>+ Nuevo Cliente</Bt>
+      </div>
+    </div>
+
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:10,marginBottom:20}}>
+      {[
+        {l:"Clientes activos",v:activosCli.length,c:"var(--cy)"},
+        {l:"IVA pendiente "+labelPeriodoCorto(periodo),v:ivaPend,c:ivaPend>0?"var(--am)":"var(--gn)"},
+        {l:"Imposiciones pendientes",v:impPend,c:impPend>0?"var(--am)":"var(--gn)"},
+        {l:"Honorarios por cobrar",v:"$"+fmt(Math.max(0,saldoHonorarios)),c:saldoHonorarios>0?"var(--am)":"var(--gn)"},
+      ].map((k,i)=><div key={i} className="rd-hover-lift" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,minWidth:0}}>
+        <div style={{fontSize:10,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:6}}>{k.l}</div>
+        <div style={{fontSize:20,fontWeight:800,color:k.c,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",wordBreak:"break-word",overflowWrap:"anywhere"}}>{k.v}</div>
+      </div>)}
+    </div>
+
+    {showNew&&<div className="rd-pop-in" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20,marginBottom:20}}>
+      <Sc t="Nuevo Cliente">
+        <FG>
+          <Fi l="Nombre / Razon Social *" v={nc.nombre} s={v=>setNc(p=>({...p,nombre:v}))}/>
+          <Fi l="RUT" v={nc.rut} s={v=>setNc(p=>({...p,rut:v}))} ph="11.111.111-1"/>
+          <Se l="Tipo" v={nc.tipo} s={v=>setNc(p=>({...p,tipo:v}))} opts={["Empresa","Persona"]}/>
+          <Fi l="Responsable" v={nc.responsable} s={v=>setNc(p=>({...p,responsable:v}))}/>
+          <Fi l="Telefono" v={nc.telefono} s={v=>setNc(p=>({...p,telefono:v}))}/>
+          <Fi l="Correo" v={nc.correo} s={v=>setNc(p=>({...p,correo:v}))}/>
+          <Fi l="Fecha Ingreso" t="date" v={nc.fechaIngreso} s={v=>setNc(p=>({...p,fechaIngreso:v}))}/>
+        </FG>
+        <div style={{display:"flex",gap:20,flexWrap:"wrap",marginTop:18}}>
+          <Sw checked={!!nc.servicios.iva} onChange={v=>setNc(p=>({...p,servicios:{...p.servicios,iva:v}}))} label="IVA Mensual"/>
+          <Sw checked={!!nc.servicios.imposiciones} onChange={v=>setNc(p=>({...p,servicios:{...p.servicios,imposiciones:v}}))} label="Imposiciones"/>
+          <Sw checked={!!nc.servicios.renta} onChange={v=>setNc(p=>({...p,servicios:{...p.servicios,renta:v}}))} label="Renta Anual"/>
+          <Sw checked={!!nc.servicios.tramites} onChange={v=>setNc(p=>({...p,servicios:{...p.servicios,tramites:v}}))} label="Tramites Puntuales"/>
+        </div>
+        <div style={{marginTop:16}}><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Observaciones</label><textarea value={nc.observaciones} onChange={e=>setNc(p=>({...p,observaciones:e.target.value}))} style={{minHeight:70}}/></div>
+        <div style={{display:"flex",gap:10,marginTop:18}}><Bt onClick={addCliente} p={true}>Guardar Cliente</Bt><Bt onClick={()=>{setShowNew(false);setNc(emptyCarteraCliente())}}>Cancelar</Bt></div>
+      </Sc>
+    </div>}
+
+    {carteraClientes.length===0?<Ey i="📋" t="Sin clientes en tu cartera todavia" d="Agrega tu primer cliente para empezar a llevar IVA, Imposiciones, Renta, Honorarios y Tramites."/>:
+    filtrados.length===0?<div style={{fontSize:12,color:"var(--tx3)",textAlign:"center",padding:"40px 0"}}>Sin resultados para "{q}".</div>:
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:14}}>
+      {filtrados.map((c,i)=>{
+        const tilts=[-1,1,-.6,.8,-.4,.6];
+        const ivaE=estadoPeriodo(carteraIva,c),impE=estadoPeriodo(carteraImposiciones,c);
+        return(<div key={c.id} onClick={()=>{setSelId(c.id);setVw("detalle")}} className="rd-hover-lift rd-tilt" style={{"--tilt":tilts[i%6]+"deg",cursor:"pointer",background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:18,opacity:c.activo?1:.55}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+            <div style={{minWidth:0}}>
+              <div style={{fontSize:14,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.nombre}</div>
+              <div style={{fontSize:11,color:"var(--tx3)",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",marginTop:2}}>{c.rut||"Sin RUT"}</div>
+            </div>
+            <Tg c={c.tipo==="Persona"?"var(--pu)":"var(--cy)"}>{c.tipo}</Tg>
+          </div>
+          {c.responsable&&<div style={{fontSize:11,color:"var(--tx3)",marginTop:10}}>Responsable: {c.responsable}</div>}
+          <div style={{display:"flex",gap:6,marginTop:12,flexWrap:"wrap"}}>
+            {c.servicios?.iva&&<span style={{fontSize:9,fontWeight:600,padding:"3px 8px",borderRadius:10,background:estColorCartera(ivaE)+"18",color:estColorCartera(ivaE)}}>IVA {ivaE||"Pendiente"}</span>}
+            {c.servicios?.imposiciones&&<span style={{fontSize:9,fontWeight:600,padding:"3px 8px",borderRadius:10,background:estColorCartera(impE)+"18",color:estColorCartera(impE)}}>Imposic. {impE||"Pendiente"}</span>}
+            {c.servicios?.renta&&<span style={{fontSize:9,fontWeight:600,padding:"3px 8px",borderRadius:10,background:"var(--sf2)",color:"var(--tx3)"}}>Renta</span>}
+            {c.servicios?.tramites&&<span style={{fontSize:9,fontWeight:600,padding:"3px 8px",borderRadius:10,background:"var(--sf2)",color:"var(--tx3)"}}>Tramites</span>}
+          </div>
+        </div>);
+      })}
+    </div>}
+  </div>);
+}
+
+function CarteraClienteDetalle({cliente,setCarteraClientes,carteraIva,setCarteraIva,carteraImposiciones,setCarteraImposiciones,carteraRenta,setCarteraRenta,carteraHonorarios,setCarteraHonorarios,carteraTramites,setCarteraTramites,onBack,onDelete,aLog}){
+  const [tab,setTab]=useState("resumen");
+  const [editing,setEditing]=useState(false);
+  const [fm,setFm]=useState(cliente);
+  useEffect(()=>{setFm(cliente)},[cliente.id]);
+
+  const tabs=[{id:"resumen",l:"Resumen"},{id:"iva",l:"IVA Mensual"},{id:"imposiciones",l:"Imposiciones"},{id:"renta",l:"Renta Anual"},{id:"honorarios",l:"Honorarios"},{id:"tramites",l:"Tramites"}];
+
+  const miIva=useMemo(()=>carteraIva.filter(x=>x.clienteId===cliente.id).sort((a,b)=>b.periodo.localeCompare(a.periodo)),[carteraIva,cliente.id]);
+  const miImp=useMemo(()=>carteraImposiciones.filter(x=>x.clienteId===cliente.id).sort((a,b)=>b.periodo.localeCompare(a.periodo)),[carteraImposiciones,cliente.id]);
+  const miRenta=useMemo(()=>carteraRenta.filter(x=>x.clienteId===cliente.id).sort((a,b)=>(b.anio||0)-(a.anio||0)),[carteraRenta,cliente.id]);
+  const miHon=useMemo(()=>carteraHonorarios.filter(x=>x.clienteId===cliente.id).sort((a,b)=>b.periodo.localeCompare(a.periodo)),[carteraHonorarios,cliente.id]);
+  const miTram=useMemo(()=>carteraTramites.filter(x=>x.clienteId===cliente.id).sort((a,b)=>(b.fechaSolicitud||"").localeCompare(a.fechaSolicitud||"")),[carteraTramites,cliente.id]);
+
+  const saveEdit=()=>{if(!fm.nombre?.trim()){rdAlert("Falta el nombre del cliente");return}setCarteraClientes(p=>p.map(x=>x.id===cliente.id?{...fm}:x));aLog("Cliente actualizado en Cartera",fm.nombre);setEditing(false)};
+
+  const addIva=()=>{
+    const periodo=periodoActualCartera();
+    if(miIva.some(x=>x.periodo===periodo)){rdAlert("Ya existe un registro de IVA para "+labelPeriodoCorto(periodo)+". Editalo en la tabla.");return}
+    setCarteraIva(p=>[...p,{id:uid(),clienteId:cliente.id,periodo,estado:"Pendiente",vencimiento:"",notas:""}]);
+  };
+  const addImp=()=>{
+    const periodo=periodoActualCartera();
+    if(miImp.some(x=>x.periodo===periodo)){rdAlert("Ya existe un registro de Imposiciones para "+labelPeriodoCorto(periodo)+". Editalo en la tabla.");return}
+    setCarteraImposiciones(p=>[...p,{id:uid(),clienteId:cliente.id,periodo,estado:"Pendiente",monto:"",notas:""}]);
+  };
+  const addRenta=()=>{
+    const anio=new Date().getFullYear();
+    if(miRenta.some(x=>x.anio===anio)){rdAlert("Ya existe un registro de Renta para el año tributario "+anio+". Editalo en la tabla.");return}
+    setCarteraRenta(p=>[...p,{id:uid(),clienteId:cliente.id,anio,fechaInicio:"",fechaBorrador:"",fechaFinal:"",resultado:"Pendiente",monto:"",folioSii:"",estado:"Pendiente",observaciones:""}]);
+  };
+  const addHon=()=>{
+    const periodo=periodoActualCartera();
+    if(miHon.some(x=>x.periodo===periodo)){rdAlert("Ya existe un registro de Honorarios para "+labelPeriodoCorto(periodo)+". Editalo en la tabla.");return}
+    setCarteraHonorarios(p=>[...p,{id:uid(),clienteId:cliente.id,periodo,facturado:"",cobrado:""}]);
+  };
+  const addTram=()=>setCarteraTramites(p=>[...p,{id:uid(),clienteId:cliente.id,fechaSolicitud:new Date().toISOString().slice(0,10),tipo:"",detalle:"",organismo:"",fechaCompromiso:"",fechaRealizado:"",estado:"Pendiente",observaciones:""}]);
+  const delRow=async(setCol,row,etiqueta)=>{if(!await rdConfirm("Eliminar este registro de "+etiqueta+"?",{okLabel:"Eliminar"}))return;setCol(p=>p.filter(x=>x.id!==row.id))};
+
+  const totHonFact=miHon.reduce((s,h)=>s+(+h.facturado||0),0);
+  const totHonCobr=miHon.reduce((s,h)=>s+(+h.cobrado||0),0);
+  const hoyAnio=new Date().getFullYear(),hoyPeriodo=periodoActualCartera();
+
+  return(<div style={{maxWidth:900,margin:"0 auto"}}>
+    <Bk onClick={onBack}>Volver a Cartera</Bk>
+
+    <div style={{background:"linear-gradient(135deg,var(--cy-fill),#F2F6D9)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20,marginBottom:16,display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+      <div style={{width:56,height:56,borderRadius:14,background:"var(--sf)",border:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:700,color:"#1B4D2E",flexShrink:0}}>{(cliente.nombre||"?").slice(0,2).toUpperCase()}</div>
+      <div style={{minWidth:0,flex:1}}>
+        <div style={{fontSize:18,fontWeight:700,color:"#1B4D2E"}}>{cliente.nombre}</div>
+        <div style={{fontSize:12,color:"#4A4836",marginTop:2}}>{[cliente.tipo,cliente.rut,cliente.responsable].filter(Boolean).join(" · ")}</div>
+      </div>
+      <span style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:.4,padding:"5px 12px",borderRadius:999,background:cliente.activo!==false?"#1B4D2E":"var(--sf)",color:cliente.activo!==false?"var(--cy-fill)":"var(--tx3)",flexShrink:0}}>{cliente.activo!==false?"Activo":"Inactivo"}</span>
+      <Bt onClick={()=>{setFm(cliente);setEditing(e=>!e)}}>Editar</Bt>
+    </div>
+
+    {editing&&<div className="rd-pop-in" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20,marginBottom:20}}>
+      <Sc t="Editar Cliente">
+        <FG>
+          <Fi l="Nombre / Razon Social *" v={fm.nombre} s={v=>setFm(p=>({...p,nombre:v}))}/>
+          <Fi l="RUT" v={fm.rut} s={v=>setFm(p=>({...p,rut:v}))}/>
+          <Se l="Tipo" v={fm.tipo} s={v=>setFm(p=>({...p,tipo:v}))} opts={["Empresa","Persona"]}/>
+          <Fi l="Responsable" v={fm.responsable} s={v=>setFm(p=>({...p,responsable:v}))}/>
+          <Fi l="Telefono" v={fm.telefono} s={v=>setFm(p=>({...p,telefono:v}))}/>
+          <Fi l="Correo" v={fm.correo} s={v=>setFm(p=>({...p,correo:v}))}/>
+          <Fi l="Fecha Ingreso" t="date" v={fm.fechaIngreso} s={v=>setFm(p=>({...p,fechaIngreso:v}))}/>
+        </FG>
+        <div style={{display:"flex",gap:20,flexWrap:"wrap",marginTop:18}}>
+          <Sw checked={!!fm.servicios?.iva} onChange={v=>setFm(p=>({...p,servicios:{...p.servicios,iva:v}}))} label="IVA Mensual"/>
+          <Sw checked={!!fm.servicios?.imposiciones} onChange={v=>setFm(p=>({...p,servicios:{...p.servicios,imposiciones:v}}))} label="Imposiciones"/>
+          <Sw checked={!!fm.servicios?.renta} onChange={v=>setFm(p=>({...p,servicios:{...p.servicios,renta:v}}))} label="Renta Anual"/>
+          <Sw checked={!!fm.servicios?.tramites} onChange={v=>setFm(p=>({...p,servicios:{...p.servicios,tramites:v}}))} label="Tramites Puntuales"/>
+          <Sw checked={fm.activo!==false} onChange={v=>setFm(p=>({...p,activo:v}))} label="Cliente activo"/>
+        </div>
+        <div style={{marginTop:16}}><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Observaciones</label><textarea value={fm.observaciones||""} onChange={e=>setFm(p=>({...p,observaciones:e.target.value}))} style={{minHeight:70}}/></div>
+        <div style={{display:"flex",gap:10,marginTop:18,alignItems:"center"}}>
+          <Bt onClick={saveEdit} p={true}>Guardar</Bt>
+          <Bt onClick={()=>setEditing(false)}>Cancelar</Bt>
+          <button onClick={onDelete} style={{marginLeft:"auto",background:"none",border:"none",color:"var(--rd)",fontSize:12,cursor:"pointer"}}>Eliminar cliente</button>
+        </div>
+      </Sc>
+    </div>}
+
+    <div style={{display:"flex",gap:16,marginBottom:20,flexWrap:"wrap",borderBottom:"1px solid var(--bd)"}}>
+      {tabs.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{padding:"10px 2px",border:"none",borderBottom:"2px solid transparent",fontSize:12,fontWeight:tab===t.id?700:500,background:"none",color:tab===t.id?"var(--cy2)":"var(--tx3)",cursor:"pointer"}}><span style={{position:"relative"}}>{t.l}{tab===t.id&&<svg aria-hidden viewBox="0 0 100 8" preserveAspectRatio="none" style={{position:"absolute",left:0,bottom:-10,width:"100%",height:6,overflow:"visible"}}><path d="M0,5 C10,0 20,0 30,5 C40,10 50,10 60,5 C70,0 80,0 90,5 C95,7.5 98,6 100,5" fill="none" stroke="var(--cy)" strokeWidth="1.6" strokeLinecap="round"/></svg>}</span></button>)}
+    </div>
+
+    {tab==="resumen"&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:14}}>
+      <IC2 t="Contacto" items={[{l:"RUT",v:cliente.rut},{l:"Tipo",v:cliente.tipo},{l:"Responsable",v:cliente.responsable},{l:"Telefono",v:cliente.telefono},{l:"Correo",v:cliente.correo},{l:"Fecha Ingreso",v:cliente.fechaIngreso?fD(cliente.fechaIngreso):""}]}/>
+      <IC2 t={"Estado "+labelPeriodoCorto(hoyPeriodo)} items={[
+        cliente.servicios?.iva&&{l:"IVA Mensual",v:miIva.find(x=>x.periodo===hoyPeriodo)?.estado||"Pendiente"},
+        cliente.servicios?.imposiciones&&{l:"Imposiciones",v:miImp.find(x=>x.periodo===hoyPeriodo)?.estado||"Pendiente"},
+        cliente.servicios?.renta&&{l:"Renta "+hoyAnio,v:miRenta.find(x=>x.anio===hoyAnio)?.estado||"Pendiente"},
+      ].filter(Boolean)}/>
+      {cliente.observaciones&&<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20,gridColumn:"1/-1"}}><div style={{fontSize:11,fontWeight:600,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:10}}>Observaciones</div><div style={{fontSize:13,color:"var(--tx2)",whiteSpace:"pre-wrap"}}>{cliente.observaciones}</div></div>}
+    </div>}
+
+    {tab==="iva"&&(!cliente.servicios?.iva?<Ey i="➖" t="IVA Mensual no aplica a este cliente" d="Activalo en Editar si cambia."/>:<div>
+      <div style={{display:"flex",justifyContent:"flex-end",marginBottom:10}}><Bt onClick={addIva}>+ Periodo {labelPeriodoCorto(hoyPeriodo)}</Bt></div>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"auto"}}>
+        <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
+          <thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:11,color:"var(--tx3)",background:"var(--sf2)"}}><th style={{textAlign:"left",padding:"10px 14px",fontWeight:500}}>Periodo</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Estado</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Vencimiento</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Notas</th><th style={{width:36}}></th></tr></thead>
+          <tbody>{miIva.length===0?<tr><td colSpan={5} style={{padding:20,textAlign:"center",color:"var(--tx3)",fontSize:12}}>Sin periodos registrados.</td></tr>:miIva.map(r=><tr key={r.id} style={{borderBottom:"1px solid var(--bd)"}}>
+            <td style={{padding:"8px 14px",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontWeight:600}}>{labelPeriodoCorto(r.periodo)}</td>
+            <td style={{padding:8}}><TdSel v={r.estado} opts={CARTERA_ESTADOS} color={estColorCartera(r.estado)} onChange={v=>setCarteraIva(p=>p.map(x=>x.id===r.id?{...x,estado:v}:x))}/></td>
+            <td style={{padding:8}}><TdInp t="date" v={r.vencimiento} onChange={v=>setCarteraIva(p=>p.map(x=>x.id===r.id?{...x,vencimiento:v}:x))}/></td>
+            <td style={{padding:8}}><TdInp v={r.notas} ph="Notas..." onChange={v=>setCarteraIva(p=>p.map(x=>x.id===r.id?{...x,notas:v}:x))}/></td>
+            <td style={{padding:8,textAlign:"center"}}><button onClick={()=>delRow(setCarteraIva,r,"IVA")} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",fontSize:14}}>✕</button></td>
+          </tr>)}</tbody>
+        </table>
+      </div>
+    </div>)}
+
+    {tab==="imposiciones"&&(!cliente.servicios?.imposiciones?<Ey i="➖" t="Imposiciones no aplica a este cliente" d="Activalo en Editar si cambia."/>:<div>
+      <div style={{display:"flex",justifyContent:"flex-end",marginBottom:10}}><Bt onClick={addImp}>+ Periodo {labelPeriodoCorto(hoyPeriodo)}</Bt></div>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"auto"}}>
+        <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
+          <thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:11,color:"var(--tx3)",background:"var(--sf2)"}}><th style={{textAlign:"left",padding:"10px 14px",fontWeight:500}}>Periodo</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Estado</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Monto $</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Notas</th><th style={{width:36}}></th></tr></thead>
+          <tbody>{miImp.length===0?<tr><td colSpan={5} style={{padding:20,textAlign:"center",color:"var(--tx3)",fontSize:12}}>Sin periodos registrados.</td></tr>:miImp.map(r=><tr key={r.id} style={{borderBottom:"1px solid var(--bd)"}}>
+            <td style={{padding:"8px 14px",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontWeight:600}}>{labelPeriodoCorto(r.periodo)}</td>
+            <td style={{padding:8}}><TdSel v={r.estado} opts={CARTERA_ESTADOS} color={estColorCartera(r.estado)} onChange={v=>setCarteraImposiciones(p=>p.map(x=>x.id===r.id?{...x,estado:v}:x))}/></td>
+            <td style={{padding:8}}><TdInp t="number" v={r.monto} onChange={v=>setCarteraImposiciones(p=>p.map(x=>x.id===r.id?{...x,monto:v}:x))}/></td>
+            <td style={{padding:8}}><TdInp v={r.notas} ph="Notas..." onChange={v=>setCarteraImposiciones(p=>p.map(x=>x.id===r.id?{...x,notas:v}:x))}/></td>
+            <td style={{padding:8,textAlign:"center"}}><button onClick={()=>delRow(setCarteraImposiciones,r,"Imposiciones")} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",fontSize:14}}>✕</button></td>
+          </tr>)}</tbody>
+        </table>
+      </div>
+    </div>)}
+
+    {tab==="renta"&&(!cliente.servicios?.renta?<Ey i="➖" t="Renta Anual no aplica a este cliente" d="Activalo en Editar si cambia."/>:<div>
+      <div style={{display:"flex",justifyContent:"flex-end",marginBottom:10}}><Bt onClick={addRenta}>+ Año Tributario {hoyAnio}</Bt></div>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"auto"}}>
+        <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
+          <thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:11,color:"var(--tx3)",background:"var(--sf2)"}}><th style={{textAlign:"left",padding:"10px 14px",fontWeight:500}}>Año Trib.</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Resultado</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Monto $</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Folio SII</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Estado</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Observaciones</th><th style={{width:36}}></th></tr></thead>
+          <tbody>{miRenta.length===0?<tr><td colSpan={7} style={{padding:20,textAlign:"center",color:"var(--tx3)",fontSize:12}}>Sin años tributarios registrados.</td></tr>:miRenta.map(r=><tr key={r.id} style={{borderBottom:"1px solid var(--bd)"}}>
+            <td style={{padding:"8px 14px",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontWeight:600}}>{r.anio}</td>
+            <td style={{padding:8}}><TdSel v={r.resultado} opts={CARTERA_RESULTADOS_RENTA} color={estColorCartera(r.resultado)} onChange={v=>setCarteraRenta(p=>p.map(x=>x.id===r.id?{...x,resultado:v}:x))}/></td>
+            <td style={{padding:8}}><TdInp t="number" v={r.monto} onChange={v=>setCarteraRenta(p=>p.map(x=>x.id===r.id?{...x,monto:v}:x))}/></td>
+            <td style={{padding:8}}><TdInp v={r.folioSii} onChange={v=>setCarteraRenta(p=>p.map(x=>x.id===r.id?{...x,folioSii:v}:x))}/></td>
+            <td style={{padding:8}}><TdSel v={r.estado} opts={CARTERA_ESTADOS_TRAMITE} color={estColorCartera(r.estado)} onChange={v=>setCarteraRenta(p=>p.map(x=>x.id===r.id?{...x,estado:v}:x))}/></td>
+            <td style={{padding:8}}><TdInp v={r.observaciones} ph="Notas..." onChange={v=>setCarteraRenta(p=>p.map(x=>x.id===r.id?{...x,observaciones:v}:x))}/></td>
+            <td style={{padding:8,textAlign:"center"}}><button onClick={()=>delRow(setCarteraRenta,r,"Renta Anual")} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",fontSize:14}}>✕</button></td>
+          </tr>)}</tbody>
+        </table>
+      </div>
+    </div>)}
+
+    {tab==="honorarios"&&<div>
+      <div style={{display:"flex",justifyContent:"flex-end",marginBottom:10}}><Bt onClick={addHon}>+ Periodo {labelPeriodoCorto(hoyPeriodo)}</Bt></div>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"auto"}}>
+        <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
+          <thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:11,color:"var(--tx3)",background:"var(--sf2)"}}><th style={{textAlign:"left",padding:"10px 14px",fontWeight:500}}>Periodo</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Facturado $</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Cobrado $</th><th style={{textAlign:"right",padding:"10px 8px",fontWeight:500}}>Saldo</th><th style={{width:36}}></th></tr></thead>
+          <tbody>{miHon.length===0?<tr><td colSpan={5} style={{padding:20,textAlign:"center",color:"var(--tx3)",fontSize:12}}>Sin periodos registrados.</td></tr>:miHon.map(r=>{const saldo=(+r.facturado||0)-(+r.cobrado||0);return(<tr key={r.id} style={{borderBottom:"1px solid var(--bd)"}}>
+            <td style={{padding:"8px 14px",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontWeight:600}}>{labelPeriodoCorto(r.periodo)}</td>
+            <td style={{padding:8}}><TdInp t="number" v={r.facturado} onChange={v=>setCarteraHonorarios(p=>p.map(x=>x.id===r.id?{...x,facturado:v}:x))}/></td>
+            <td style={{padding:8}}><TdInp t="number" v={r.cobrado} onChange={v=>setCarteraHonorarios(p=>p.map(x=>x.id===r.id?{...x,cobrado:v}:x))}/></td>
+            <td style={{padding:8,textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:saldo>0?"var(--am)":"var(--gn)",fontWeight:600}}>${fmt(saldo)}</td>
+            <td style={{padding:8,textAlign:"center"}}><button onClick={()=>delRow(setCarteraHonorarios,r,"Honorarios")} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",fontSize:14}}>✕</button></td>
+          </tr>)})}</tbody>
+          {miHon.length>0&&<tfoot><tr style={{borderTop:"2px solid var(--bd)",fontWeight:700}}>
+            <td style={{padding:"10px 14px"}}>Total</td>
+            <td style={{padding:"10px 8px",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(totHonFact)}</td>
+            <td style={{padding:"10px 8px",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(totHonCobr)}</td>
+            <td style={{padding:"10px 8px",textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:(totHonFact-totHonCobr)>0?"var(--am)":"var(--gn)"}}>${fmt(totHonFact-totHonCobr)}</td>
+            <td/>
+          </tr></tfoot>}
+        </table>
+      </div>
+    </div>}
+
+    {tab==="tramites"&&(!cliente.servicios?.tramites?<Ey i="➖" t="Tramites Puntuales no aplica a este cliente" d="Activalo en Editar si cambia."/>:<div>
+      <div style={{display:"flex",justifyContent:"flex-end",marginBottom:10}}><Bt onClick={addTram}>+ Nuevo Tramite</Bt></div>
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        {miTram.length===0?<div style={{fontSize:12,color:"var(--tx3)",textAlign:"center",padding:"30px 0"}}>Sin tramites registrados.</div>:miTram.map(r=><div key={r.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}>
+          <FG>
+            <TdInp t="date" v={r.fechaSolicitud} onChange={v=>setCarteraTramites(p=>p.map(x=>x.id===r.id?{...x,fechaSolicitud:v}:x))}/>
+            <TdInp v={r.tipo} ph="Tipo de tramite" onChange={v=>setCarteraTramites(p=>p.map(x=>x.id===r.id?{...x,tipo:v}:x))}/>
+            <TdInp v={r.organismo} ph="Organismo (SII, Reg. Civil...)" onChange={v=>setCarteraTramites(p=>p.map(x=>x.id===r.id?{...x,organismo:v}:x))}/>
+            <TdSel v={r.estado} opts={CARTERA_ESTADOS_TRAMITE} color={estColorCartera(r.estado)} onChange={v=>setCarteraTramites(p=>p.map(x=>x.id===r.id?{...x,estado:v}:x))}/>
+          </FG>
+          <div style={{marginTop:10}}><TdInp v={r.detalle} ph="Detalle / descripcion..." onChange={v=>setCarteraTramites(p=>p.map(x=>x.id===r.id?{...x,detalle:v}:x))}/></div>
+          <div style={{display:"flex",gap:10,marginTop:10,alignItems:"center",flexWrap:"wrap"}}>
+            <span style={{fontSize:10,color:"var(--tx3)"}}>Compromiso</span><div style={{width:140}}><TdInp t="date" v={r.fechaCompromiso} onChange={v=>setCarteraTramites(p=>p.map(x=>x.id===r.id?{...x,fechaCompromiso:v}:x))}/></div>
+            <span style={{fontSize:10,color:"var(--tx3)"}}>Realizado</span><div style={{width:140}}><TdInp t="date" v={r.fechaRealizado} onChange={v=>setCarteraTramites(p=>p.map(x=>x.id===r.id?{...x,fechaRealizado:v}:x))}/></div>
+            <button onClick={()=>delRow(setCarteraTramites,r,"Tramites")} style={{marginLeft:"auto",background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",fontSize:14}}>✕ Eliminar</button>
+          </div>
+        </div>)}
+      </div>
+    </div>)}
   </div>);
 }
 
