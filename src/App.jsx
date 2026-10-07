@@ -3030,6 +3030,7 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
   const openNew=()=>{setFm(emptyF());setEid(null);setVw("form")};
   const openNewParaPeriodo=p=>{setFm({...emptyF(),periodo:p});setEid(null);setVw("form")};
   const openEdit=r=>{setFm({...emptyF(),...r});setEid(r.id);setVw("form")};
+  const openComprobante=r=>{setFm({...emptyF(),...r});setEid(r.id);setVw("comprobante")};
 
   const doSave=()=>{
     if(!fm.nombre||!fm.sueldoBase)return;
@@ -3159,6 +3160,74 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
     </div>
   </div>);
 
+  // Comprobante de solo lectura (imprimible, tipo liquidacion de sueldo
+  // real) -- separado del formulario de edicion: clickear una liquidacion
+  // en cualquier lista la abre aqui por defecto, "Editar" es una accion
+  // explicita aparte.
+  if(vw==="comprobante"){
+    const r=fm;
+    const ccNom=r.centroCosto?(ccostos||[]).find(c=>c.id===r.centroCosto)?.nombre:"";
+    const periodoLbl=(()=>{try{return new Date(r.periodo+"-01T12:00:00").toLocaleDateString("es-CL",{month:"long",year:"numeric"})}catch{return r.periodo}})();
+    const Linea=(l,v,neg)=><div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:"var(--tx2)"}}>{l}</span><span style={{fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:neg?"var(--rd)":"var(--tx)"}}>{neg?"-":""}${fmt(Math.abs(v||0))}</span></div>;
+    return(<div style={{maxWidth:700,margin:"0 auto"}}>
+      <div className="no-print" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
+        <Bk onClick={()=>setVw("list")}>Volver</Bk>
+        <div style={{display:"flex",gap:8}}>
+          <Bt onClick={()=>window.print()}>Imprimir</Bt>
+          <Bt onClick={()=>openEdit(r)} p={true}>Editar</Bt>
+        </div>
+      </div>
+      <div className="report" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden"}}>
+        <ReportHeader eObj={eObj} title="Liquidacion de Sueldo" subtitle={"Periodo "+periodoLbl}/>
+        <div style={{padding:28}}>
+          <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:16,marginBottom:24,paddingBottom:20,borderBottom:"1px solid var(--bd)"}}>
+            <div>
+              <div style={{fontSize:16,fontWeight:700}}>{r.nombre}</div>
+              <div style={{fontSize:12,color:"var(--tx3)",marginTop:2}}>{r.rut||"Sin RUT"} · {r.cargo||"Sin cargo"}{ccNom?" · "+ccNom:""}</div>
+            </div>
+            <div style={{textAlign:"right"}}>
+              <div style={{fontSize:11,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:.5}}>Periodo</div>
+              <div style={{fontSize:14,fontWeight:700,textTransform:"capitalize"}}>{periodoLbl}</div>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:28}}>
+            <div>
+              <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.5,color:"var(--cy)",marginBottom:10}}>Haberes</div>
+              <div style={{display:"flex",flexDirection:"column",gap:6,fontSize:12}}>
+                {Linea("Sueldo Base",r.sueldoBase)}
+                {r.gratificacion>0&&Linea("Gratificacion",r.gratificacion)}
+                {r.bonos>0&&Linea("Bonos",r.bonos)}
+                {r.horasExtra>0&&Linea("Horas Extra",r.horasExtra)}
+                {r.colacion>0&&Linea("Colacion",r.colacion)}
+                {r.movilizacion>0&&Linea("Movilizacion",r.movilizacion)}
+                {(r.diasSinGoce>0||r.diasLicencia>0)&&Linea("Descuento asistencia ("+(r.diasSinGoce+r.diasLicencia)+" dia"+((r.diasSinGoce+r.diasLicencia)!==1?"s":"")+")",r.descuentoAsistencia,true)}
+                <div style={{borderTop:"1px solid var(--bd)",paddingTop:6,marginTop:4,display:"flex",justifyContent:"space-between",fontWeight:700}}><span>Total Haberes</span><span style={{fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(r.totalHaberes||0)}</span></div>
+              </div>
+            </div>
+            <div>
+              <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.5,color:"var(--rd)",marginBottom:10}}>Descuentos</div>
+              <div style={{display:"flex",flexDirection:"column",gap:6,fontSize:12}}>
+                {Linea("AFP "+(r.afp||""),r.afpMonto)}
+                {Linea(r.isapre==="isapre"?"Isapre":"Salud (Fonasa 7%)",r.saludMonto)}
+                {Linea("Seguro de Cesantia",r.cesantiaTrab)}
+                {Linea("Impuesto Unico",r.impUnico)}
+                <div style={{borderTop:"1px solid var(--bd)",paddingTop:6,marginTop:4,display:"flex",justifyContent:"space-between",fontWeight:700}}><span>Total Descuentos</span><span style={{fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(r.totalDescuentos||0)}</span></div>
+              </div>
+            </div>
+          </div>
+          <div style={{marginTop:24,paddingTop:20,borderTop:"2px solid var(--bd2)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span style={{fontSize:15,fontWeight:700}}>LIQUIDO A PAGAR</span>
+            <span style={{fontSize:24,fontWeight:800,color:"var(--gn)",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(r.liquido||0)}</span>
+          </div>
+          <div style={{marginTop:16,fontSize:11,color:"var(--tx3)",display:"flex",justifyContent:"space-between"}}>
+            <span>Costo empresa (incl. SIS + cesantia empleador)</span>
+            <span style={{fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(r.costoEmpresa||0)}</span>
+          </div>
+        </div>
+      </div>
+    </div>);
+  }
+
   if(vw==="trabajadorForm"){
     const hist=tid?empRems.filter(r=>r.trabajadorId===tid).sort((a,b)=>(b.periodo||"").localeCompare(a.periodo||"")):[];
     const totLiqHist=hist.reduce((s,r)=>s+(r.liquido||0),0);
@@ -3240,7 +3309,7 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
               <span>Liquido <b style={{color:"var(--gn)"}}>${fmt(tLiqY)}</b></span>
             </div>
           </div>
-          <div style={{display:"flex",flexDirection:"column",gap:8}}>{rowsY.map(r=><div key={r.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16,cursor:"pointer"}} onClick={()=>openEdit(r)}>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>{rowsY.map(r=><div key={r.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16,cursor:"pointer"}} onClick={()=>openComprobante(r)}>
             <div style={{width:72,flexShrink:0}}><div style={{fontSize:13,fontWeight:600}}>{r.periodo}</div><div style={{fontSize:10,color:"var(--tx3)"}}>Periodo</div></div>
             <div style={{flex:1,minWidth:0}}><div style={{fontSize:12,color:"var(--tx2)"}}>Haberes ${fmt(r.totalHaberes||0)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Descuentos ${fmt(r.totalDescuentos||0)}</div></div>
             <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,color:"var(--gn)"}}>${fmt(r.liquido||0)}</div><div style={{fontSize:10,color:"var(--tx3)"}}>Liquido</div></div>
@@ -3359,7 +3428,7 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
 
       <div style={{fontSize:12,fontWeight:600,marginBottom:10,color:"var(--tx2)"}}>Liquidaciones de este periodo</div>
       {rowsP.length===0?<Ey i="👥" t="Sin liquidaciones" d="Todavia no hay liquidaciones para este periodo."><Bt onClick={()=>openNewParaPeriodo(p)} p={true}>Crear liquidacion</Bt></Ey>
-      :<div style={{display:"flex",flexDirection:"column",gap:8}}>{rowsP.map(r=><div key={r.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16,cursor:"pointer"}} onClick={()=>openEdit(r)}>
+      :<div style={{display:"flex",flexDirection:"column",gap:8}}>{rowsP.map(r=><div key={r.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16,cursor:"pointer"}} onClick={()=>openComprobante(r)}>
         <div style={{width:40,height:40,borderRadius:10,background:"var(--sf2)",border:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"var(--tx2)",flexShrink:0}}>{(r.nombre||"?").slice(0,2).toUpperCase()}</div>
         <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:600}}>{r.nombre}</div><div style={{fontSize:11,color:"var(--tx3)"}}>{r.cargo||"Sin cargo"}</div></div>
         <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,color:"var(--gn)"}}>${fmt(r.liquido||0)}</div><div style={{fontSize:10,color:"var(--tx3)"}}>Liquido</div></div>
@@ -3441,7 +3510,7 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
           {esActual&&<span style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:.4,color:"#1B4D2E",background:"var(--cy-fill)",padding:"3px 8px",borderRadius:999}}>Periodo actual</span>}
           <span style={{fontSize:11,color:"var(--tx3)"}}>{rowsP.length} liquidacion{rowsP.length!==1?"es":""} · ${fmt(totP)} liquido</span>
         </div>
-        <div style={{display:"flex",flexDirection:"column",gap:8}}>{rowsP.map(r=><div key={r.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16,cursor:"pointer"}} onClick={()=>openEdit(r)}>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>{rowsP.map(r=><div key={r.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16,cursor:"pointer"}} onClick={()=>openComprobante(r)}>
           <div style={{width:40,height:40,borderRadius:10,background:"var(--sf2)",border:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"var(--tx2)",flexShrink:0}}>{(r.nombre||"?").slice(0,2).toUpperCase()}</div>
           <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:600}}>{r.nombre}</div><div style={{fontSize:11,color:"var(--tx3)"}}>{r.cargo||"Sin cargo"}</div></div>
           <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,color:"var(--gn)"}}>${fmt(r.liquido||0)}</div><div style={{fontSize:10,color:"var(--tx3)"}}>Liquido</div></div>
