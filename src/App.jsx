@@ -732,7 +732,7 @@ function HomeP({emps,eObj,evs,log}){
 
 function EmpP({emps,setEmps,aEmp,setAEmp,aLog}){
   const [vw,setVw]=useState("list");const [eid,setEid]=useState(null);const [sr,setSr]=useState("");const [fm,setFm]=useState({});
-  const mt=()=>({name:"",rut:"",fantasyName:"",giro:"",regimen:"",fechaInicioAct:"",address:"",region:"",comuna:"",phone:"",email:"",services:[],repLegalName:"",repLegalRut:""});
+  const mt=()=>({name:"",rut:"",fantasyName:"",giro:"",regimen:"",fechaInicioAct:"",address:"",region:"",comuna:"",phone:"",email:"",services:[],repLegalName:"",repLegalRut:"",tasaMutual:0.93});
   const tSvc=s=>setFm(p=>({...p,services:p.services.includes(s)?p.services.filter(x=>x!==s):[...p.services,s]}));
   const doSave=()=>{if(!fm.rut||!fm.name)return;if(eid){setEmps(p=>p.map(e=>e.id===eid?{...e,...fm}:e));aLog("Empresa actualizada",fm.name)}else{const n={id:uid(),...fm};setEmps(p=>[...p,n]);if(!aEmp)setAEmp(n.id);aLog("Empresa creada",fm.name)}setVw("list")};
   const doDel=id=>{const e=emps.find(x=>x.id===id);setEmps(p=>p.filter(x=>x.id!==id));if(aEmp===id)setAEmp(emps.find(x=>x.id!==id)?.id||null);aLog("Empresa eliminada",e?.name||"");setVw("list")};
@@ -745,13 +745,16 @@ function EmpP({emps,setEmps,aEmp,setAEmp,aLog}){
   if(vw==="detail"&&det)return(<div style={{maxWidth:900,margin:"0 auto"}}><Bk onClick={()=>setVw("list")}>Volver</Bk>
     <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28,marginBottom:16}}><div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap",gap:16}}><div><div style={{fontSize:22,fontWeight:700,letterSpacing:-.3,lineHeight:1.15}}>{det.name}</div><div style={{fontSize:12,color:"var(--tx3)",marginTop:4}}>{det.rut}</div></div><div style={{display:"flex",gap:8}}><Bt onClick={()=>{setFm({...mt(),...det});setEid(det.id);setVw("form")}}>{IC.edit} Editar</Bt><Bt onClick={()=>{setAEmp(det.id);aLog("Empresa activada",det.name)}} p={det.id!==aEmp}>{det.id===aEmp?"Activa":"Activar"}</Bt></div></div>
       <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:20}}>{(det.services||[]).map(s=>{const sv=SVCS.find(x=>x.id===s);return sv?<Tg key={s} c={sv.color}>{sv.icon} {sv.label}</Tg>:null})}</div></div>
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:16}}><IC2 t="General" items={[{l:"Giro",v:det.giro},{l:"Regimen",v:det.regimen},{l:"Inicio Act.",v:det.fechaInicioAct}]}/><IC2 t="Contacto" items={[{l:"Direccion",v:det.address},{l:"Region/Comuna",v:[det.region,det.comuna].filter(Boolean).join(", ")},{l:"Telefono",v:det.phone},{l:"Email",v:det.email}]}/><IC2 t="Rep. Legal" items={[{l:"Nombre",v:det.repLegalName},{l:"RUT",v:det.repLegalRut}]}/></div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:16}}><IC2 t="General" items={[{l:"Giro",v:det.giro},{l:"Regimen",v:det.regimen},{l:"Inicio Act.",v:det.fechaInicioAct}]}/><IC2 t="Contacto" items={[{l:"Direccion",v:det.address},{l:"Region/Comuna",v:[det.region,det.comuna].filter(Boolean).join(", ")},{l:"Telefono",v:det.phone},{l:"Email",v:det.email}]}/><IC2 t="Rep. Legal" items={[{l:"Nombre",v:det.repLegalName},{l:"RUT",v:det.repLegalRut}]}/><IC2 t="Previsional" items={[{l:"Tasa Seg. Accidentes (ISL/Mutual)",v:(det.tasaMutual??0.93)+"%"}]}/></div>
     <div style={{marginTop:24,padding:"16px 20px",borderRadius:"var(--rs)",border:"1px solid rgba(239,68,68,.2)",background:"rgba(239,68,68,.05)",display:"flex",alignItems:"center",justifyContent:"space-between"}}><div style={{fontSize:12,fontWeight:600,color:"var(--rd)"}}>Eliminar empresa</div><button onClick={async()=>{if(await rdConfirm("Eliminar esta empresa?"))doDel(det.id)}} style={{background:"transparent",border:"1px solid var(--rd)",color:"var(--rd)",borderRadius:"var(--rs)",padding:"6px 16px",fontSize:12}}>Eliminar</button></div>
   </div>);
   return(<div style={{maxWidth:700,margin:"0 auto"}}><Bk onClick={()=>setVw("list")}>Volver</Bk>
     <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28}}><h2 style={{fontSize:18,fontWeight:700,marginBottom:24}}>{eid?"Editar":"Nueva"} Empresa</h2>
       <Sc t="Identificacion"><FG><Fi l="Razon Social *" v={fm.name} s={v=>setFm(p=>({...p,name:v}))}/><Fi l="RUT *" v={fm.rut} s={v=>setFm(p=>({...p,rut:v}))}/><Fi l="Fantasía" v={fm.fantasyName} s={v=>setFm(p=>({...p,fantasyName:v}))}/><Fi l="Giro" v={fm.giro} s={v=>setFm(p=>({...p,giro:v}))}/></FG></Sc>
       <Sc t="Tributario"><FG><div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Regimen</label><select value={fm.regimen||""} onChange={e=>setFm(p=>({...p,regimen:e.target.value}))}><option value="">Seleccionar...</option>{REGS.map(r=><option key={r} value={r}>{r}</option>)}</select></div><Fi l="Inicio Act." v={fm.fechaInicioAct} s={v=>setFm(p=>({...p,fechaInicioAct:v}))} t="date"/></FG></Sc>
+      <Sc t="Previsional"><FG><div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Tasa Seg. Accidentes del Trabajo (ISL/Mutual) %</label><input type="number" min="0" step="0.01" value={fm.tasaMutual??0.93} onChange={e=>setFm(p=>({...p,tasaMutual:parseFloat(e.target.value)||0}))}/></div></FG>
+        <div style={{fontSize:11,color:"var(--tx3)",marginTop:-4}}>0.93% es la tasa basica de la Ley 16.744 (ISL). Si la empresa esta afiliada a una Mutual de Seguridad privada o tiene una cotizacion adicional diferenciada por siniestralidad, ajustala aqui -- es por empresa, no una tasa nacional unica como el SIS.</div>
+      </Sc>
       <Sc t="Contacto"><FG><Fi l="Direccion" v={fm.address} s={v=>setFm(p=>({...p,address:v}))}/><Fi l="Region" v={fm.region} s={v=>setFm(p=>({...p,region:v}))}/><Fi l="Comuna" v={fm.comuna} s={v=>setFm(p=>({...p,comuna:v}))}/><Fi l="Telefono" v={fm.phone} s={v=>setFm(p=>({...p,phone:v}))}/><Fi l="Email" v={fm.email} s={v=>setFm(p=>({...p,email:v}))}/></FG></Sc>
       <Sc t="Rep. Legal"><FG><Fi l="Nombre" v={fm.repLegalName} s={v=>setFm(p=>({...p,repLegalName:v}))}/><Fi l="RUT" v={fm.repLegalRut} s={v=>setFm(p=>({...p,repLegalRut:v}))}/></FG></Sc>
       <Sc t="Servicios"><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:8}}>{SVCS.map(sv=>{const on=fm.services?.includes(sv.id);return<button key={sv.id} onClick={()=>tSvc(sv.id)} style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",borderRadius:"var(--rs)",border:"1px solid "+(on?sv.color+"60":"var(--bd)"),background:on?sv.color+"10":"var(--sf2)",color:on?sv.color:"var(--tx2)",fontSize:12,fontWeight:on?600:400,textAlign:"left"}}><span style={{fontSize:18}}>{sv.icon}</span><span>{sv.label}</span>{on&&<span style={{marginLeft:"auto"}}>{IC.check}</span>}</button>})}</div></Sc>
@@ -2998,7 +3001,7 @@ function calcImpUnico(baseImponible,utm){
   return Math.round((baseImponible-90*utm)*0.304+20*utm*0.23+20*utm*0.135+20*utm*0.08+16.5*utm*0.04);
 }
 
-function calcRem(emp){
+function calcRem(emp,eObj){
   const params=getParamsPrevired();
   const sbNominal=emp.sueldoBase||0;
   // Dias sin goce de sueldo (ausencia injustificada o permiso sin goce) y
@@ -3039,12 +3042,21 @@ function calcRem(emp){
   const reformaCuentaObligatoria=Math.round(baseCotizable*params.reformaCuentaObligatoria/100);
   const expectativaVida=Math.round(baseCotizable*Math.max(0,params.reformaTopeExpectativaSis-params.sis)/100);
   const rentabilidadProtegida=Math.round(baseCotizable*params.reformaRentabilidadProtegida/100);
+  // Seguro de Accidentes del Trabajo (Ley 16.744) -- 100% de cargo del
+  // empleador, igual que las 3 cotizaciones de la reforma. A diferencia del
+  // SIS, esta tasa NO es nacional unica: depende de si la empresa esta en
+  // el ISL (tasa basica 0.93%) o en una Mutual de Seguridad privada, y
+  // puede traer una cotizacion adicional diferenciada por siniestralidad --
+  // por eso vive en la ficha de la empresa (eObj.tasaMutual), no en
+  // PARAM_PREVIRED_DEFAULT. 0.93% es el default legal para empresas nuevas
+  // (Ley 16.744 basica, confirmado contra una planilla real del ISL).
+  const segAccidentes=Math.round(baseCotizable*(eObj?.tasaMutual??0.93)/100);
   const baseImpUnico=totalImponible-afpMonto-saludMonto-cesantiaTrab;
   const impUnico=calcImpUnico(baseImpUnico,params.utm);
   const totalDescuentos=afpMonto+saludMonto+cesantiaTrab+impUnico;
   const liquido=totalHaberes-totalDescuentos;
-  const costoEmpresa=totalHaberes+cesantiaEmp+sisMonto+reformaCuentaObligatoria+expectativaVida+rentabilidadProtegida;
-  return{totalImponible,totalNoImponible,totalHaberes,afpMonto,sisMonto,saludMonto,cesantiaTrab,cesantiaEmp,reformaCuentaObligatoria,expectativaVida,rentabilidadProtegida,impUnico,baseImpUnico,totalDescuentos,liquido,costoEmpresa,topeImponible,baseCotizable,sbNominal,descuentoAsistencia,diasSinGoce,diasLicencia};
+  const costoEmpresa=totalHaberes+cesantiaEmp+sisMonto+reformaCuentaObligatoria+expectativaVida+rentabilidadProtegida+segAccidentes;
+  return{totalImponible,totalNoImponible,totalHaberes,afpMonto,sisMonto,saludMonto,cesantiaTrab,cesantiaEmp,reformaCuentaObligatoria,expectativaVida,rentabilidadProtegida,segAccidentes,impUnico,baseImpUnico,totalDescuentos,liquido,costoEmpresa,topeImponible,baseCotizable,sbNominal,descuentoAsistencia,diasSinGoce,diasLicencia};
 }
 
 const TIPOS_ASISTENCIA=[
@@ -3154,7 +3166,7 @@ function LiquidacionComprobanteCard({eObj,r,ccNombre}){
         <span style={{fontSize:24,fontWeight:800,color:"var(--gn)",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(r.liquido||0)}</span>
       </div>
       <div style={{marginTop:16,fontSize:11,color:"var(--tx3)",display:"flex",justifyContent:"space-between"}}>
-        <span>Costo empresa (incl. SIS + cesantia + reforma previsional)</span>
+        <span>Costo empresa (incl. SIS + cesantia + reforma + seg. accidentes)</span>
         <span style={{fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(r.costoEmpresa||0)}</span>
       </div>
     </div>
@@ -3369,7 +3381,7 @@ function RemP({userId,eObj,rems,setRems,empRems,trabajadores,setTrabajadores,emp
 
   const doSave=()=>{
     if(!fm.nombre||!fm.sueldoBase)return;
-    const calc=calcRem(fm);
+    const calc=calcRem(fm,eObj);
     const rec={...fm,...calc,id:eid||uid(),empresaId:eObj.id};
     if(eid){setRems(p=>p.map(r=>r.id===eid?rec:r));aLog("Liquidacion actualizada",fm.nombre)}
     else{setRems(p=>[...p,rec]);aLog("Liquidacion creada",fm.nombre)}
@@ -3411,7 +3423,8 @@ function RemP({userId,eObj,rems,setRems,empRems,trabajadores,setTrabajadores,emp
       // las imposiciones en la misma planilla Previred (ver nota en
       // PARAM_PREVIRED_DEFAULT).
       const tReforma=rows.reduce((s,r)=>s+(r.reformaCuentaObligatoria||0)+(r.expectativaVida||0)+(r.rentabilidadProtegida||0),0);
-      const tCostoPrev=rows.reduce((s,r)=>s+r.cesantiaEmp+r.sisMonto,0)+tReforma;
+      const tSegAccidentes=rows.reduce((s,r)=>s+(r.segAccidentes||0),0);
+      const tCostoPrev=rows.reduce((s,r)=>s+r.cesantiaEmp+r.sisMonto,0)+tReforma+tSegAccidentes;
       const tAFP=rows.reduce((s,r)=>s+r.afpMonto+r.sisMonto,0);
       const tSalud=rows.reduce((s,r)=>s+r.saludMonto,0);
       const tCesPagar=rows.reduce((s,r)=>s+r.cesantiaTrab+r.cesantiaEmp,0);
@@ -3423,11 +3436,12 @@ function RemP({userId,eObj,rems,setRems,empRems,trabajadores,setTrabajadores,emp
       if(tHE>0)lines.push({ac:"5.2.01.003",db:tHE,cr:0});
       if(tNI>0)lines.push({ac:"5.2.01.004",db:tNI,cr:0});
       if(tCostoPrev>0)lines.push({ac:"5.2.01.005",db:tCostoPrev,cr:0});
-      // AFP+Salud+Cesantia+Reforma van TODAS a una sola cuenta "Imposiciones
-      // por Pagar" -- en la realidad se pagan juntas en una sola planilla a
-      // Previred, asi que desglosarlas en cuentas distintas en el
-      // comprobante de centralizacion no refleja el pago real.
-      const tImposiciones=tAFP+tSalud+tCesPagar+tReforma;
+      // AFP+Salud+Cesantia+Reforma+Seg.Accidentes van TODAS a una sola
+      // cuenta "Imposiciones por Pagar" -- en la realidad se pagan juntas en
+      // una sola planilla a Previred, asi que desglosarlas en cuentas
+      // distintas en el comprobante de centralizacion no refleja el pago
+      // real.
+      const tImposiciones=tAFP+tSalud+tCesPagar+tReforma+tSegAccidentes;
       if(tImposiciones>0)lines.push({ac:"2.1.03.006",db:0,cr:tImposiciones});
       if(tImp>0)lines.push({ac:"2.1.02.003",db:0,cr:tImp});
       lines.push({ac:"2.1.03.001",db:0,cr:tLiq});
@@ -3441,7 +3455,7 @@ function RemP({userId,eObj,rems,setRems,empRems,trabajadores,setTrabajadores,emp
     rdAlert("Centralizacion creada: "+creados+" trabajador"+(creados!==1?"es":"")+(saltados>0?" ("+saltados+" ya estaban centralizados)":"")+".");
   };
 
-  const preview=fm.sueldoBase>0?calcRem(fm):null;
+  const preview=fm.sueldoBase>0?calcRem(fm,eObj):null;
 
   if(vw==="form")return(<div style={{maxWidth:700,margin:"0 auto"}}>
     <Bk onClick={()=>setVw("list")}>Volver</Bk>
@@ -3497,7 +3511,7 @@ function RemP({userId,eObj,rems,setRems,empRems,trabajadores,setTrabajadores,emp
           <div style={{color:"var(--rd)"}}>Impuesto Unico</div><div style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:"var(--rd)"}}>-${fmt(preview.impUnico)}</div>
           <div style={{fontWeight:600,color:"var(--rd)"}}>Total Descuentos</div><div style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontWeight:600,color:"var(--rd)"}}>-${fmt(preview.totalDescuentos)}</div>
           <div style={{borderTop:"2px solid var(--bd2)",paddingTop:8,fontSize:14,fontWeight:700,color:"var(--gn)"}}>LIQUIDO</div><div style={{borderTop:"2px solid var(--bd2)",paddingTop:8,textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontSize:14,fontWeight:700,color:"var(--gn)"}}>${fmt(preview.liquido)}</div>
-          <div style={{borderTop:"1px solid var(--bd)",paddingTop:8,color:"var(--tx3)",fontSize:11}}>Costo empresa (incl. SIS + cesantia + reforma)</div><div style={{borderTop:"1px solid var(--bd)",paddingTop:8,textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontSize:11,color:"var(--tx3)"}}>${fmt(preview.costoEmpresa)}</div>
+          <div style={{borderTop:"1px solid var(--bd)",paddingTop:8,color:"var(--tx3)",fontSize:11}}>Costo empresa (incl. SIS + cesantia + reforma + accidentes)</div><div style={{borderTop:"1px solid var(--bd)",paddingTop:8,textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontSize:11,color:"var(--tx3)"}}>${fmt(preview.costoEmpresa)}</div>
         </div>
       </div>}
 
