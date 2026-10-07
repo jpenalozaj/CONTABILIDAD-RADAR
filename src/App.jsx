@@ -2955,9 +2955,26 @@ function B8Col({empEntries,accts,leafAccts,eObj,irACuenta}){
 // parametros reales (boton "Actualizar" en Remuneraciones > Parametros
 // Previsionales, que trae UF/UTM del dia desde mindicador.cl o las tasas
 // AFP desde el informe mensual de Previred via el puente local).
+// Reforma de Pensiones (Ley 21.735) -- a diferencia de UF/UTM/tasas AFP (que
+// se auto-actualizan desde fuentes externas), estas tasas no tienen hoy una
+// fuente de auto-fetch en RADAR y la ley las sube en tramos (igual criterio
+// que la tasa de Honorarios): quedan editables a mano en Parametros
+// Previsionales, nunca hardcodeadas sin mas. Confirmado con una planilla
+// real pagada de Previred (agosto 2026, Inmobiliaria Cruzero):
+//  - Cotizacion Expectativa de Vida + SIS = reformaTopeExpectativaSis (2.5%)
+//    siempre -- la tasa de Expectativa de Vida es lo que sobra de ese tope
+//    una vez descontado el SIS real de la AFP del trabajador, no es un
+//    numero fijo.
+//  - reformaRentabilidadProtegida: 0.9% desde agosto 2026, sube a 1.5% en
+//    agosto 2027 (unica de las 3 con alza ya anunciada a una fecha fija).
+//  - reformaCuentaObligatoria: 0.1% adicional, se declara junto con la
+//    cotizacion obligatoria AFP (campo 28 del archivo Previred) pero es de
+//    cargo del empleador, igual que las otras dos -- NINGUNA de las 3 se
+//    descuenta del trabajador ni resta del liquido, solo suman costoEmpresa.
 const PARAM_PREVIRED_DEFAULT={
   uf:38500,utm:67000,topeImponibleUF:87.8,actualizadoUfUtm:null,actualizadoAfp:null,
   afp:{capital:{r:11.44,sis:1.85},cuprum:{r:11.44,sis:1.85},habitat:{r:11.27,sis:1.85},modelo:{r:10.58,sis:1.85},planvital:{r:11.16,sis:1.85},provida:{r:11.45,sis:1.85},uno:{r:10.49,sis:1.85}},
+  reformaCuentaObligatoria:0.1,reformaTopeExpectativaSis:2.5,reformaRentabilidadProtegida:0.9,
 };
 function getParamsPrevired(){const p=ld("rd_param_previred",null);return p?{...PARAM_PREVIRED_DEFAULT,...p,afp:{...PARAM_PREVIRED_DEFAULT.afp,...(p.afp||{})}}:PARAM_PREVIRED_DEFAULT}
 const AFP_RATES=PARAM_PREVIRED_DEFAULT.afp; // fallback para listar opciones del selector
@@ -3004,12 +3021,20 @@ function calcRem(emp){
   const saludMonto=Math.round(baseCotizable*SALUD_RATE);
   const cesantiaTrab=Math.round(baseCotizable*CESANTIA_TRAB);
   const cesantiaEmp=Math.round(baseCotizable*(emp.contratoTipo==="fijo"?CESANTIA_EMP_FIJO:CESANTIA_EMP_INDEF));
+  // Reforma de Pensiones (Ley 21.735) -- 100% de cargo del empleador, NUNCA
+  // se descuentan del trabajador ni restan del liquido (confirmado contra
+  // una planilla real pagada de Previred, ver nota junto a
+  // PARAM_PREVIRED_DEFAULT). Expectativa de Vida no es una tasa fija: es lo
+  // que falta para llegar al tope combinado con el SIS real de esa AFP.
+  const reformaCuentaObligatoria=Math.round(baseCotizable*params.reformaCuentaObligatoria/100);
+  const expectativaVida=Math.round(baseCotizable*Math.max(0,params.reformaTopeExpectativaSis-afpRate.sis)/100);
+  const rentabilidadProtegida=Math.round(baseCotizable*params.reformaRentabilidadProtegida/100);
   const baseImpUnico=totalImponible-afpMonto-saludMonto-cesantiaTrab;
   const impUnico=calcImpUnico(baseImpUnico,params.utm);
   const totalDescuentos=afpMonto+saludMonto+cesantiaTrab+impUnico;
   const liquido=totalHaberes-totalDescuentos;
-  const costoEmpresa=totalHaberes+cesantiaEmp+sisMonto;
-  return{totalImponible,totalNoImponible,totalHaberes,afpMonto,sisMonto,saludMonto,cesantiaTrab,cesantiaEmp,impUnico,baseImpUnico,totalDescuentos,liquido,costoEmpresa,topeImponible,baseCotizable,sbNominal,descuentoAsistencia,diasSinGoce,diasLicencia};
+  const costoEmpresa=totalHaberes+cesantiaEmp+sisMonto+reformaCuentaObligatoria+expectativaVida+rentabilidadProtegida;
+  return{totalImponible,totalNoImponible,totalHaberes,afpMonto,sisMonto,saludMonto,cesantiaTrab,cesantiaEmp,reformaCuentaObligatoria,expectativaVida,rentabilidadProtegida,impUnico,baseImpUnico,totalDescuentos,liquido,costoEmpresa,topeImponible,baseCotizable,sbNominal,descuentoAsistencia,diasSinGoce,diasLicencia};
 }
 
 const TIPOS_ASISTENCIA=[
@@ -3119,7 +3144,7 @@ function LiquidacionComprobanteCard({eObj,r,ccNombre}){
         <span style={{fontSize:24,fontWeight:800,color:"var(--gn)",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(r.liquido||0)}</span>
       </div>
       <div style={{marginTop:16,fontSize:11,color:"var(--tx3)",display:"flex",justifyContent:"space-between"}}>
-        <span>Costo empresa (incl. SIS + cesantia empleador)</span>
+        <span>Costo empresa (incl. SIS + cesantia + reforma previsional)</span>
         <span style={{fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(r.costoEmpresa||0)}</span>
       </div>
     </div>
@@ -3371,7 +3396,12 @@ function RemP({userId,eObj,rems,setRems,empRems,trabajadores,setTrabajadores,emp
       const tGrat=rows.reduce((s,r)=>s+r.gratificacion,0);
       const tHE=rows.reduce((s,r)=>s+r.horasExtra,0);
       const tNI=rows.reduce((s,r)=>s+r.totalNoImponible,0);
-      const tCostoPrev=rows.reduce((s,r)=>s+r.cesantiaEmp+r.sisMonto,0);
+      // Reforma de Pensiones (Ley 21.735): 100% de cargo del empleador, se
+      // suman al mismo gasto previsional y se pagan junto con el resto de
+      // las imposiciones en la misma planilla Previred (ver nota en
+      // PARAM_PREVIRED_DEFAULT).
+      const tReforma=rows.reduce((s,r)=>s+(r.reformaCuentaObligatoria||0)+(r.expectativaVida||0)+(r.rentabilidadProtegida||0),0);
+      const tCostoPrev=rows.reduce((s,r)=>s+r.cesantiaEmp+r.sisMonto,0)+tReforma;
       const tAFP=rows.reduce((s,r)=>s+r.afpMonto+r.sisMonto,0);
       const tSalud=rows.reduce((s,r)=>s+r.saludMonto,0);
       const tCesPagar=rows.reduce((s,r)=>s+r.cesantiaTrab+r.cesantiaEmp,0);
@@ -3383,11 +3413,11 @@ function RemP({userId,eObj,rems,setRems,empRems,trabajadores,setTrabajadores,emp
       if(tHE>0)lines.push({ac:"5.2.01.003",db:tHE,cr:0});
       if(tNI>0)lines.push({ac:"5.2.01.004",db:tNI,cr:0});
       if(tCostoPrev>0)lines.push({ac:"5.2.01.005",db:tCostoPrev,cr:0});
-      // AFP+Salud+Cesantia van TODAS a una sola cuenta "Imposiciones por
-      // Pagar" -- en la realidad se pagan juntas en una sola planilla a
-      // Previred, asi que desglosarlas en 3 cuentas distintas en el
+      // AFP+Salud+Cesantia+Reforma van TODAS a una sola cuenta "Imposiciones
+      // por Pagar" -- en la realidad se pagan juntas en una sola planilla a
+      // Previred, asi que desglosarlas en cuentas distintas en el
       // comprobante de centralizacion no refleja el pago real.
-      const tImposiciones=tAFP+tSalud+tCesPagar;
+      const tImposiciones=tAFP+tSalud+tCesPagar+tReforma;
       if(tImposiciones>0)lines.push({ac:"2.1.03.006",db:0,cr:tImposiciones});
       if(tImp>0)lines.push({ac:"2.1.02.003",db:0,cr:tImp});
       lines.push({ac:"2.1.03.001",db:0,cr:tLiq});
@@ -3457,7 +3487,7 @@ function RemP({userId,eObj,rems,setRems,empRems,trabajadores,setTrabajadores,emp
           <div style={{color:"var(--rd)"}}>Impuesto Unico</div><div style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:"var(--rd)"}}>-${fmt(preview.impUnico)}</div>
           <div style={{fontWeight:600,color:"var(--rd)"}}>Total Descuentos</div><div style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontWeight:600,color:"var(--rd)"}}>-${fmt(preview.totalDescuentos)}</div>
           <div style={{borderTop:"2px solid var(--bd2)",paddingTop:8,fontSize:14,fontWeight:700,color:"var(--gn)"}}>LIQUIDO</div><div style={{borderTop:"2px solid var(--bd2)",paddingTop:8,textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontSize:14,fontWeight:700,color:"var(--gn)"}}>${fmt(preview.liquido)}</div>
-          <div style={{borderTop:"1px solid var(--bd)",paddingTop:8,color:"var(--tx3)",fontSize:11}}>Costo empresa (incl. SIS + cesantia emp.)</div><div style={{borderTop:"1px solid var(--bd)",paddingTop:8,textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontSize:11,color:"var(--tx3)"}}>${fmt(preview.costoEmpresa)}</div>
+          <div style={{borderTop:"1px solid var(--bd)",paddingTop:8,color:"var(--tx3)",fontSize:11}}>Costo empresa (incl. SIS + cesantia + reforma)</div><div style={{borderTop:"1px solid var(--bd)",paddingTop:8,textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontSize:11,color:"var(--tx3)"}}>${fmt(preview.costoEmpresa)}</div>
         </div>
       </div>}
 
@@ -3773,6 +3803,18 @@ function RemP({userId,eObj,rems,setRems,empRems,trabajadores,setTrabajadores,emp
       <div className="rd-hover-lift rd-tilt" style={{"--tilt":"-1.25deg","--tilty":"6px",background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4,fontWeight:600}}>Trabajadores</div><div style={{fontSize:22,fontWeight:800,letterSpacing:-.3,lineHeight:1.2}}>{empTrabajadores.length}</div></div>
       <div className="rd-hover-lift rd-tilt" style={{"--tilt":"1.25deg","--tilty":"-4px",background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4,fontWeight:600}}>UF / UTM vigente</div><div style={{fontSize:15,fontWeight:700,letterSpacing:-.2,lineHeight:1.3,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(params.uf)} · ${fmt(params.utm)}</div></div>
     </div>
+
+    <details style={{marginBottom:24}}>
+      <summary style={{cursor:"pointer",fontSize:12,fontWeight:600,color:"var(--tx3)",padding:"4px 0"}}>Parametros de la Reforma Previsional (Ley 21.735)</summary>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,marginTop:8}}>
+        <div style={{fontSize:11,color:"var(--tx3)",marginBottom:12}}>A diferencia de UF/UTM/tasas AFP (que se actualizan solas), estas tasas no tienen hoy una fuente automatica en RADAR y la ley las sube en tramos -- editalas aqui cuando cambien. Todas son 100% de cargo del empleador, nunca se descuentan del trabajador.</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:12}}>
+          <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Cuenta obligatoria adicional %</label><input type="number" min="0" step="0.01" value={params.reformaCuentaObligatoria} onChange={e=>setParams({...params,reformaCuentaObligatoria:parseFloat(e.target.value)||0})}/></div>
+          <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Tope Expectativa de Vida + SIS %</label><input type="number" min="0" step="0.01" value={params.reformaTopeExpectativaSis} onChange={e=>setParams({...params,reformaTopeExpectativaSis:parseFloat(e.target.value)||0})}/></div>
+          <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Rentabilidad Protegida %</label><input type="number" min="0" step="0.01" value={params.reformaRentabilidadProtegida} onChange={e=>setParams({...params,reformaRentabilidadProtegida:parseFloat(e.target.value)||0})}/></div>
+        </div>
+      </div>
+    </details>
 
     <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:24}}>
       {accionesModulo.map(a=><button key={a.id} onClick={a.onClick} className="rd-hover-lift" style={{display:"flex",alignItems:"center",gap:10,padding:"12px 16px",borderRadius:"var(--r)",border:"1px solid var(--bd)",background:"var(--sf)",cursor:"pointer",textAlign:"left",flex:"1 1 180px",minWidth:160}}>
