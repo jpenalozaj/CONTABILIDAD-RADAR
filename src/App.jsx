@@ -4460,6 +4460,7 @@ const CARTERA_RESULTADOS_RENTA=["Pendiente","Por Pagar","Devolucion","Sin Movimi
 const MESES_CORTOS=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 const periodoActualCartera=()=>new Date().toISOString().slice(0,7);
 const labelPeriodoCorto=p=>{const[y,m]=(p||"").split("-");return m?MESES_CORTOS[+m-1]+" "+y:(p||"")};
+const shiftPeriodoCartera=(p,n)=>{const[y,m]=p.split("-").map(Number);const d=new Date(y,m-1+n,1);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")};
 const estColorCartera=e=>({Pendiente:"var(--rd)","En Proceso":"var(--am)",Completado:"var(--gn)","No Aplica":"var(--tx3)",Realizado:"var(--gn)","Por Pagar":"var(--am)",Devolucion:"var(--gn)","Sin Movimiento":"var(--tx3)"}[e]||"var(--tx3)");
 const emptyCarteraCliente=()=>({rut:"",nombre:"",tipo:"Empresa",responsable:"",telefono:"",correo:"",fechaIngreso:"",observaciones:"",servicios:{iva:true,imposiciones:false,renta:true,tramites:false},activo:true});
 // Semilla unica (primera carga): los 16 clientes reales de Jonas, extraidos
@@ -4494,23 +4495,27 @@ function CarteraP({carteraClientes,setCarteraClientes,carteraIva,setCarteraIva,c
   const [q,setQ]=useState("");
   const [showNew,setShowNew]=useState(false);
   const [nc,setNc]=useState(emptyCarteraCliente());
-  const periodo=periodoActualCartera();
-
-  const coincide=c=>{
-    const nq=q.trim().toLowerCase();
-    if(!nq)return true;
-    if((c.nombre||"").toLowerCase().includes(nq))return true;
-    const nrq=normRut(q);
-    return nrq.length>=3&&normRut(c.rut).includes(nrq);
-  };
-  const filtrados=useMemo(()=>carteraClientes.filter(coincide),[carteraClientes,q]);
-  const sel=carteraClientes.find(c=>c.id===selId);
+  const [periodo,setPeriodo]=useState(periodoActualCartera());
+  const [filtro,setFiltro]=useState(null); // null | "iva" | "imposiciones" -- activado al clickear el KPI
 
   const estadoPeriodo=(col,c)=>col.find(x=>x.clienteId===c.id&&x.periodo===periodo)?.estado;
   const activosCli=carteraClientes.filter(c=>c.activo);
-  const ivaPend=activosCli.filter(c=>c.servicios?.iva&&!["Completado","No Aplica"].includes(estadoPeriodo(carteraIva,c))).length;
-  const impPend=activosCli.filter(c=>c.servicios?.imposiciones&&!["Completado","No Aplica"].includes(estadoPeriodo(carteraImposiciones,c))).length;
+  const pendientesIva=activosCli.filter(c=>c.servicios?.iva&&!["Completado","No Aplica"].includes(estadoPeriodo(carteraIva,c)));
+  const pendientesImp=activosCli.filter(c=>c.servicios?.imposiciones&&!["Completado","No Aplica"].includes(estadoPeriodo(carteraImposiciones,c)));
   const saldoHonorarios=carteraHonorarios.reduce((s,h)=>s+((+h.facturado||0)-(+h.cobrado||0)),0);
+
+  const coincide=c=>{
+    const nq=q.trim().toLowerCase();
+    if(nq&&!(c.nombre||"").toLowerCase().includes(nq)){
+      const nrq=normRut(q);
+      if(!(nrq.length>=3&&normRut(c.rut).includes(nrq)))return false;
+    }
+    if(filtro==="iva")return pendientesIva.includes(c);
+    if(filtro==="imposiciones")return pendientesImp.includes(c);
+    return true;
+  };
+  const filtrados=useMemo(()=>carteraClientes.filter(coincide),[carteraClientes,q,filtro,periodo,carteraIva,carteraImposiciones]);
+  const sel=carteraClientes.find(c=>c.id===selId);
 
   const addCliente=()=>{
     if(!nc.nombre.trim()){rdAlert("Falta el nombre del cliente");return}
@@ -4533,7 +4538,7 @@ function CarteraP({carteraClientes,setCarteraClientes,carteraIva,setCarteraIva,c
   if(vw==="detalle"&&sel)return<CarteraClienteDetalle cliente={sel} setCarteraClientes={setCarteraClientes} carteraIva={carteraIva} setCarteraIva={setCarteraIva} carteraImposiciones={carteraImposiciones} setCarteraImposiciones={setCarteraImposiciones} carteraRenta={carteraRenta} setCarteraRenta={setCarteraRenta} carteraHonorarios={carteraHonorarios} setCarteraHonorarios={setCarteraHonorarios} carteraTramites={carteraTramites} setCarteraTramites={setCarteraTramites} onBack={()=>{setVw("lista");setSelId(null)}} onDelete={()=>delCliente(sel)} aLog={aLog}/>;
 
   return(<div style={{maxWidth:1000,margin:"0 auto"}}>
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",gap:12,marginBottom:20,flexWrap:"wrap"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",gap:12,marginBottom:16,flexWrap:"wrap"}}>
       <div>
         <h2 style={{fontSize:20,fontWeight:700,letterSpacing:-.3,margin:0}}>Cartera de Clientes</h2>
         <div style={{fontSize:12,color:"var(--tx3)",marginTop:4}}>Gestion privada tuya — no la ven tus clientes · {carteraClientes.length} en total</div>
@@ -4544,17 +4549,37 @@ function CarteraP({carteraClientes,setCarteraClientes,carteraIva,setCarteraIva,c
       </div>
     </div>
 
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:10,marginBottom:20}}>
+    {/* Selector de mes -- todo lo de abajo (KPIs, estado IVA/Imposiciones
+        en las tarjetas) se recalcula para el periodo elegido aqui. */}
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:14,marginBottom:18}}>
+      <button onClick={()=>setPeriodo(p=>shiftPeriodoCartera(p,-1))} aria-label="Mes anterior" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center",color:"var(--tx2)",fontSize:16}}>‹</button>
+      <div style={{fontSize:16,fontWeight:700,color:"var(--cy2)",minWidth:150,textAlign:"center",textTransform:"capitalize"}}>{labelPeriodoCorto(periodo)}</div>
+      <button onClick={()=>setPeriodo(p=>shiftPeriodoCartera(p,1))} aria-label="Mes siguiente" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center",color:"var(--tx2)",fontSize:16}}>›</button>
+      {periodo!==periodoActualCartera()&&<button onClick={()=>setPeriodo(periodoActualCartera())} style={{background:"none",border:"none",color:"var(--tx3)",fontSize:11,cursor:"pointer",textDecoration:"underline"}}>Volver a hoy</button>}
+    </div>
+
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:10,marginBottom:14}}>
       {[
         {l:"Clientes activos",v:activosCli.length,c:"var(--cy)"},
-        {l:"IVA pendiente "+labelPeriodoCorto(periodo),v:ivaPend,c:ivaPend>0?"var(--am)":"var(--gn)"},
-        {l:"Imposiciones pendientes",v:impPend,c:impPend>0?"var(--am)":"var(--gn)"},
+        {key:"iva",l:"IVA pendiente",v:pendientesIva.length,c:pendientesIva.length>0?"var(--am)":"var(--gn)"},
+        {key:"imposiciones",l:"Imposiciones pendientes",v:pendientesImp.length,c:pendientesImp.length>0?"var(--am)":"var(--gn)"},
         {l:"Honorarios por cobrar",v:"$"+fmt(Math.max(0,saldoHonorarios)),c:saldoHonorarios>0?"var(--am)":"var(--gn)"},
-      ].map((k,i)=><div key={i} className="rd-hover-lift" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,minWidth:0}}>
-        <div style={{fontSize:10,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:6}}>{k.l}</div>
-        <div style={{fontSize:20,fontWeight:800,color:k.c,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",wordBreak:"break-word",overflowWrap:"anywhere"}}>{k.v}</div>
-      </div>)}
+      ].map((k,i)=>{
+        const activo=k.key&&filtro===k.key;
+        return(<div key={i} onClick={k.key?()=>setFiltro(f=>f===k.key?null:k.key):undefined} className="rd-hover-lift" style={{background:activo?"var(--cyg)":"var(--sf)",border:"1px solid "+(activo?"var(--cy)":"var(--bd)"),borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,minWidth:0,cursor:k.key?"pointer":"default"}}>
+          <div style={{fontSize:10,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:6}}>{k.l}</div>
+          <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",gap:8}}>
+            <div style={{fontSize:20,fontWeight:800,color:k.c,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",wordBreak:"break-word",overflowWrap:"anywhere"}}>{k.v}</div>
+            {k.key&&<span style={{fontSize:9,color:activo?"var(--cy2)":"var(--tx3)",whiteSpace:"nowrap"}}>{activo?"✕ quitar":"ver →"}</span>}
+          </div>
+        </div>);
+      })}
     </div>
+
+    {filtro&&<div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14,fontSize:12,color:"var(--tx2)"}}>
+      Mostrando: <strong>{filtro==="iva"?"IVA":"Imposiciones"} pendiente</strong> en {labelPeriodoCorto(periodo)}
+      <button onClick={()=>setFiltro(null)} style={{background:"none",border:"none",color:"var(--cy2)",fontSize:12,cursor:"pointer",textDecoration:"underline",padding:0}}>Quitar filtro</button>
+    </div>}
 
     {showNew&&<div className="rd-pop-in" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20,marginBottom:20}}>
       <Sc t="Nuevo Cliente">
@@ -4579,7 +4604,7 @@ function CarteraP({carteraClientes,setCarteraClientes,carteraIva,setCarteraIva,c
     </div>}
 
     {carteraClientes.length===0?<Ey i="📋" t="Sin clientes en tu cartera todavia" d="Agrega tu primer cliente para empezar a llevar IVA, Imposiciones, Renta, Honorarios y Tramites."/>:
-    filtrados.length===0?<div style={{fontSize:12,color:"var(--tx3)",textAlign:"center",padding:"40px 0"}}>Sin resultados para "{q}".</div>:
+    filtrados.length===0?<div style={{fontSize:12,color:"var(--tx3)",textAlign:"center",padding:"40px 0"}}>{filtro?"Ningun cliente con "+(filtro==="iva"?"IVA":"Imposiciones")+" pendiente en "+labelPeriodoCorto(periodo)+(q?' que coincida con "'+q+'"':"")+".":'Sin resultados para "'+q+'".'}</div>:
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:14}}>
       {filtrados.map((c,i)=>{
         const tilts=[-1,1,-.6,.8,-.4,.6];
