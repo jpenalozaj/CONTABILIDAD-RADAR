@@ -4468,6 +4468,13 @@ const MESES_CORTOS=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct",
 const periodoActualCartera=()=>new Date().toISOString().slice(0,7);
 const labelPeriodoCorto=p=>{const[y,m]=(p||"").split("-");return m?MESES_CORTOS[+m-1]+" "+y:(p||"")};
 const shiftPeriodoCartera=(p,n)=>{const[y,m]=p.split("-").map(Number);const d=new Date(y,m-1+n,1);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")};
+// IVA e Imposiciones se pagan contra MES VENCIDO: en octubre se gestiona/
+// paga lo devengado en septiembre, nunca el mes calendario en curso (ese
+// recien se paga al mes siguiente). Por eso el periodo "vigente" para estos
+// dos tramites es el mes calendario ANTERIOR, no periodoActualCartera().
+// Renta Anual (es por año tributario) y Honorarios (cobro propio) no
+// siguen esta logica -- siguen usando el mes/año calendario real.
+const periodoVencidoCartera=()=>shiftPeriodoCartera(periodoActualCartera(),-1);
 const estColorCartera=e=>({Pendiente:"var(--rd)","En Proceso":"var(--am)","Monto Enviado a Cliente":"var(--am)",DNP:"var(--pu)",Completado:"var(--gn)","No Aplica":"var(--tx3)",Realizado:"var(--gn)","Por Pagar":"var(--am)",Devolucion:"var(--gn)","Sin Movimiento":"var(--tx3)"}[e]||"var(--tx3)");
 // Version corta para las tarjetas chicas de la lista (la tabla de la ficha
 // sigue mostrando el nombre completo del estado).
@@ -4505,7 +4512,7 @@ function CarteraP({carteraClientes,setCarteraClientes,carteraIva,setCarteraIva,c
   const [q,setQ]=useState("");
   const [showNew,setShowNew]=useState(false);
   const [nc,setNc]=useState(emptyCarteraCliente());
-  const [periodo,setPeriodo]=useState(periodoActualCartera());
+  const [periodo,setPeriodo]=useState(periodoVencidoCartera());
   const [filtro,setFiltro]=useState(null); // null | "iva" | "imposiciones" -- activado al clickear el KPI
 
   const estadoPeriodo=(col,c)=>col.find(x=>x.clienteId===c.id&&x.periodo===periodo)?.estado;
@@ -4560,12 +4567,18 @@ function CarteraP({carteraClientes,setCarteraClientes,carteraIva,setCarteraIva,c
     </div>
 
     {/* Selector de mes -- todo lo de abajo (KPIs, estado IVA/Imposiciones
-        en las tarjetas) se recalcula para el periodo elegido aqui. */}
-    <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:14,marginBottom:18}}>
-      <button onClick={()=>setPeriodo(p=>shiftPeriodoCartera(p,-1))} aria-label="Mes anterior" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center",color:"var(--tx2)",fontSize:16}}>‹</button>
-      <div style={{fontSize:16,fontWeight:700,color:"var(--cy2)",minWidth:150,textAlign:"center",textTransform:"capitalize"}}>{labelPeriodoCorto(periodo)}</div>
-      <button onClick={()=>setPeriodo(p=>shiftPeriodoCartera(p,1))} aria-label="Mes siguiente" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center",color:"var(--tx2)",fontSize:16}}>›</button>
-      {periodo!==periodoActualCartera()&&<button onClick={()=>setPeriodo(periodoActualCartera())} style={{background:"none",border:"none",color:"var(--tx3)",fontSize:11,cursor:"pointer",textDecoration:"underline"}}>Volver a hoy</button>}
+        en las tarjetas) se recalcula para el periodo elegido aqui. Parte en
+        el mes vencido (el anterior al actual), no en el mes calendario de
+        hoy: IVA e Imposiciones se pagan contra mes vencido, asi que eso es
+        lo que realmente esta en tramite ahora mismo. */}
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,marginBottom:18}}>
+      <div style={{display:"flex",alignItems:"center",gap:14}}>
+        <button onClick={()=>setPeriodo(p=>shiftPeriodoCartera(p,-1))} aria-label="Mes anterior" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center",color:"var(--tx2)",fontSize:16}}>‹</button>
+        <div style={{fontSize:16,fontWeight:700,color:"var(--cy2)",minWidth:150,textAlign:"center",textTransform:"capitalize"}}>{labelPeriodoCorto(periodo)}</div>
+        <button onClick={()=>setPeriodo(p=>shiftPeriodoCartera(p,1))} aria-label="Mes siguiente" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center",color:"var(--tx2)",fontSize:16}}>›</button>
+      </div>
+      <div style={{fontSize:10,color:"var(--tx3)"}}>IVA e Imposiciones se pagan contra mes vencido{periodo!==periodoVencidoCartera()?" · mostrando otro período":""}</div>
+      {periodo!==periodoVencidoCartera()&&<button onClick={()=>setPeriodo(periodoVencidoCartera())} style={{background:"none",border:"none",color:"var(--tx3)",fontSize:11,cursor:"pointer",textDecoration:"underline"}}>Volver al período vigente</button>}
     </div>
 
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:10,marginBottom:14}}>
@@ -4657,12 +4670,12 @@ function CarteraClienteDetalle({cliente,setCarteraClientes,carteraIva,setCartera
   const saveEdit=()=>{if(!fm.nombre?.trim()){rdAlert("Falta el nombre del cliente");return}setCarteraClientes(p=>p.map(x=>x.id===cliente.id?{...fm}:x));aLog("Cliente actualizado en Cartera",fm.nombre);setEditing(false)};
 
   const addIva=()=>{
-    const periodo=periodoActualCartera();
+    const periodo=periodoVencidoCartera(); // mes vencido: se paga en octubre lo devengado en septiembre
     if(miIva.some(x=>x.periodo===periodo)){rdAlert("Ya existe un registro de IVA para "+labelPeriodoCorto(periodo)+". Editalo en la tabla.");return}
     setCarteraIva(p=>[...p,{id:uid(),clienteId:cliente.id,periodo,estado:"Pendiente",monto:"",vencimiento:"",notas:""}]);
   };
   const addImp=()=>{
-    const periodo=periodoActualCartera();
+    const periodo=periodoVencidoCartera(); // idem IVA: imposiciones se pagan contra mes vencido
     if(miImp.some(x=>x.periodo===periodo)){rdAlert("Ya existe un registro de Imposiciones para "+labelPeriodoCorto(periodo)+". Editalo en la tabla.");return}
     setCarteraImposiciones(p=>[...p,{id:uid(),clienteId:cliente.id,periodo,estado:"Pendiente",monto:"",notas:""}]);
   };
@@ -4681,7 +4694,7 @@ function CarteraClienteDetalle({cliente,setCarteraClientes,carteraIva,setCartera
 
   const totHonFact=miHon.reduce((s,h)=>s+(+h.facturado||0),0);
   const totHonCobr=miHon.reduce((s,h)=>s+(+h.cobrado||0),0);
-  const hoyAnio=new Date().getFullYear(),hoyPeriodo=periodoActualCartera();
+  const hoyAnio=new Date().getFullYear(),hoyPeriodo=periodoActualCartera(),periodoVencido=periodoVencidoCartera();
 
   return(<div style={{maxWidth:900,margin:"0 auto"}}>
     <Bk onClick={onBack}>Volver a Cartera</Bk>
@@ -4729,16 +4742,16 @@ function CarteraClienteDetalle({cliente,setCarteraClientes,carteraIva,setCartera
 
     {tab==="resumen"&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:14}}>
       <IC2 t="Contacto" items={[{l:"RUT",v:cliente.rut},{l:"Tipo",v:cliente.tipo},{l:"Responsable",v:cliente.responsable},{l:"Telefono",v:cliente.telefono},{l:"Correo",v:cliente.correo},{l:"Fecha Ingreso",v:cliente.fechaIngreso?fD(cliente.fechaIngreso):""}]}/>
-      <IC2 t={"Estado "+labelPeriodoCorto(hoyPeriodo)} items={[
-        cliente.servicios?.iva&&{l:"IVA Mensual",v:miIva.find(x=>x.periodo===hoyPeriodo)?.estado||"Pendiente"},
-        cliente.servicios?.imposiciones&&{l:"Imposiciones",v:miImp.find(x=>x.periodo===hoyPeriodo)?.estado||"Pendiente"},
+      <IC2 t={"Estado "+labelPeriodoCorto(periodoVencido)+" (mes vencido)"} items={[
+        cliente.servicios?.iva&&{l:"IVA Mensual",v:miIva.find(x=>x.periodo===periodoVencido)?.estado||"Pendiente"},
+        cliente.servicios?.imposiciones&&{l:"Imposiciones",v:miImp.find(x=>x.periodo===periodoVencido)?.estado||"Pendiente"},
         cliente.servicios?.renta&&{l:"Renta "+hoyAnio,v:miRenta.find(x=>x.anio===hoyAnio)?.estado||"Pendiente"},
       ].filter(Boolean)}/>
       {cliente.observaciones&&<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20,gridColumn:"1/-1"}}><div style={{fontSize:11,fontWeight:600,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:10}}>Observaciones</div><div style={{fontSize:13,color:"var(--tx2)",whiteSpace:"pre-wrap"}}>{cliente.observaciones}</div></div>}
     </div>}
 
     {tab==="iva"&&(!cliente.servicios?.iva?<Ey i="➖" t="IVA Mensual no aplica a este cliente" d="Activalo en Editar si cambia."/>:<div>
-      <div style={{display:"flex",justifyContent:"flex-end",marginBottom:10}}><Bt onClick={addIva}>+ Periodo {labelPeriodoCorto(hoyPeriodo)}</Bt></div>
+      <div style={{display:"flex",justifyContent:"flex-end",marginBottom:10}}><Bt onClick={addIva}>+ Periodo {labelPeriodoCorto(periodoVencido)}</Bt></div>
       <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"auto"}}>
         <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
           <thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:11,color:"var(--tx3)",background:"var(--sf2)"}}><th style={{textAlign:"left",padding:"10px 14px",fontWeight:500}}>Periodo</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500,minWidth:170}}>Estado</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Monto $</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Vencimiento</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Notas</th><th style={{width:36}}></th></tr></thead>
@@ -4755,7 +4768,7 @@ function CarteraClienteDetalle({cliente,setCarteraClientes,carteraIva,setCartera
     </div>)}
 
     {tab==="imposiciones"&&(!cliente.servicios?.imposiciones?<Ey i="➖" t="Imposiciones no aplica a este cliente" d="Activalo en Editar si cambia."/>:<div>
-      <div style={{display:"flex",justifyContent:"flex-end",marginBottom:10}}><Bt onClick={addImp}>+ Periodo {labelPeriodoCorto(hoyPeriodo)}</Bt></div>
+      <div style={{display:"flex",justifyContent:"flex-end",marginBottom:10}}><Bt onClick={addImp}>+ Periodo {labelPeriodoCorto(periodoVencido)}</Bt></div>
       <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"auto"}}>
         <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
           <thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:11,color:"var(--tx3)",background:"var(--sf2)"}}><th style={{textAlign:"left",padding:"10px 14px",fontWeight:500}}>Periodo</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500,minWidth:170}}>Estado</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Monto $</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Notas</th><th style={{width:36}}></th></tr></thead>
