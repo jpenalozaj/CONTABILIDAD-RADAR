@@ -4454,14 +4454,24 @@ function PortalP({eObj,empEntries,empDocs,empRems,eEvs,accts,leafAccts,go}){
 // "Imposiciones" original traia columnas Usuario/Clave de Previred en
 // texto plano -- eso se descarta a proposito, nunca se replica (principio
 // no-negociable del proyecto: ninguna clave real toca Supabase/RADAR).
-const CARTERA_ESTADOS=["Pendiente","En Proceso","Completado","No Aplica"];
+// Estados de IVA/Imposiciones -- calcados del flujo real del usuario (no
+// un generico "en proceso"): Pendiente (nada hecho aun) -> Monto Enviado a
+// Cliente (ya declarо/subio a Previred y le avisaste cuanto debe
+// transferir) -> Completado (ya pago) -- con DNP ("Declarada y no
+// pagada": el cliente avisa que no tiene fondos, queda pendiente de pago
+// durante el mes, mismo termino que usa el usuario) como estado paralelo,
+// y No Aplica para periodos sin movimiento/trabajadores.
+const CARTERA_ESTADOS=["Pendiente","Monto Enviado a Cliente","DNP","Completado","No Aplica"];
 const CARTERA_ESTADOS_TRAMITE=["Pendiente","En Proceso","Realizado"];
 const CARTERA_RESULTADOS_RENTA=["Pendiente","Por Pagar","Devolucion","Sin Movimiento"];
 const MESES_CORTOS=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 const periodoActualCartera=()=>new Date().toISOString().slice(0,7);
 const labelPeriodoCorto=p=>{const[y,m]=(p||"").split("-");return m?MESES_CORTOS[+m-1]+" "+y:(p||"")};
 const shiftPeriodoCartera=(p,n)=>{const[y,m]=p.split("-").map(Number);const d=new Date(y,m-1+n,1);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")};
-const estColorCartera=e=>({Pendiente:"var(--rd)","En Proceso":"var(--am)",Completado:"var(--gn)","No Aplica":"var(--tx3)",Realizado:"var(--gn)","Por Pagar":"var(--am)",Devolucion:"var(--gn)","Sin Movimiento":"var(--tx3)"}[e]||"var(--tx3)");
+const estColorCartera=e=>({Pendiente:"var(--rd)","En Proceso":"var(--am)","Monto Enviado a Cliente":"var(--am)",DNP:"var(--pu)",Completado:"var(--gn)","No Aplica":"var(--tx3)",Realizado:"var(--gn)","Por Pagar":"var(--am)",Devolucion:"var(--gn)","Sin Movimiento":"var(--tx3)"}[e]||"var(--tx3)");
+// Version corta para las tarjetas chicas de la lista (la tabla de la ficha
+// sigue mostrando el nombre completo del estado).
+const labelEstadoChip=e=>({"Monto Enviado a Cliente":"Enviado","No Aplica":"N/A"}[e]||e||"Pendiente");
 const emptyCarteraCliente=()=>({rut:"",nombre:"",tipo:"Empresa",responsable:"",telefono:"",correo:"",fechaIngreso:"",observaciones:"",servicios:{iva:true,imposiciones:false,renta:true,tramites:false},activo:true});
 // Semilla unica (primera carga): los 16 clientes reales de Jonas, extraidos
 // de la hoja "Resumen Clientes" de su planilla -- solo el registro (RUT,
@@ -4619,8 +4629,8 @@ function CarteraP({carteraClientes,setCarteraClientes,carteraIva,setCarteraIva,c
           </div>
           {c.responsable&&<div style={{fontSize:11,color:"var(--tx3)",marginTop:10}}>Responsable: {c.responsable}</div>}
           <div style={{display:"flex",gap:6,marginTop:12,flexWrap:"wrap"}}>
-            {c.servicios?.iva&&<span style={{fontSize:9,fontWeight:600,padding:"3px 8px",borderRadius:10,background:estColorCartera(ivaE)+"18",color:estColorCartera(ivaE)}}>IVA {ivaE||"Pendiente"}</span>}
-            {c.servicios?.imposiciones&&<span style={{fontSize:9,fontWeight:600,padding:"3px 8px",borderRadius:10,background:estColorCartera(impE)+"18",color:estColorCartera(impE)}}>Imposic. {impE||"Pendiente"}</span>}
+            {c.servicios?.iva&&<span style={{fontSize:9,fontWeight:600,padding:"3px 8px",borderRadius:10,background:estColorCartera(ivaE)+"18",color:estColorCartera(ivaE)}}>IVA {labelEstadoChip(ivaE)}</span>}
+            {c.servicios?.imposiciones&&<span style={{fontSize:9,fontWeight:600,padding:"3px 8px",borderRadius:10,background:estColorCartera(impE)+"18",color:estColorCartera(impE)}}>Imposic. {labelEstadoChip(impE)}</span>}
             {c.servicios?.renta&&<span style={{fontSize:9,fontWeight:600,padding:"3px 8px",borderRadius:10,background:"var(--sf2)",color:"var(--tx3)"}}>Renta</span>}
             {c.servicios?.tramites&&<span style={{fontSize:9,fontWeight:600,padding:"3px 8px",borderRadius:10,background:"var(--sf2)",color:"var(--tx3)"}}>Tramites</span>}
           </div>
@@ -4649,7 +4659,7 @@ function CarteraClienteDetalle({cliente,setCarteraClientes,carteraIva,setCartera
   const addIva=()=>{
     const periodo=periodoActualCartera();
     if(miIva.some(x=>x.periodo===periodo)){rdAlert("Ya existe un registro de IVA para "+labelPeriodoCorto(periodo)+". Editalo en la tabla.");return}
-    setCarteraIva(p=>[...p,{id:uid(),clienteId:cliente.id,periodo,estado:"Pendiente",vencimiento:"",notas:""}]);
+    setCarteraIva(p=>[...p,{id:uid(),clienteId:cliente.id,periodo,estado:"Pendiente",monto:"",vencimiento:"",notas:""}]);
   };
   const addImp=()=>{
     const periodo=periodoActualCartera();
@@ -4731,10 +4741,11 @@ function CarteraClienteDetalle({cliente,setCarteraClientes,carteraIva,setCartera
       <div style={{display:"flex",justifyContent:"flex-end",marginBottom:10}}><Bt onClick={addIva}>+ Periodo {labelPeriodoCorto(hoyPeriodo)}</Bt></div>
       <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"auto"}}>
         <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
-          <thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:11,color:"var(--tx3)",background:"var(--sf2)"}}><th style={{textAlign:"left",padding:"10px 14px",fontWeight:500}}>Periodo</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Estado</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Vencimiento</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Notas</th><th style={{width:36}}></th></tr></thead>
-          <tbody>{miIva.length===0?<tr><td colSpan={5} style={{padding:20,textAlign:"center",color:"var(--tx3)",fontSize:12}}>Sin periodos registrados.</td></tr>:miIva.map(r=><tr key={r.id} style={{borderBottom:"1px solid var(--bd)"}}>
+          <thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:11,color:"var(--tx3)",background:"var(--sf2)"}}><th style={{textAlign:"left",padding:"10px 14px",fontWeight:500}}>Periodo</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500,minWidth:170}}>Estado</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Monto $</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Vencimiento</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Notas</th><th style={{width:36}}></th></tr></thead>
+          <tbody>{miIva.length===0?<tr><td colSpan={6} style={{padding:20,textAlign:"center",color:"var(--tx3)",fontSize:12}}>Sin periodos registrados.</td></tr>:miIva.map(r=><tr key={r.id} style={{borderBottom:"1px solid var(--bd)"}}>
             <td style={{padding:"8px 14px",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontWeight:600}}>{labelPeriodoCorto(r.periodo)}</td>
             <td style={{padding:8}}><TdSel v={r.estado} opts={CARTERA_ESTADOS} color={estColorCartera(r.estado)} onChange={v=>setCarteraIva(p=>p.map(x=>x.id===r.id?{...x,estado:v}:x))}/></td>
+            <td style={{padding:8}}><TdInp t="number" v={r.monto} onChange={v=>setCarteraIva(p=>p.map(x=>x.id===r.id?{...x,monto:v}:x))}/></td>
             <td style={{padding:8}}><TdInp t="date" v={r.vencimiento} onChange={v=>setCarteraIva(p=>p.map(x=>x.id===r.id?{...x,vencimiento:v}:x))}/></td>
             <td style={{padding:8}}><TdInp v={r.notas} ph="Notas..." onChange={v=>setCarteraIva(p=>p.map(x=>x.id===r.id?{...x,notas:v}:x))}/></td>
             <td style={{padding:8,textAlign:"center"}}><button onClick={()=>delRow(setCarteraIva,r,"IVA")} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",fontSize:14}}>✕</button></td>
@@ -4747,7 +4758,7 @@ function CarteraClienteDetalle({cliente,setCarteraClientes,carteraIva,setCartera
       <div style={{display:"flex",justifyContent:"flex-end",marginBottom:10}}><Bt onClick={addImp}>+ Periodo {labelPeriodoCorto(hoyPeriodo)}</Bt></div>
       <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"auto"}}>
         <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
-          <thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:11,color:"var(--tx3)",background:"var(--sf2)"}}><th style={{textAlign:"left",padding:"10px 14px",fontWeight:500}}>Periodo</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Estado</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Monto $</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Notas</th><th style={{width:36}}></th></tr></thead>
+          <thead><tr style={{borderBottom:"1px solid var(--bd)",fontSize:11,color:"var(--tx3)",background:"var(--sf2)"}}><th style={{textAlign:"left",padding:"10px 14px",fontWeight:500}}>Periodo</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500,minWidth:170}}>Estado</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Monto $</th><th style={{textAlign:"left",padding:"10px 8px",fontWeight:500}}>Notas</th><th style={{width:36}}></th></tr></thead>
           <tbody>{miImp.length===0?<tr><td colSpan={5} style={{padding:20,textAlign:"center",color:"var(--tx3)",fontSize:12}}>Sin periodos registrados.</td></tr>:miImp.map(r=><tr key={r.id} style={{borderBottom:"1px solid var(--bd)"}}>
             <td style={{padding:"8px 14px",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontWeight:600}}>{labelPeriodoCorto(r.periodo)}</td>
             <td style={{padding:8}}><TdSel v={r.estado} opts={CARTERA_ESTADOS} color={estColorCartera(r.estado)} onChange={v=>setCarteraImposiciones(p=>p.map(x=>x.id===r.id?{...x,estado:v}:x))}/></td>
