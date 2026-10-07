@@ -62,12 +62,14 @@ radar-project/
   package.json        - Dependencias del proyecto
   vite.config.js      - Configuracion del servidor
   supabase/schema.sql - Esquema y RLS de la base de datos
+  supabase/portal_trabajador.sql - Esquema y RLS del Portal del Trabajador (opcional)
   .env.example        - Plantilla de variables de entorno
   src/
     main.jsx          - Punto de entrada
-    App.jsx           - TODA la aplicacion RADAR
+    App.jsx           - TODA la aplicacion RADAR (incluye el Portal del Trabajador, #portal)
     lib/supabaseClient.js - Cliente de Supabase
     lib/sync.js        - Carga/guardado generico de datos por usuario
+    lib/portal.js      - Invitaciones y canje de codigo del Portal del Trabajador
 
 ## Modulos incluidos
 
@@ -114,6 +116,29 @@ error), agrega la URL donde corre RADAR a Supabase: Authentication > URL
 Configuration > Redirect URLs. Agrega tanto
 `http://localhost:5173` (desarrollo) como la URL de produccion si ya
 desplegaste RADAR en algun dominio.
+
+### Portal del Trabajador (opcional)
+
+Cada trabajador puede tener su propia cuenta (distinta de la tuya) para ver
+solo sus liquidaciones ya marcadas "Pagado" — nunca el resto de la empresa.
+Para activarlo:
+
+1. En el SQL Editor de Supabase, pega y ejecuta `supabase/portal_trabajador.sql`
+   (requiere que `schema.sql` ya este aplicado).
+2. En Remuneraciones > ficha del trabajador, boton "Invitar" bajo "Portal
+   del trabajador" — genera un codigo de un solo uso. Entregaselo al
+   trabajador fuera de RADAR (de palabra, WhatsApp, etc.).
+3. El trabajador entra a tu URL de RADAR agregando `#portal` al final
+   (ej. `http://localhost:5173/#portal`), crea su propia cuenta, y canjea
+   el codigo una sola vez para activar su acceso.
+
+Como el trabajador usa el mismo navegador/Supabase Auth, si ya tienes tu
+propia sesion abierta como contador en ese navegador debes cerrarla primero
+(o usar otra ventana/navegador) antes de que el trabajador inicie la suya.
+
+**No se pudo probar este flujo contra una base de datos real en esta
+sesion** (sandbox sin credenciales de Supabase) — pruebalo con un
+trabajador de prueba antes de confiar en el con datos reales.
 
 ## Notas
 

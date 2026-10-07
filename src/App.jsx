@@ -5,6 +5,7 @@ import { normRut } from "./lib/rut";
 import { parseCartolaSantander, decodeRutFromGlosa } from "./lib/cartola";
 import { yaContabilizado, sugerirContraparte, armarAsiento, buscarReglaPorRut, buscarReglaPorPalabra } from "./lib/conciliacion";
 import writeXlsxFile from "write-excel-file/browser";
+import { listarInvitaciones, crearInvitacion, revocarInvitacion, reactivarInvitacion, canjearCodigoPortal, obtenerMiVinculo, cargarDatosPortal } from "./lib/portal";
 
 const ST = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;0,700;1,600&display=swap');
@@ -399,7 +400,7 @@ function Dashboard({session}){
         {pg==="empresas"&&<EmpP emps={emps} setEmps={setEmps} aEmp={aEmp} setAEmp={setAEmp} aLog={aLog}/>}
         {pg==="radar"&&<RadP eObj={eObj} evs={evs} setEvs={setEvs} eEvs={eEvs} aLog={aLog} go={go}/>}
         {pg==="contabilidad"&&<ContabP eObj={eObj} accts={accts} setAccts={setAccts} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go} reglas={empReglas} setReglas={setReglas} ccostos={empCcostos} setCcostos={setCcostos} activos={empActivos} setActivos={setActivos} honorarios={empHonorarios} setHonorarios={setHonorarios} cartolas={empCartolas} setCartolas={setCartolas} importacionesSii={empImportacionesSii} setImportacionesSii={setImportacionesSii}/>}
-        {pg==="remuneraciones"&&<RemP eObj={eObj} rems={rems} setRems={setRems} empRems={empRems} trabajadores={trabajadores} setTrabajadores={setTrabajadores} empTrabajadores={empTrabajadores} procesosRem={procesosRem} setProcesosRem={setProcesosRem} empProcesosRem={empProcesosRem} asistencia={asistencia} setAsistencia={setAsistencia} empAsistencia={empAsistencia} ccostos={empCcostos} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go}/>}
+        {pg==="remuneraciones"&&<RemP userId={userId} eObj={eObj} rems={rems} setRems={setRems} empRems={empRems} trabajadores={trabajadores} setTrabajadores={setTrabajadores} empTrabajadores={empTrabajadores} procesosRem={procesosRem} setProcesosRem={setProcesosRem} empProcesosRem={empProcesosRem} asistencia={asistencia} setAsistencia={setAsistencia} empAsistencia={empAsistencia} ccostos={empCcostos} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go}/>}
         {pg==="documentos"&&<DocsP eObj={eObj} docs={docs} setDocs={setDocs} empDocs={empDocs} aLog={aLog} go={go}/>}
         {pg==="planificacion"&&<PlanP eObj={eObj} tareas={tareas} setTareas={setTareas} empTareas={empTareas} aLog={aLog} go={go}/>}
         {pg==="portal"&&<PortalP eObj={eObj} empEntries={empEntries} empDocs={empDocs} empRems={empRems} eEvs={eEvs} accts={accts} leafAccts={leafAccts} go={go}/>}
@@ -496,7 +497,144 @@ function ConfigMissing(){
   </>);
 }
 
+// ═══ PORTAL DEL TRABAJADOR ═══
+// App completamente aparte de la del contador (se entra agregando
+// "#portal" a la URL de RADAR, ver el branch en App() mas abajo). Usa el
+// mismo cliente de Supabase pero una sesion de Auth distinta -- si el
+// contador ya tiene sesion abierta en el mismo navegador, el trabajador
+// debe cerrarla primero o usar otro navegador/ventana privada; eso es
+// comportamiento normal de Supabase Auth (una sesion por almacenamiento
+// del navegador), no una limitacion de RADAR. Toda la seguridad real
+// (que solo vea SUS liquidaciones ya pagadas) vive en las policies RLS
+// de supabase/portal_trabajador.sql, no en este codigo.
+function PortalCargando(){
+  return(<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)"}}><div style={{textAlign:"center",color:"var(--cy)"}}><div style={{fontSize:20,fontWeight:800,letterSpacing:4,fontFamily:"'Fraunces',Georgia,serif"}}>RADAR</div><div style={{fontSize:12,color:"var(--tx3)",marginTop:8}}>Cargando...</div></div></div>);
+}
+function PortalAuthScreen(){
+  const[mode,setMode]=useState("login");
+  const[email,setEmail]=useState("");
+  const[password,setPassword]=useState("");
+  const[busy,setBusy]=useState(false);
+  const[msg,setMsg]=useState(null);
+  const submit=async(ev)=>{
+    ev.preventDefault();setBusy(true);setMsg(null);
+    const{error}=mode==="login"?await supabase.auth.signInWithPassword({email,password}):await supabase.auth.signUp({email,password});
+    setBusy(false);
+    if(error)setMsg({t:"err",m:error.message});
+    else if(mode==="signup")setMsg({t:"ok",m:"Cuenta creada. Si el proyecto pide confirmacion por correo, revisa tu bandeja antes de continuar."});
+  };
+  return(<><style>{ST}</style>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",padding:20}}>
+      <form onSubmit={submit} style={{width:340,background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4,color:"var(--cy)"}}>{IC.radar}<div style={{fontSize:18,fontWeight:800,letterSpacing:4,fontFamily:"'Fraunces',Georgia,serif"}}>RADAR</div></div>
+        <div style={{fontSize:11,color:"var(--tx3)",marginBottom:20}}>Portal del Trabajador</div>
+        <div style={{display:"flex",gap:6,marginBottom:20,background:"var(--sf2)",borderRadius:"var(--rs)",padding:4}}>
+          <button type="button" onClick={()=>{setMode("login");setMsg(null)}} style={{flex:1,padding:"8px 0",borderRadius:6,border:"none",fontSize:12,fontWeight:600,background:mode==="login"?"var(--cy-fill)":"transparent",color:mode==="login"?"#1B4D2E":"var(--tx2)"}}>Iniciar sesion</button>
+          <button type="button" onClick={()=>{setMode("signup");setMsg(null)}} style={{flex:1,padding:"8px 0",borderRadius:6,border:"none",fontSize:12,fontWeight:600,background:mode==="signup"?"var(--cy-fill)":"transparent",color:mode==="signup"?"#1B4D2E":"var(--tx2)"}}>Primera vez</button>
+        </div>
+        {mode==="signup"&&<div style={{fontSize:11,color:"var(--tx3)",marginBottom:12,lineHeight:1.5}}>Crea tu cuenta con tu correo. Despues te pedira el codigo que te dio tu empleador.</div>}
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Correo</label><input type="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="tu@correo.cl"/></div>
+          <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Contrasena</label><input type="password" required minLength={6} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Minimo 6 caracteres"/></div>
+        </div>
+        {msg&&<div style={{marginTop:14,fontSize:12,padding:"10px 12px",borderRadius:"var(--rs)",background:msg.t==="err"?"rgba(239,68,68,.1)":"rgba(16,185,129,.1)",color:msg.t==="err"?"var(--rd)":"var(--gn)",border:"1px solid "+(msg.t==="err"?"rgba(239,68,68,.2)":"rgba(16,185,129,.2)")}}>{msg.m}</div>}
+        <button type="submit" disabled={busy} style={{marginTop:18,width:"100%",padding:"12px 0",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"#1B4D2E",fontWeight:600,fontSize:13,cursor:busy?"default":"pointer",opacity:busy?.6:1}}>{busy?"Un momento...":mode==="login"?"Iniciar sesion":"Crear cuenta"}</button>
+      </form>
+    </div>
+  </>);
+}
+function PortalActivarScreen({onActivado}){
+  const[codigo,setCodigo]=useState("");
+  const[busy,setBusy]=useState(false);
+  const[msg,setMsg]=useState(null);
+  const activar=async(ev)=>{
+    ev.preventDefault();setBusy(true);setMsg(null);
+    try{
+      await canjearCodigoPortal(codigo);
+      const vinculo=await obtenerMiVinculo();
+      if(!vinculo)throw new Error("No se pudo confirmar el vinculo. Intenta de nuevo.");
+      onActivado(vinculo);
+    }catch(err){setMsg({t:"err",m:err.message});setBusy(false)}
+  };
+  return(<><style>{ST}</style>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",padding:20}}>
+      <form onSubmit={activar} style={{width:340,background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16,color:"var(--cy)"}}>{IC.radar}<div style={{fontSize:18,fontWeight:800,letterSpacing:4,fontFamily:"'Fraunces',Georgia,serif"}}>RADAR</div></div>
+        <div style={{fontSize:14,fontWeight:600,marginBottom:4}}>Activa tu acceso</div>
+        <div style={{fontSize:12,color:"var(--tx3)",marginBottom:16,lineHeight:1.5}}>Ingresa el codigo que te dio tu empleador para ver tus liquidaciones.</div>
+        <input value={codigo} onChange={e=>setCodigo(e.target.value.toUpperCase())} placeholder="Codigo de invitacion" style={{fontSize:16,letterSpacing:2,textAlign:"center",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}/>
+        {msg&&<div style={{marginTop:14,fontSize:12,padding:"10px 12px",borderRadius:"var(--rs)",background:"rgba(239,68,68,.1)",color:"var(--rd)",border:"1px solid rgba(239,68,68,.2)"}}>{msg.m}</div>}
+        <button type="submit" disabled={busy||!codigo.trim()} style={{marginTop:18,width:"100%",padding:"12px 0",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"#1B4D2E",fontWeight:600,fontSize:13,cursor:busy?"default":"pointer",opacity:busy?.6:1}}>{busy?"Activando...":"Activar"}</button>
+        <button type="button" onClick={()=>supabase.auth.signOut()} style={{background:"none",border:"none",color:"var(--tx3)",fontSize:11,width:"100%",marginTop:12,cursor:"pointer",padding:0}}>Cerrar sesion</button>
+      </form>
+    </div>
+  </>);
+}
+function PortalLista({datos,onVer,onSalir}){
+  const liqPagadas=[...datos.liquidaciones].sort((a,b)=>(b.periodo||"").localeCompare(a.periodo||""));
+  return(<div style={{maxWidth:600,margin:"0 auto",padding:"40px 20px"}}>
+    <style>{ST}</style>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
+      <div style={{display:"flex",alignItems:"center",gap:10,color:"var(--cy)"}}>{IC.radar}<div style={{fontSize:16,fontWeight:800,letterSpacing:3,fontFamily:"'Fraunces',Georgia,serif"}}>RADAR</div></div>
+      <button onClick={onSalir} style={{background:"none",border:"none",color:"var(--tx3)",fontSize:11,cursor:"pointer"}}>Cerrar sesion</button>
+    </div>
+    <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20,marginBottom:20}}>
+      <div style={{fontSize:16,fontWeight:700}}>{datos.trabajador?.nombre} {datos.trabajador?.apellido}</div>
+      <div style={{fontSize:12,color:"var(--tx3)",marginTop:2}}>{datos.trabajador?.cargo||"Sin cargo"} · {datos.empresa?.name}</div>
+    </div>
+    <div style={{fontSize:12,fontWeight:600,color:"var(--tx2)",marginBottom:10}}>Mis liquidaciones</div>
+    {liqPagadas.length===0?<Ey i="📄" t="Todavia no hay liquidaciones visibles" d="Apareceran aqui cuando tu empleador marque el periodo como Pagado."/>:
+    <div style={{display:"flex",flexDirection:"column",gap:8}}>{liqPagadas.map(r=>
+      <div key={r.id} onClick={()=>onVer(r)} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16,cursor:"pointer"}}>
+        <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:600}}>{r.periodo}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Haberes ${fmt(r.totalHaberes||0)} · Descuentos ${fmt(r.totalDescuentos||0)}</div></div>
+        <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,color:"var(--gn)"}}>${fmt(r.liquido||0)}</div><div style={{fontSize:10,color:"var(--tx3)"}}>Liquido</div></div>
+      </div>
+    )}</div>}
+  </div>);
+}
+function PortalComprobanteView({r,eObj,onVolver}){
+  return(<div style={{maxWidth:700,margin:"0 auto",padding:"40px 20px"}}>
+    <style>{ST}</style>
+    <div className="no-print" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+      <Bk onClick={onVolver}>Volver</Bk>
+      <Bt onClick={()=>window.print()}>Imprimir</Bt>
+    </div>
+    <LiquidacionComprobanteCard eObj={eObj} r={r} ccNombre=""/>
+  </div>);
+}
+function PortalTrabajador(){
+  const[session,setSession]=useState(undefined);
+  const[vinculo,setVinculo]=useState(undefined); // undefined=sin resolver, null=sin vinculo, objeto=vinculado
+  const[datos,setDatos]=useState(null);
+  const[verLiq,setVerLiq]=useState(null);
+  useEffect(()=>{
+    if(!supabase)return;
+    supabase.auth.getSession().then(({data})=>setSession(data.session));
+    const{data:sub}=supabase.auth.onAuthStateChange((ev,s)=>{setSession(s);setVinculo(undefined);setDatos(null)});
+    return()=>sub.subscription.unsubscribe();
+  },[]);
+  useEffect(()=>{
+    if(session===undefined)return;
+    if(!session){setVinculo(null);return}
+    obtenerMiVinculo().then(setVinculo);
+  },[session]);
+  useEffect(()=>{
+    if(!vinculo)return;
+    cargarDatosPortal(vinculo).then(setDatos);
+  },[vinculo]);
+
+  if(!supabase)return<ConfigMissing/>;
+  if(session===undefined)return<PortalCargando/>;
+  if(!session)return<PortalAuthScreen/>;
+  if(vinculo===undefined)return<PortalCargando/>;
+  if(vinculo===null)return<PortalActivarScreen onActivado={setVinculo}/>;
+  if(!datos)return<PortalCargando/>;
+  if(verLiq)return<PortalComprobanteView r={verLiq} eObj={datos.empresa} onVolver={()=>setVerLiq(null)}/>;
+  return<PortalLista datos={datos} onVer={setVerLiq} onSalir={()=>supabase.auth.signOut()}/>;
+}
+
 export default function App(){
+  if(typeof window!=="undefined"&&window.location.hash==="#portal")return<PortalTrabajador/>;
   const[session,setSession]=useState(undefined);
   const[recovering,setRecovering]=useState(false);
   useEffect(()=>{
@@ -2931,7 +3069,126 @@ async function generarNominaBancariaXLSX(eObj,periodoLbl,periodo,rowsP,trabajado
   await writeXlsxFile(sheetData,{fileName:"Nomina_Bancaria_"+periodo.replace("-","_")+".xlsx"});
 }
 
-function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabajadores,procesosRem,setProcesosRem,empProcesosRem,asistencia,setAsistencia,empAsistencia,ccostos,entries,setEntries,empEntries,leafAccts,aLog,go}){
+// Comprobante de liquidacion -- tarjeta reutilizable entre la vista del
+// contador (vw==="comprobante" en RemP) y el Portal del Trabajador (que
+// no tiene acceso a los closures de RemP, corre como app aparte).
+function LiquidacionComprobanteCard({eObj,r,ccNombre}){
+  const periodoLbl=(()=>{try{return new Date(r.periodo+"-01T12:00:00").toLocaleDateString("es-CL",{month:"long",year:"numeric"})}catch{return r.periodo}})();
+  const Linea=(l,v,neg)=><div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:"var(--tx2)"}}>{l}</span><span style={{fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:neg?"var(--rd)":"var(--tx)"}}>{neg?"-":""}${fmt(Math.abs(v||0))}</span></div>;
+  return(<div className="report" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden"}}>
+    <ReportHeader eObj={eObj} title="Liquidacion de Sueldo" subtitle={"Periodo "+periodoLbl}/>
+    <div style={{padding:28}}>
+      <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:16,marginBottom:24,paddingBottom:20,borderBottom:"1px solid var(--bd)"}}>
+        <div>
+          <div style={{fontSize:16,fontWeight:700}}>{r.nombre}</div>
+          <div style={{fontSize:12,color:"var(--tx3)",marginTop:2}}>{r.rut||"Sin RUT"} · {r.cargo||"Sin cargo"}{ccNombre?" · "+ccNombre:""}</div>
+        </div>
+        <div style={{textAlign:"right"}}>
+          <div style={{fontSize:11,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:.5}}>Periodo</div>
+          <div style={{fontSize:14,fontWeight:700,textTransform:"capitalize"}}>{periodoLbl}</div>
+        </div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:28}}>
+        <div>
+          <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.5,color:"var(--cy)",marginBottom:10}}>Haberes</div>
+          <div style={{display:"flex",flexDirection:"column",gap:6,fontSize:12}}>
+            {Linea("Sueldo Base",r.sueldoBase)}
+            {r.gratificacion>0&&Linea("Gratificacion",r.gratificacion)}
+            {r.bonos>0&&Linea("Bonos",r.bonos)}
+            {r.horasExtra>0&&Linea("Horas Extra",r.horasExtra)}
+            {r.colacion>0&&Linea("Colacion",r.colacion)}
+            {r.movilizacion>0&&Linea("Movilizacion",r.movilizacion)}
+            {(r.diasSinGoce>0||r.diasLicencia>0)&&Linea("Descuento asistencia ("+(r.diasSinGoce+r.diasLicencia)+" dia"+((r.diasSinGoce+r.diasLicencia)!==1?"s":"")+")",r.descuentoAsistencia,true)}
+            <div style={{borderTop:"1px solid var(--bd)",paddingTop:6,marginTop:4,display:"flex",justifyContent:"space-between",fontWeight:700}}><span>Total Haberes</span><span style={{fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(r.totalHaberes||0)}</span></div>
+          </div>
+        </div>
+        <div>
+          <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.5,color:"var(--rd)",marginBottom:10}}>Descuentos</div>
+          <div style={{display:"flex",flexDirection:"column",gap:6,fontSize:12}}>
+            {Linea("AFP "+(r.afp||""),r.afpMonto)}
+            {Linea(r.isapre==="isapre"?"Isapre":"Salud (Fonasa 7%)",r.saludMonto)}
+            {Linea("Seguro de Cesantia",r.cesantiaTrab)}
+            {Linea("Impuesto Unico",r.impUnico)}
+            <div style={{borderTop:"1px solid var(--bd)",paddingTop:6,marginTop:4,display:"flex",justifyContent:"space-between",fontWeight:700}}><span>Total Descuentos</span><span style={{fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(r.totalDescuentos||0)}</span></div>
+          </div>
+        </div>
+      </div>
+      <div style={{marginTop:24,paddingTop:20,borderTop:"2px solid var(--bd2)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <span style={{fontSize:15,fontWeight:700}}>LIQUIDO A PAGAR</span>
+        <span style={{fontSize:24,fontWeight:800,color:"var(--gn)",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(r.liquido||0)}</span>
+      </div>
+      <div style={{marginTop:16,fontSize:11,color:"var(--tx3)",display:"flex",justifyContent:"space-between"}}>
+        <span>Costo empresa (incl. SIS + cesantia empleador)</span>
+        <span style={{fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(r.costoEmpresa||0)}</span>
+      </div>
+    </div>
+  </div>);
+}
+
+// Portal del Trabajador: invitar/revocar desde la ficha. El canje real del
+// codigo (y toda la validacion de seguridad) vive en Supabase (RLS +
+// funcion canjear_codigo_portal, ver supabase/portal_trabajador.sql) --
+// aqui solo se administra el ciclo de vida de la invitacion.
+function PortalInviteBox({userId,empresaId,trabajadorId,nombre,aLog}){
+  const [invitaciones,setInvitaciones]=useState([]);
+  const [loading,setLoading]=useState(true);
+  useEffect(()=>{
+    let cancel=false;
+    listarInvitaciones(userId,empresaId).then(all=>{
+      if(cancel)return;
+      setInvitaciones(all.filter(i=>i.trabajador_id===trabajadorId));
+      setLoading(false);
+    });
+    return()=>{cancel=true};
+  },[userId,empresaId,trabajadorId]);
+
+  // Siempre se opera sobre la invitacion mas reciente de esta ficha -- NUNCA
+  // se crea una segunda fila para un trabajador que ya tiene una (eso
+  // chocaria con la restriccion de que un mismo trabajador_auth_id solo
+  // puede estar vinculado a una fila a la vez). Revocar/reactivar reusan
+  // siempre la misma fila.
+  const ultima=invitaciones.length>0?[...invitaciones].sort((a,b)=>b.created_at.localeCompare(a.created_at))[0]:null;
+
+  const generar=async()=>{
+    try{
+      const nueva=await crearInvitacion(userId,empresaId,trabajadorId);
+      setInvitaciones(p=>[...p,nueva]);
+      aLog("Invitacion al Portal generada",nombre||"");
+    }catch(err){rdAlert("No se pudo generar la invitacion: "+err.message)}
+  };
+  const revocar=async(id)=>{
+    if(!await rdConfirm("Revocar el acceso al Portal de "+(nombre||"este trabajador")+"?"))return;
+    try{
+      await revocarInvitacion(id);
+      setInvitaciones(p=>p.map(i=>i.id===id?{...i,activo:false}:i));
+      aLog("Acceso al Portal revocado",nombre||"");
+    }catch(err){rdAlert("Error: "+err.message)}
+  };
+  const reactivar=async(id)=>{
+    try{
+      await reactivarInvitacion(id);
+      setInvitaciones(p=>p.map(i=>i.id===id?{...i,activo:true}:i));
+      aLog("Acceso al Portal reactivado",nombre||"");
+    }catch(err){rdAlert("Error: "+err.message)}
+  };
+
+  return(<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:16,marginBottom:20}}>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
+      <div><div style={{fontSize:12,fontWeight:600,color:"var(--tx2)"}}>Portal del trabajador</div><div style={{fontSize:11,color:"var(--tx3)"}}>Que {nombre||"el trabajador"} vea sus liquidaciones ya pagadas con su propio login — nunca el resto de la empresa.</div></div>
+      {!loading&&!ultima&&<Bt onClick={generar}>Invitar</Bt>}
+      {!loading&&ultima&&ultima.activo&&<Bt onClick={()=>revocar(ultima.id)}>{ultima.trabajador_auth_id?"Revocar acceso":"Cancelar invitacion"}</Bt>}
+      {!loading&&ultima&&!ultima.activo&&<Bt onClick={()=>reactivar(ultima.id)} p={true}>Reactivar acceso</Bt>}
+    </div>
+    {!loading&&ultima&&!ultima.activo&&<div style={{fontSize:11,color:"var(--tx3)",marginTop:10}}>Acceso revocado. Reactivalo para que {ultima.trabajador_auth_id?"vuelva a entrar con su misma cuenta":"pueda canjear el mismo codigo"}.</div>}
+    {!loading&&ultima&&ultima.activo&&ultima.trabajador_auth_id&&<div style={{fontSize:11,color:"var(--gn)",fontWeight:600,marginTop:10}}>✓ Acceso activo desde {fD(ultima.created_at.slice(0,10))}</div>}
+    {!loading&&ultima&&ultima.activo&&!ultima.trabajador_auth_id&&<div style={{marginTop:10}}>
+      <div style={{fontSize:11,color:"var(--tx3)",marginBottom:6}}>Invitacion pendiente — dale este codigo a {nombre||"el trabajador"} fuera de RADAR (de palabra, WhatsApp) para que active su acceso en la pantalla del Portal (agrega <code>#portal</code> al final de la URL de RADAR):</div>
+      <div style={{fontSize:20,fontWeight:800,letterSpacing:3,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:"10px 16px",display:"inline-block"}}>{ultima.codigo}</div>
+    </div>}
+  </div>);
+}
+
+function RemP({userId,eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabajadores,procesosRem,setProcesosRem,empProcesosRem,asistencia,setAsistencia,empAsistencia,ccostos,entries,setEntries,empEntries,leafAccts,aLog,go}){
   const [vw,setVw]=useState("list");
   const [eid,setEid]=useState(null);
   const [fm,setFm]=useState({});
@@ -3219,8 +3476,6 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
   if(vw==="comprobante"){
     const r=fm;
     const ccNom=r.centroCosto?(ccostos||[]).find(c=>c.id===r.centroCosto)?.nombre:"";
-    const periodoLbl=(()=>{try{return new Date(r.periodo+"-01T12:00:00").toLocaleDateString("es-CL",{month:"long",year:"numeric"})}catch{return r.periodo}})();
-    const Linea=(l,v,neg)=><div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:"var(--tx2)"}}>{l}</span><span style={{fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:neg?"var(--rd)":"var(--tx)"}}>{neg?"-":""}${fmt(Math.abs(v||0))}</span></div>;
     return(<div style={{maxWidth:700,margin:"0 auto"}}>
       <div className="no-print" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
         <Bk onClick={()=>setVw("list")}>Volver</Bk>
@@ -3229,54 +3484,7 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
           <Bt onClick={()=>openEdit(r)} p={true}>Editar</Bt>
         </div>
       </div>
-      <div className="report" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden"}}>
-        <ReportHeader eObj={eObj} title="Liquidacion de Sueldo" subtitle={"Periodo "+periodoLbl}/>
-        <div style={{padding:28}}>
-          <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:16,marginBottom:24,paddingBottom:20,borderBottom:"1px solid var(--bd)"}}>
-            <div>
-              <div style={{fontSize:16,fontWeight:700}}>{r.nombre}</div>
-              <div style={{fontSize:12,color:"var(--tx3)",marginTop:2}}>{r.rut||"Sin RUT"} · {r.cargo||"Sin cargo"}{ccNom?" · "+ccNom:""}</div>
-            </div>
-            <div style={{textAlign:"right"}}>
-              <div style={{fontSize:11,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:.5}}>Periodo</div>
-              <div style={{fontSize:14,fontWeight:700,textTransform:"capitalize"}}>{periodoLbl}</div>
-            </div>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:28}}>
-            <div>
-              <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.5,color:"var(--cy)",marginBottom:10}}>Haberes</div>
-              <div style={{display:"flex",flexDirection:"column",gap:6,fontSize:12}}>
-                {Linea("Sueldo Base",r.sueldoBase)}
-                {r.gratificacion>0&&Linea("Gratificacion",r.gratificacion)}
-                {r.bonos>0&&Linea("Bonos",r.bonos)}
-                {r.horasExtra>0&&Linea("Horas Extra",r.horasExtra)}
-                {r.colacion>0&&Linea("Colacion",r.colacion)}
-                {r.movilizacion>0&&Linea("Movilizacion",r.movilizacion)}
-                {(r.diasSinGoce>0||r.diasLicencia>0)&&Linea("Descuento asistencia ("+(r.diasSinGoce+r.diasLicencia)+" dia"+((r.diasSinGoce+r.diasLicencia)!==1?"s":"")+")",r.descuentoAsistencia,true)}
-                <div style={{borderTop:"1px solid var(--bd)",paddingTop:6,marginTop:4,display:"flex",justifyContent:"space-between",fontWeight:700}}><span>Total Haberes</span><span style={{fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(r.totalHaberes||0)}</span></div>
-              </div>
-            </div>
-            <div>
-              <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:.5,color:"var(--rd)",marginBottom:10}}>Descuentos</div>
-              <div style={{display:"flex",flexDirection:"column",gap:6,fontSize:12}}>
-                {Linea("AFP "+(r.afp||""),r.afpMonto)}
-                {Linea(r.isapre==="isapre"?"Isapre":"Salud (Fonasa 7%)",r.saludMonto)}
-                {Linea("Seguro de Cesantia",r.cesantiaTrab)}
-                {Linea("Impuesto Unico",r.impUnico)}
-                <div style={{borderTop:"1px solid var(--bd)",paddingTop:6,marginTop:4,display:"flex",justifyContent:"space-between",fontWeight:700}}><span>Total Descuentos</span><span style={{fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(r.totalDescuentos||0)}</span></div>
-              </div>
-            </div>
-          </div>
-          <div style={{marginTop:24,paddingTop:20,borderTop:"2px solid var(--bd2)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <span style={{fontSize:15,fontWeight:700}}>LIQUIDO A PAGAR</span>
-            <span style={{fontSize:24,fontWeight:800,color:"var(--gn)",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(r.liquido||0)}</span>
-          </div>
-          <div style={{marginTop:16,fontSize:11,color:"var(--tx3)",display:"flex",justifyContent:"space-between"}}>
-            <span>Costo empresa (incl. SIS + cesantia empleador)</span>
-            <span style={{fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(r.costoEmpresa||0)}</span>
-          </div>
-        </div>
-      </div>
+      <LiquidacionComprobanteCard eObj={eObj} r={r} ccNombre={ccNom}/>
     </div>);
   }
 
@@ -3335,10 +3543,7 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
         <Fi l="N de Cuenta" v={tfm.numeroCuenta} s={v=>setTfm(p=>({...p,numeroCuenta:v}))}/>
       </FG></Sc>
 
-      <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:16,marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
-        <div><div style={{fontSize:12,fontWeight:600,color:"var(--tx2)"}}>Portal del trabajador</div><div style={{fontSize:11,color:"var(--tx3)"}}>Que el trabajador vea su propia liquidacion con su propio login.</div></div>
-        <span style={{fontSize:10,background:"var(--bd)",padding:"3px 10px",borderRadius:4,color:"var(--tx3)",fontWeight:600}}>Proximamente</span>
-      </div>
+      <PortalInviteBox userId={userId} empresaId={eObj.id} trabajadorId={tid} nombre={tfm.nombre} aLog={aLog}/>
 
       <div style={{display:"flex",gap:12}}><Bt onClick={doSaveT} p={true}>Guardar</Bt><Bt onClick={()=>setVw("trabajadores")}>Cancelar</Bt></div>
     </div>}
