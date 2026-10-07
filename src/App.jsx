@@ -4,6 +4,7 @@ import { loadCollection, saveCollection } from "./lib/sync";
 import { normRut } from "./lib/rut";
 import { parseCartolaSantander, decodeRutFromGlosa } from "./lib/cartola";
 import { yaContabilizado, sugerirContraparte, armarAsiento, buscarReglaPorRut, buscarReglaPorPalabra } from "./lib/conciliacion";
+import writeXlsxFile from "write-excel-file/browser";
 
 const ST = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;0,700;1,600&display=swap');
@@ -2898,6 +2899,38 @@ function diasAsistenciaEnPeriodo(eventos,trabajadorId,periodo){
   return{diasSinGoce,diasLicencia};
 }
 
+// Libro de Remuneraciones (XLSX) -- registro corporativo que la ley exige
+// mantener (Art. 62 Codigo del Trabajo), no se presenta en ningun formato
+// fijo ante el SII ni Previred, asi que no hay riesgo de "inventar" un
+// formato oficial aqui (a diferencia del archivo de pago Previred o el
+// Libro Electronico/LRE, que si tienen formato fijo y quedan bloqueados
+// hasta que el usuario pase la especificacion oficial).
+const bold=v=>({value:v,fontWeight:"bold"});
+async function generarLibroRemuneracionesXLSX(eObj,periodoLbl,periodo,rowsP){
+  const header=["Trabajador","RUT","Cargo","Sueldo Base","Gratificacion","Horas Extra","Bonos","Total Imponible","Colacion","Movilizacion","Total No Imponible","Total Haberes","AFP","Monto AFP","Salud","Monto Salud","Seg. Cesantia","Impuesto Unico","Total Descuentos","Liquido","Costo Empresa"].map(bold);
+  const rows=rowsP.map(r=>[r.nombre,r.rut,r.cargo||"",r.sueldoBase||0,r.gratificacion||0,r.horasExtra||0,r.bonos||0,r.totalImponible||0,r.colacion||0,r.movilizacion||0,r.totalNoImponible||0,r.totalHaberes||0,r.afp||"",r.afpMonto||0,r.isapre==="isapre"?"Isapre":"Fonasa",r.saludMonto||0,r.cesantiaTrab||0,r.impUnico||0,r.totalDescuentos||0,r.liquido||0,r.costoEmpresa||0]);
+  const s=f=>rowsP.reduce((acc,r)=>acc+(r[f]||0),0);
+  const totales=[bold("TOTAL"),"","",bold(s("sueldoBase")),bold(s("gratificacion")),bold(s("horasExtra")),bold(s("bonos")),bold(s("totalImponible")),bold(s("colacion")),bold(s("movilizacion")),bold(s("totalNoImponible")),bold(s("totalHaberes")),"",bold(s("afpMonto")),"",bold(s("saludMonto")),bold(s("cesantiaTrab")),bold(s("impUnico")),bold(s("totalDescuentos")),bold(s("liquido")),bold(s("costoEmpresa"))];
+  const sheetData=[[bold(eObj?.name||"Empresa")],[eObj?.rut?"RUT "+eObj.rut:""],[bold("Libro de Remuneraciones - "+periodoLbl)],[],header,...rows,totales];
+  await writeXlsxFile(sheetData,{fileName:"Libro_Remuneraciones_"+periodo.replace("-","_")+".xlsx"});
+}
+
+// Nomina bancaria -- formato GENERICO (RUT/Nombre/Banco/Tipo de
+// Cuenta/N Cuenta/Monto), no el layout propietario de ningun banco en
+// particular (cada banco tiene su propia plantilla de carga masiva) --
+// sirve como punto de partida para adaptar a la plantilla real del banco
+// del usuario, nunca se presenta como el archivo final de un banco.
+async function generarNominaBancariaXLSX(eObj,periodoLbl,periodo,rowsP,trabajadores){
+  const header=["Trabajador","RUT","Banco","Tipo de Cuenta","N Cuenta","Monto a Pagar"].map(bold);
+  const rows=rowsP.map(r=>{
+    const t=(trabajadores||[]).find(x=>x.id===r.trabajadorId);
+    return[r.nombre,r.rut,t?.banco||"",t?.tipoCuenta||"",t?.numeroCuenta||"",r.liquido||0];
+  });
+  const total=rowsP.reduce((s,r)=>s+(r.liquido||0),0);
+  const sheetData=[[bold(eObj?.name||"Empresa")],[bold("Nomina Bancaria (formato generico) - "+periodoLbl)],[],header,...rows,[bold("TOTAL"),"","","","",bold(total)]];
+  await writeXlsxFile(sheetData,{fileName:"Nomina_Bancaria_"+periodo.replace("-","_")+".xlsx"});
+}
+
 function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabajadores,procesosRem,setProcesosRem,empProcesosRem,asistencia,setAsistencia,empAsistencia,ccostos,entries,setEntries,empEntries,leafAccts,aLog,go}){
   const [vw,setVw]=useState("list");
   const [eid,setEid]=useState(null);
@@ -2915,6 +2948,10 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
   const WIZ_LIQ=[{n:1,l:"Trabajador"},{n:2,l:"Variables del mes"},{n:3,l:"Vista previa"}];
   const WizSteps=({steps,step})=><div style={{display:"flex",gap:8,marginBottom:24}}>{steps.map(s=><div key={s.n} style={{flex:1,textAlign:"center",padding:"10px 8px",borderRadius:"var(--rs)",border:"1px solid "+(step===s.n?"var(--cy2)":"var(--bd)"),background:step===s.n?"var(--cy-fill)":step>s.n?"var(--sf2)":"var(--sf)",color:step===s.n?"#1B4D2E":step>s.n?"var(--tx2)":"var(--tx3)",fontSize:11,fontWeight:step===s.n?700:500}}>{step>s.n?"✓ ":s.n+". "}{s.l}</div>)}</div>;
   const ESTADOS_PROCESO=[{id:"iniciado",l:"Iniciado",c:"var(--tx3)",bg:"var(--sf2)"},{id:"revision",l:"En Revision",c:"#92400E",bg:"rgba(180,83,9,.14)"},{id:"pagado",l:"Pagado",c:"#1B4D2E",bg:"var(--cy-fill)"}];
+  // Definido antes de cualquier "if(vw===...)return" -- el branch
+  // vw==="proceso" la usa en su JSX y retorna antes de llegar a donde
+  // estaba declarada mas abajo (TDZ: referencia antes de inicializar).
+  const labelPeriodo=p=>{try{return new Date(p+"-01T12:00:00").toLocaleDateString("es-CL",{month:"long",year:"numeric"})}catch{return p}};
   const getEstadoProceso=p=>empProcesosRem.find(x=>x.periodo===p)?.estado||"iniciado";
   const setEstadoProceso=(p,estado)=>{
     const ex=empProcesosRem.find(x=>x.periodo===p);
@@ -2991,7 +3028,7 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
   if(!eObj)return<Ey i="🏢" t="Selecciona una empresa" d="Activa una empresa primero."><Bt onClick={()=>go("empresas")} p={true}>Ir a Empresas</Bt></Ey>;
 
   // ── Ficha de Trabajador ──
-  const emptyTF=()=>({activo:true,nombre:"",apellido:"",segundoApellido:"",rut:"",fechaNacimiento:"",sexo:"",estadoCivil:"",telefono:"",email:"",direccion:"",cargo:"",fechaIngreso:"",afp:"habitat",isapre:"fonasa",contratoTipo:"indefinido",sueldoBase:0,gratificacion:0,colacion:0,movilizacion:0,centroCosto:""});
+  const emptyTF=()=>({activo:true,nombre:"",apellido:"",segundoApellido:"",rut:"",fechaNacimiento:"",sexo:"",estadoCivil:"",telefono:"",email:"",direccion:"",cargo:"",fechaIngreso:"",afp:"habitat",isapre:"fonasa",contratoTipo:"indefinido",sueldoBase:0,gratificacion:0,colacion:0,movilizacion:0,centroCosto:"",banco:"",tipoCuenta:"cuenta_vista",numeroCuenta:""});
   const openNewT=()=>{setTfm(emptyTF());setTid(null);setFtab("resumen");setAfm(null);setWizStepT(1);setVw("trabajadorForm")};
   const openEditT=(t,tab)=>{setTfm({...emptyTF(),...t});setTid(t.id);setFtab(tab||"resumen");setAfm(null);setVw("trabajadorForm")};
   const doSaveT=()=>{
@@ -3293,6 +3330,9 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
         <Fi l="Colacion" v={tfm.colacion} s={v=>setTfm(p=>({...p,colacion:parseInt(v)||0}))} t="number"/>
         <Fi l="Movilizacion" v={tfm.movilizacion} s={v=>setTfm(p=>({...p,movilizacion:parseInt(v)||0}))} t="number"/>
         {ccostos?.length>0&&<div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Centro de Costo</label><select value={tfm.centroCosto} onChange={e=>setTfm(p=>({...p,centroCosto:e.target.value}))}><option value="">Sin centro de costo</option>{ccostos.map(c=><option key={c.id} value={c.id}>{c.nombre}</option>)}</select></div>}
+        <Fi l="Banco" v={tfm.banco} s={v=>setTfm(p=>({...p,banco:v}))} ph="Para la nomina bancaria"/>
+        <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Tipo de Cuenta</label><select value={tfm.tipoCuenta} onChange={e=>setTfm(p=>({...p,tipoCuenta:e.target.value}))}><option value="cuenta_vista">Cuenta Vista</option><option value="cuenta_corriente">Cuenta Corriente</option><option value="cuenta_ahorro">Cuenta de Ahorro</option></select></div>
+        <Fi l="N de Cuenta" v={tfm.numeroCuenta} s={v=>setTfm(p=>({...p,numeroCuenta:v}))}/>
       </FG></Sc>
 
       <div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:16,marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
@@ -3333,6 +3373,9 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
         <Fi l="Colacion" v={tfm.colacion} s={v=>setTfm(p=>({...p,colacion:parseInt(v)||0}))} t="number"/>
         <Fi l="Movilizacion" v={tfm.movilizacion} s={v=>setTfm(p=>({...p,movilizacion:parseInt(v)||0}))} t="number"/>
         {ccostos?.length>0&&<div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Centro de Costo</label><select value={tfm.centroCosto} onChange={e=>setTfm(p=>({...p,centroCosto:e.target.value}))}><option value="">Sin centro de costo</option>{ccostos.map(c=><option key={c.id} value={c.id}>{c.nombre}</option>)}</select></div>}
+        <Fi l="Banco" v={tfm.banco} s={v=>setTfm(p=>({...p,banco:v}))} ph="Para la nomina bancaria"/>
+        <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Tipo de Cuenta</label><select value={tfm.tipoCuenta} onChange={e=>setTfm(p=>({...p,tipoCuenta:e.target.value}))}><option value="cuenta_vista">Cuenta Vista</option><option value="cuenta_corriente">Cuenta Corriente</option><option value="cuenta_ahorro">Cuenta de Ahorro</option></select></div>
+        <Fi l="N de Cuenta" v={tfm.numeroCuenta} s={v=>setTfm(p=>({...p,numeroCuenta:v}))}/>
       </FG></Sc>}
       <div style={{display:"flex",justifyContent:"space-between",marginTop:8}}>
         <div>{wizStepT>1&&<Bt onClick={()=>setWizStepT(s=>s-1)}>Atras</Bt>}</div>
@@ -3454,9 +3497,11 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
     const entregables=[
       {id:"liq",l:"Liquidaciones generadas",done:rowsP.length>0,sub:rowsP.length+" de "+activosEsperados+" trabajador"+(activosEsperados!==1?"es":"")+" activo"+(activosEsperados!==1?"s":""),accion:!liquidacionesListas?{l:"Completar",onClick:()=>openNewParaPeriodo(p)}:null},
       {id:"cent",l:"Centralizado (asiento contable)",done:centralizado,sub:centralizado?"Asiento ya generado":"Pendiente de generar",accion:!centralizado&&rowsP.length>0?{l:"Centralizar",onClick:()=>genAsiento(p)}:null},
+      {id:"libroxlsx",l:"Libro de Remuneraciones (XLSX)",done:rowsP.length>0,sub:rowsP.length>0?"Registro corporativo, listo para descargar":"Genera las liquidaciones primero",accion:rowsP.length>0?{l:"Descargar",onClick:()=>generarLibroRemuneracionesXLSX(eObj,labelPeriodo(p),p,rowsP)}:null},
+      {id:"nomina",l:"Nomina Bancaria (XLSX)",done:rowsP.length>0,sub:rowsP.length>0?"Formato generico -- ajustalo a la plantilla de tu banco":"Genera las liquidaciones primero",accion:rowsP.length>0?{l:"Descargar",onClick:()=>generarNominaBancariaXLSX(eObj,labelPeriodo(p),p,rowsP,empTrabajadores)}:null},
       {id:"pdf",l:"Liquidaciones en PDF",done:false,sub:"Proximamente",accion:null,proximamente:true},
-      {id:"previred",l:"Archivo de pago Previred",done:false,sub:"Proximamente",accion:null,proximamente:true},
-      {id:"lre",l:"Libro Electronico (LRE)",done:false,sub:"Proximamente",accion:null,proximamente:true},
+      {id:"previred",l:"Archivo de pago Previred",done:false,sub:"Bloqueado: falta que confirmes el formato oficial de Previred",accion:null,proximamente:true},
+      {id:"lre",l:"Libro Electronico (LRE)",done:false,sub:"Bloqueado: falta que confirmes el formato oficial del SII",accion:null,proximamente:true},
     ];
     return(<div style={{maxWidth:700,margin:"0 auto"}}>
       <Bk onClick={()=>setVw("list")}>Volver</Bk>
@@ -3500,7 +3545,6 @@ function RemP({eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabaja
   const totCosto=empRems.reduce((s,r)=>s+(r.costoEmpresa||0),0);
   const periodos=[...new Set(empRems.map(r=>r.periodo))].sort((a,b)=>b.localeCompare(a));
   const periodoActual=periodos[0];
-  const labelPeriodo=p=>{try{return new Date(p+"-01T12:00:00").toLocaleDateString("es-CL",{month:"long",year:"numeric"})}catch{return p}};
   const accionesModulo=[
     {id:"trabajadores",icon:IC.emp,label:"Trabajadores",sub:empTrabajadores.length+" ficha"+(empTrabajadores.length!==1?"s":""),onClick:()=>setVw("trabajadores")},
     ...(periodoActual&&!estaCentralizado(periodoActual)?[{id:"centralizar",icon:IC.check,label:"Centralizar",sub:"Periodo "+labelPeriodo(periodoActual),onClick:()=>genAsiento(periodoActual)}]:[]),
