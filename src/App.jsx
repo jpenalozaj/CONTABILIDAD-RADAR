@@ -2963,17 +2963,23 @@ function B8Col({empEntries,accts,leafAccts,eObj,irACuenta}){
 // real pagada de Previred (agosto 2026, Inmobiliaria Cruzero):
 //  - Cotizacion Expectativa de Vida + SIS = reformaTopeExpectativaSis (2.5%)
 //    siempre -- la tasa de Expectativa de Vida es lo que sobra de ese tope
-//    una vez descontado el SIS real de la AFP del trabajador, no es un
-//    numero fijo.
+//    una vez descontado el SIS vigente, no es un numero fijo.
 //  - reformaRentabilidadProtegida: 0.9% desde agosto 2026, sube a 1.5% en
 //    agosto 2027 (unica de las 3 con alza ya anunciada a una fecha fija).
 //  - reformaCuentaObligatoria: 0.1% adicional, se declara junto con la
 //    cotizacion obligatoria AFP (campo 28 del archivo Previred) pero es de
 //    cargo del empleador, igual que las otras dos -- NINGUNA de las 3 se
 //    descuenta del trabajador ni resta del liquido, solo suman costoEmpresa.
+// Tasa SIS -- IMPORTANTE: NO es por AFP. Desde la reforma el SIS es una
+// tasa UNICA nacional fijada por oficio trimestral de la Superintendencia
+// de Pensiones (misma tasa para las 7 AFP, confirmado con la planilla real:
+// 1.78% tanto para Provida como para Uno en agosto 2026). Vive aparte del
+// objeto `afp` (antes vivia ahi, duplicada 7 veces con el mismo valor --
+// era un modelo de datos incorrecto, no solo un valor desactualizado).
 const PARAM_PREVIRED_DEFAULT={
   uf:38500,utm:67000,topeImponibleUF:87.8,actualizadoUfUtm:null,actualizadoAfp:null,
-  afp:{capital:{r:11.44,sis:1.85},cuprum:{r:11.44,sis:1.85},habitat:{r:11.27,sis:1.85},modelo:{r:10.58,sis:1.85},planvital:{r:11.16,sis:1.85},provida:{r:11.45,sis:1.85},uno:{r:10.49,sis:1.85}},
+  afp:{capital:{r:11.44},cuprum:{r:11.44},habitat:{r:11.27},modelo:{r:10.58},planvital:{r:11.16},provida:{r:11.45},uno:{r:10.49}},
+  sis:1.78,
   reformaCuentaObligatoria:0.1,reformaTopeExpectativaSis:2.5,reformaRentabilidadProtegida:0.9,
 };
 function getParamsPrevired(){const p=ld("rd_param_previred",null);return p?{...PARAM_PREVIRED_DEFAULT,...p,afp:{...PARAM_PREVIRED_DEFAULT.afp,...(p.afp||{})}}:PARAM_PREVIRED_DEFAULT}
@@ -3015,9 +3021,13 @@ function calcRem(emp){
   // imponible (en UF del periodo) -- lo que exceda ese tope no cotiza.
   const topeImponible=params.topeImponibleUF*params.uf;
   const baseCotizable=Math.min(totalImponible,topeImponible);
-  const afpRate=params.afp[emp.afp||"habitat"]||{r:11.27,sis:1.85};
+  const afpRate=params.afp[emp.afp||"habitat"]||{r:11.27};
   const afpMonto=Math.round(baseCotizable*afpRate.r/100);
-  const sisMonto=Math.round(baseCotizable*afpRate.sis/100);
+  // El SIS ya NO depende de la AFP -- es una tasa unica nacional fijada por
+  // oficio trimestral de la Superintendencia de Pensiones (ver nota junto a
+  // PARAM_PREVIRED_DEFAULT, confirmado con planilla real: 1.78% tanto para
+  // Provida como para Uno en agosto 2026).
+  const sisMonto=Math.round(baseCotizable*params.sis/100);
   const saludMonto=Math.round(baseCotizable*SALUD_RATE);
   const cesantiaTrab=Math.round(baseCotizable*CESANTIA_TRAB);
   const cesantiaEmp=Math.round(baseCotizable*(emp.contratoTipo==="fijo"?CESANTIA_EMP_FIJO:CESANTIA_EMP_INDEF));
@@ -3025,9 +3035,9 @@ function calcRem(emp){
   // se descuentan del trabajador ni restan del liquido (confirmado contra
   // una planilla real pagada de Previred, ver nota junto a
   // PARAM_PREVIRED_DEFAULT). Expectativa de Vida no es una tasa fija: es lo
-  // que falta para llegar al tope combinado con el SIS real de esa AFP.
+  // que falta para llegar al tope combinado con el SIS vigente.
   const reformaCuentaObligatoria=Math.round(baseCotizable*params.reformaCuentaObligatoria/100);
-  const expectativaVida=Math.round(baseCotizable*Math.max(0,params.reformaTopeExpectativaSis-afpRate.sis)/100);
+  const expectativaVida=Math.round(baseCotizable*Math.max(0,params.reformaTopeExpectativaSis-params.sis)/100);
   const rentabilidadProtegida=Math.round(baseCotizable*params.reformaRentabilidadProtegida/100);
   const baseImpUnico=totalImponible-afpMonto-saludMonto-cesantiaTrab;
   const impUnico=calcImpUnico(baseImpUnico,params.utm);
@@ -3267,7 +3277,7 @@ function RemP({userId,eObj,rems,setRems,empRems,trabajadores,setTrabajadores,emp
       if(!r.ok)return;
       const d=await r.json();
       if(!d.afp)return;
-      setParams({...params,afp:{...params.afp,...d.afp},topeImponibleUF:d.topeImponibleUF||params.topeImponibleUF,actualizadoAfp:new Date().toISOString()});
+      setParams({...params,afp:{...params.afp,...d.afp},sis:d.sis||params.sis,topeImponibleUF:d.topeImponibleUF||params.topeImponibleUF,actualizadoAfp:new Date().toISOString()});
     }catch{/* el puente local es opcional -- si no esta corriendo, se mantienen las tasas actuales */}
   };
   useEffect(()=>{
@@ -3807,8 +3817,9 @@ function RemP({userId,eObj,rems,setRems,empRems,trabajadores,setTrabajadores,emp
     <details style={{marginBottom:24}}>
       <summary style={{cursor:"pointer",fontSize:12,fontWeight:600,color:"var(--tx3)",padding:"4px 0"}}>Parametros de la Reforma Previsional (Ley 21.735)</summary>
       <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,marginTop:8}}>
-        <div style={{fontSize:11,color:"var(--tx3)",marginBottom:12}}>A diferencia de UF/UTM/tasas AFP (que se actualizan solas), estas tasas no tienen hoy una fuente automatica en RADAR y la ley las sube en tramos -- editalas aqui cuando cambien. Todas son 100% de cargo del empleador, nunca se descuentan del trabajador.</div>
+        <div style={{fontSize:11,color:"var(--tx3)",marginBottom:12}}>Todas son 100% de cargo del empleador, nunca se descuentan del trabajador. La tasa SIS ya no depende de la AFP -- es unica para las 7 (oficio trimestral de la Superintendencia de Pensiones) y se auto-actualiza con el mismo puente local de Previred que las tasas AFP. Las otras 3 (Reforma) no tienen hoy fuente automatica y la ley las sube en tramos -- editalas aqui cuando cambien.</div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:12}}>
+          <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Tasa SIS vigente %</label><input type="number" min="0" step="0.01" value={params.sis} onChange={e=>setParams({...params,sis:parseFloat(e.target.value)||0})}/></div>
           <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Cuenta obligatoria adicional %</label><input type="number" min="0" step="0.01" value={params.reformaCuentaObligatoria} onChange={e=>setParams({...params,reformaCuentaObligatoria:parseFloat(e.target.value)||0})}/></div>
           <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Tope Expectativa de Vida + SIS %</label><input type="number" min="0" step="0.01" value={params.reformaTopeExpectativaSis} onChange={e=>setParams({...params,reformaTopeExpectativaSis:parseFloat(e.target.value)||0})}/></div>
           <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Rentabilidad Protegida %</label><input type="number" min="0" step="0.01" value={params.reformaRentabilidadProtegida} onChange={e=>setParams({...params,reformaRentabilidadProtegida:parseFloat(e.target.value)||0})}/></div>

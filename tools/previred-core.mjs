@@ -54,11 +54,13 @@ export async function fetchIndicadoresPrevired() {
   const afp = {};
   for (const nombre of AFPS) {
     const r = extraerPorcentajeCerca(texto, nombre);
-    if (r != null) afp[nombre.toLowerCase()] = { r, sis: 1.85 };
+    if (r != null) afp[nombre.toLowerCase()] = { r };
   }
+  // El SIS ya NO es una tasa por AFP -- desde la Reforma de Pensiones es una
+  // tasa UNICA nacional fijada por oficio trimestral de la Superintendencia
+  // de Pensiones (misma tasa para las 7 AFP). Vive aparte del objeto afp.
   const sisMatch = texto.match(/SIS[^\d]{0,30}(\d{1,2}[.,]\d{1,2})\s*%/);
   const sis = sisMatch ? parseFloat(sisMatch[1].replace(",", ".")) : null;
-  if (sis != null) for (const k of Object.keys(afp)) afp[k].sis = sis;
 
   const utm = extraerMonto(texto, "UTM");
   const uf = extraerUF(texto);
@@ -73,5 +75,5 @@ export async function fetchIndicadoresPrevired() {
     );
   }
 
-  return { url: URL_INDICADORES, periodo: "vigente", afp, uf, utm, topeImponibleUF };
+  return { url: URL_INDICADORES, periodo: "vigente", afp, sis, uf, utm, topeImponibleUF };
 }
