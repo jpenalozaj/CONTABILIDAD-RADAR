@@ -40,10 +40,9 @@ button:active:not(:disabled){transform:scale(.97)}
    Piloto: Portal Cliente (pedido del usuario, referencia visual "MQ"). */
 .rd-mesh-bg{
   background:
-    radial-gradient(circle at 12% 15%, rgba(212,240,0,.55) 0%, transparent 48%),
-    radial-gradient(circle at 90% 8%, rgba(77,83,6,.38) 0%, transparent 52%),
-    radial-gradient(circle at 55% 105%, rgba(143,163,0,.45) 0%, transparent 60%),
-    radial-gradient(circle at 0% 100%, rgba(107,116,8,.30) 0%, transparent 50%),
+    radial-gradient(circle at 10% 12%, rgba(212,240,0,.42) 0%, transparent 50%),
+    radial-gradient(circle at 90% 18%, rgba(212,240,0,.26) 0%, transparent 52%),
+    radial-gradient(circle at 50% 108%, rgba(107,116,8,.24) 0%, transparent 58%),
     var(--bg);
 }
 /* Tarjeta de vidrio -- reemplaza el borde solido + fondo opaco de las
@@ -51,9 +50,9 @@ button:active:not(:disabled){transform:scale(.97)}
    (la luz "pegando" en el vidrio real -- principio de materiales de
    Apple Design: el borde superior mas claro que el resto). */
 .rd-glass-card{
-  background:var(--glass);
-  backdrop-filter:blur(24px) saturate(200%);
-  -webkit-backdrop-filter:blur(24px) saturate(200%);
+  background:rgba(250,249,240,.65);
+  backdrop-filter:blur(22px) saturate(150%);
+  -webkit-backdrop-filter:blur(22px) saturate(150%);
   border:1px solid rgba(255,255,255,.35);
   border-top-color:rgba(255,255,255,.7);
   box-shadow:0 1px 0 rgba(255,255,255,.7) inset,0 14px 34px -14px rgba(40,35,10,.18),0 2px 8px -2px rgba(40,35,10,.1);
