@@ -34,6 +34,34 @@ button:active:not(:disabled){transform:scale(.97)}
 @media (prefers-reduced-transparency: reduce){
   .rd-glass{background:var(--sf);backdrop-filter:none;-webkit-backdrop-filter:none}
 }
+/* Fondo "niebla" difuso en los propios tonos de RADAR (lima/oliva muy
+   diluidos sobre crema) -- el vidrio esmerilado necesita algo de color
+   detras para que el blur se note; sobre el fondo crema solido no se ve.
+   Piloto: Portal Cliente (pedido del usuario, referencia visual "MQ"). */
+.rd-mesh-bg{
+  background:
+    radial-gradient(circle at 12% 15%, rgba(212,240,0,.55) 0%, transparent 48%),
+    radial-gradient(circle at 90% 8%, rgba(77,83,6,.38) 0%, transparent 52%),
+    radial-gradient(circle at 55% 105%, rgba(143,163,0,.45) 0%, transparent 60%),
+    radial-gradient(circle at 0% 100%, rgba(107,116,8,.30) 0%, transparent 50%),
+    var(--bg);
+}
+/* Tarjeta de vidrio -- reemplaza el borde solido + fondo opaco de las
+   tarjetas normales por translucidez+blur, con un filo brillante arriba
+   (la luz "pegando" en el vidrio real -- principio de materiales de
+   Apple Design: el borde superior mas claro que el resto). */
+.rd-glass-card{
+  background:var(--glass);
+  backdrop-filter:blur(24px) saturate(200%);
+  -webkit-backdrop-filter:blur(24px) saturate(200%);
+  border:1px solid rgba(255,255,255,.35);
+  border-top-color:rgba(255,255,255,.7);
+  box-shadow:0 1px 0 rgba(255,255,255,.7) inset,0 14px 34px -14px rgba(40,35,10,.18),0 2px 8px -2px rgba(40,35,10,.1);
+}
+@media (prefers-reduced-transparency: reduce){
+  .rd-mesh-bg{background:var(--bg)}
+  .rd-glass-card{background:var(--sf);backdrop-filter:none;-webkit-backdrop-filter:none;border-color:var(--bd)}
+}
 /* Energia al pasar el mouse sobre tarjetas destacadas -- se levantan
    un poco en vez de quedarse pegadas al fondo. */
 .rd-hover-lift{transition:transform .2s ease-out,box-shadow .2s ease-out}
@@ -4363,9 +4391,9 @@ function PortalP({eObj,empEntries,empDocs,empRems,eEvs,accts,leafAccts,go}){
   const docsPend=empDocs.filter(d=>d.estado==="pendiente").length;
   const docsVenc=empDocs.filter(d=>d.estado==="vencido").length;
 
-  return(<div style={{maxWidth:900,margin:"0 auto"}}>
+  return(<div className="rd-mesh-bg" style={{maxWidth:900,margin:"0 auto",padding:20,borderRadius:"var(--r)"}}>
     {/* Client header */}
-    <div style={{background:"linear-gradient(135deg,var(--sf2),var(--sf))",borderRadius:"var(--r)",boxShadow:"var(--shadow)",border:"1px solid var(--bd)",padding:"28px 24px",marginBottom:20,position:"relative",overflow:"hidden"}}>
+    <div className="rd-glass-card" style={{borderRadius:"var(--r)",padding:"28px 24px",marginBottom:20,position:"relative",overflow:"hidden"}}>
       <div style={{position:"absolute",top:-20,right:-20,width:100,height:100,borderRadius:"50%",background:"var(--cy)",opacity:.04}}/>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:16}}>
         <div>
@@ -4392,7 +4420,7 @@ function PortalP({eObj,empEntries,empDocs,empRems,eEvs,accts,leafAccts,go}){
       ].map((k,i)=>{
         const len=String(k.v).length;
         const fs=len>13?13:len>10?15:len>8?17:18;
-        return(<div key={i} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,minWidth:0}}>
+        return(<div key={i} className="rd-glass-card rd-hover-lift" style={{borderRadius:"var(--r)",padding:16,minWidth:0}}>
           <div style={{fontSize:10,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:6}}>{k.l}</div>
           <div style={{fontSize:fs,fontWeight:700,color:k.c,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",wordBreak:"break-word",overflowWrap:"anywhere",lineHeight:1.25}}>{k.v}</div>
         </div>);
@@ -4410,7 +4438,7 @@ function PortalP({eObj,empEntries,empDocs,empRems,eEvs,accts,leafAccts,go}){
 
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:16}}>
       {/* Recent documents */}
-      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20}}>
+      <div className="rd-glass-card" style={{borderRadius:"var(--r)",padding:20}}>
         <div style={{fontSize:12,fontWeight:600,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:14}}>Ultimos Documentos</div>
         {empDocs.length===0?<div style={{fontSize:12,color:"var(--tx3)",textAlign:"center",padding:"20px 0"}}>Sin documentos</div>
         :empDocs.slice(-5).reverse().map(d=><div key={d.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:"1px solid var(--bd)",fontSize:12}}>
@@ -4421,7 +4449,7 @@ function PortalP({eObj,empEntries,empDocs,empRems,eEvs,accts,leafAccts,go}){
       </div>
 
       {/* Evaluations */}
-      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20}}>
+      <div className="rd-glass-card" style={{borderRadius:"var(--r)",padding:20}}>
         <div style={{fontSize:12,fontWeight:600,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:14}}>Evaluaciones RADAR</div>
         {eEvs.length===0?<div style={{fontSize:12,color:"var(--tx3)",textAlign:"center",padding:"20px 0"}}>Sin evaluaciones</div>
         :eEvs.slice(-5).reverse().map(ev=>{const et=ETYPES.find(t=>t.id===ev.type);return<div key={ev.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:"1px solid var(--bd)",fontSize:12}}>
@@ -4432,7 +4460,7 @@ function PortalP({eObj,empEntries,empDocs,empRems,eEvs,accts,leafAccts,go}){
       </div>
 
       {/* Employees */}
-      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20}}>
+      <div className="rd-glass-card" style={{borderRadius:"var(--r)",padding:20}}>
         <div style={{fontSize:12,fontWeight:600,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:14}}>Remuneraciones</div>
         {empRems.length===0?<div style={{fontSize:12,color:"var(--tx3)",textAlign:"center",padding:"20px 0"}}>Sin liquidaciones</div>
         :empRems.slice(-5).map(r=><div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:"1px solid var(--bd)",fontSize:12}}>
