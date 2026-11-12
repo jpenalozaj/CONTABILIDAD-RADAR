@@ -787,7 +787,7 @@ function HomeP({emps,eObj,evs,log}){
 
 function EmpP({emps,setEmps,aEmp,setAEmp,aLog}){
   const [vw,setVw]=useState("list");const [eid,setEid]=useState(null);const [sr,setSr]=useState("");const [fm,setFm]=useState({});
-  const mt=()=>({name:"",rut:"",fantasyName:"",giro:"",regimen:"",fechaInicioAct:"",address:"",region:"",comuna:"",phone:"",email:"",services:[],repLegalName:"",repLegalRut:"",tasaMutual:0.93});
+  const mt=()=>({name:"",rut:"",fantasyName:"",giro:"",regimen:"",fechaInicioAct:"",address:"",region:"",comuna:"",phone:"",email:"",services:[],repLegalName:"",repLegalRut:"",tasaMutual:0.93,tasaPPM:1,tasaIdpc:12.5});
   const tSvc=s=>setFm(p=>({...p,services:p.services.includes(s)?p.services.filter(x=>x!==s):[...p.services,s]}));
   const doSave=()=>{if(!fm.rut||!fm.name)return;if(eid){setEmps(p=>p.map(e=>e.id===eid?{...e,...fm}:e));aLog("Empresa actualizada",fm.name)}else{const n={id:uid(),...fm};setEmps(p=>[...p,n]);if(!aEmp)setAEmp(n.id);aLog("Empresa creada",fm.name)}setVw("list")};
   const doDel=id=>{const e=emps.find(x=>x.id===id);setEmps(p=>p.filter(x=>x.id!==id));if(aEmp===id)setAEmp(emps.find(x=>x.id!==id)?.id||null);aLog("Empresa eliminada",e?.name||"");setVw("list")};
@@ -800,13 +800,18 @@ function EmpP({emps,setEmps,aEmp,setAEmp,aLog}){
   if(vw==="detail"&&det)return(<div style={{maxWidth:900,margin:"0 auto"}}><Bk onClick={()=>setVw("list")}>Volver</Bk>
     <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28,marginBottom:16}}><div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap",gap:16}}><div><div style={{fontSize:22,fontWeight:700,letterSpacing:-.3,lineHeight:1.15}}>{det.name}</div><div style={{fontSize:12,color:"var(--tx3)",marginTop:4}}>{det.rut}</div></div><div style={{display:"flex",gap:8}}><Bt onClick={()=>{setFm({...mt(),...det});setEid(det.id);setVw("form")}}>{IC.edit} Editar</Bt><Bt onClick={()=>{setAEmp(det.id);aLog("Empresa activada",det.name)}} p={det.id!==aEmp}>{det.id===aEmp?"Activa":"Activar"}</Bt></div></div>
       <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:20}}>{(det.services||[]).map(s=>{const sv=SVCS.find(x=>x.id===s);return sv?<Tg key={s} c={sv.color}>{sv.icon} {sv.label}</Tg>:null})}</div></div>
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:16}}><IC2 t="General" items={[{l:"Giro",v:det.giro},{l:"Regimen",v:det.regimen},{l:"Inicio Act.",v:det.fechaInicioAct}]}/><IC2 t="Contacto" items={[{l:"Direccion",v:det.address},{l:"Region/Comuna",v:[det.region,det.comuna].filter(Boolean).join(", ")},{l:"Telefono",v:det.phone},{l:"Email",v:det.email}]}/><IC2 t="Rep. Legal" items={[{l:"Nombre",v:det.repLegalName},{l:"RUT",v:det.repLegalRut}]}/><IC2 t="Previsional" items={[{l:"Tasa Seg. Accidentes (ISL/Mutual)",v:(det.tasaMutual??0.93)+"%"}]}/></div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:16}}><IC2 t="General" items={[{l:"Giro",v:det.giro},{l:"Regimen",v:det.regimen},{l:"Inicio Act.",v:det.fechaInicioAct}]}/><IC2 t="Contacto" items={[{l:"Direccion",v:det.address},{l:"Region/Comuna",v:[det.region,det.comuna].filter(Boolean).join(", ")},{l:"Telefono",v:det.phone},{l:"Email",v:det.email}]}/><IC2 t="Rep. Legal" items={[{l:"Nombre",v:det.repLegalName},{l:"RUT",v:det.repLegalRut}]}/><IC2 t="Previsional" items={[{l:"Tasa Seg. Accidentes (ISL/Mutual)",v:(det.tasaMutual??0.93)+"%"}]}/><IC2 t="Parametros Tributarios" items={[{l:"Tasa PPM",v:(det.tasaPPM??1)+"%"},{l:"Tasa IDPC (Pro Pyme General)",v:(det.tasaIdpc??12.5)+"%"}]}/></div>
     <div style={{marginTop:24,padding:"16px 20px",borderRadius:"var(--rs)",border:"1px solid rgba(239,68,68,.2)",background:"rgba(239,68,68,.05)",display:"flex",alignItems:"center",justifyContent:"space-between"}}><div style={{fontSize:12,fontWeight:600,color:"var(--rd)"}}>Eliminar empresa</div><button onClick={async()=>{if(await rdConfirm("Eliminar esta empresa?"))doDel(det.id)}} style={{background:"transparent",border:"1px solid var(--rd)",color:"var(--rd)",borderRadius:"var(--rs)",padding:"6px 16px",fontSize:12}}>Eliminar</button></div>
   </div>);
   return(<div style={{maxWidth:700,margin:"0 auto"}}><Bk onClick={()=>setVw("list")}>Volver</Bk>
     <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:28}}><h2 style={{fontSize:18,fontWeight:700,marginBottom:24}}>{eid?"Editar":"Nueva"} Empresa</h2>
       <Sc t="Identificacion"><FG><Fi l="Razon Social *" v={fm.name} s={v=>setFm(p=>({...p,name:v}))}/><Fi l="RUT *" v={fm.rut} s={v=>setFm(p=>({...p,rut:v}))}/><Fi l="Fantasía" v={fm.fantasyName} s={v=>setFm(p=>({...p,fantasyName:v}))}/><Fi l="Giro" v={fm.giro} s={v=>setFm(p=>({...p,giro:v}))}/></FG></Sc>
-      <Sc t="Tributario"><FG><div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Regimen</label><select value={fm.regimen||""} onChange={e=>setFm(p=>({...p,regimen:e.target.value}))}><option value="">Seleccionar...</option>{REGS.map(r=><option key={r} value={r}>{r}</option>)}</select></div><Fi l="Inicio Act." v={fm.fechaInicioAct} s={v=>setFm(p=>({...p,fechaInicioAct:v}))} t="date"/></FG></Sc>
+      <Sc t="Tributario"><FG><div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Regimen</label><select value={fm.regimen||""} onChange={e=>setFm(p=>({...p,regimen:e.target.value}))}><option value="">Seleccionar...</option>{REGS.map(r=><option key={r} value={r}>{r}</option>)}</select></div><Fi l="Inicio Act." v={fm.fechaInicioAct} s={v=>setFm(p=>({...p,fechaInicioAct:v}))} t="date"/>
+        <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Tasa PPM %</label><input type="number" min="0" step="0.01" value={fm.tasaPPM??1} onChange={e=>setFm(p=>({...p,tasaPPM:parseFloat(e.target.value)||0}))}/></div>
+        <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Tasa IDPC % (Pro Pyme General)</label><input type="number" min="0" step="0.01" value={fm.tasaIdpc??12.5} onChange={e=>setFm(p=>({...p,tasaIdpc:parseFloat(e.target.value)||0}))}/></div>
+      </FG>
+        <div style={{fontSize:11,color:"var(--tx3)",marginTop:-4}}>PPM: tasa variable que fija el SII segun el historial de la empresa, no es un numero nacional unico -- ajustala si el SII le notifico una distinta. IDPC: tasa del Impuesto de Primera Categoria para Pro Pyme General (14 D N°3) -- hoy hay una rebaja transitoria a 12,5% (Ley 21.755, años comerciales 2025-2027); solo aplica si el regimen de arriba es Pro Pyme General, en otros regimenes no corresponde IDPC a nivel empresa.</div>
+      </Sc>
       <Sc t="Previsional"><FG><div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Tasa Seg. Accidentes del Trabajo (ISL/Mutual) %</label><input type="number" min="0" step="0.01" value={fm.tasaMutual??0.93} onChange={e=>setFm(p=>({...p,tasaMutual:parseFloat(e.target.value)||0}))}/></div></FG>
         <div style={{fontSize:11,color:"var(--tx3)",marginTop:-4}}>0.93% es la tasa basica de la Ley 16.744 (ISL). Si la empresa esta afiliada a una Mutual de Seguridad privada o tiene una cotizacion adicional diferenciada por siniestralidad, ajustala aqui -- es por empresa, no una tasa nacional unica como el SIS.</div>
       </Sc>
@@ -4390,6 +4395,31 @@ function PortalP({eObj,empEntries,empDocs,empRems,eEvs,accts,leafAccts,go}){
   const docsPend=empDocs.filter(d=>d.estado==="pendiente").length;
   const docsVenc=empDocs.filter(d=>d.estado==="vencido").length;
 
+  // Resumen Tributario (PPM/Renta/IVA/Utilidad) -- estimado a partir de la
+  // contabilidad ya registrada, nunca reemplaza el F29/F22 oficial. Utilidad
+  // y PPM se calculan solo con el año en curso (a diferencia del "Resultado"
+  // de arriba, que es historico completo); el IVA reusa signoDocTributario
+  // (mismo motor que Resumen IVA Ventas/Compras, para no inventar una
+  // segunda formula que de un numero distinto).
+  const anioActual=new Date().getFullYear();
+  const balsAnio=useMemo(()=>{const b={};leafAccts.forEach(a=>{b[a.cd]={db:0,cr:0}});empEntries.filter(e=>(e.date||"").slice(0,4)===String(anioActual)).forEach(e=>e.lines.forEach(l=>{if(!b[l.ac])b[l.ac]={db:0,cr:0};b[l.ac].db+=(l.db||0);b[l.ac].cr+=(l.cr||0)}));return b},[empEntries,leafAccts,anioActual]);
+  const getBAnio=(cd,tp)=>{const b=balsAnio[cd]||{db:0,cr:0};return(tp==="asset"||tp==="expense")?b.db-b.cr:b.cr-b.db};
+  const totalIAnio=leafAccts.filter(a=>a.tp==="income").reduce((s,a)=>s+getBAnio(a.cd,a.tp),0);
+  const totalXAnio=leafAccts.filter(a=>a.tp==="expense").reduce((s,a)=>s+getBAnio(a.cd,a.tp),0);
+  const utilidadAnio=totalIAnio-totalXAnio;
+  const tasaPPM=eObj.tasaPPM??1;
+  const ppmAnio=Math.round(totalIAnio*tasaPPM/100);
+  const tasaIdpc=eObj.tasaIdpc??12.5;
+  const esProPymeGeneral=eObj.regimen==="Pro Pyme General (14 D N°3)";
+  const impuestoDeterminado=esProPymeGeneral?Math.round(Math.max(0,utilidadAnio)*tasaIdpc/100):null;
+  const saldoRenta=impuestoDeterminado!==null?impuestoDeterminado-ppmAnio:null;
+  const docsIva=useMemo(()=>empEntries.filter(e=>e.tipoDoc==="compra"||e.tipoDoc==="venta"),[empEntries]);
+  const periodosIva=useMemo(()=>[...new Set(docsIva.map(d=>d.periodo).filter(p=>/^\d{6}$/.test(p)))].sort((a,b)=>b.localeCompare(a)),[docsIva]);
+  const periodoIvaVigente=periodosIva[0]||null;
+  const calcIvaMonto=(tipoDoc,periodo)=>docsIva.filter(d=>d.tipoDoc===tipoDoc&&d.periodo===periodo).reduce((s,r)=>s+(r.iva||0)*signoDocTributario(r.tipoDocCod),0);
+  const ivaDeterminadoVigente=periodoIvaVigente?calcIvaMonto("venta",periodoIvaVigente)-calcIvaMonto("compra",periodoIvaVigente):null;
+  const labelPeriodoIva=p=>{if(!p)return"";const mm=MESES.find(m=>m[0]===p.slice(4,6));return(mm?mm[1]:p.slice(4,6))+" "+p.slice(0,4)};
+
   return(<div className="rd-mesh-bg" style={{maxWidth:900,margin:"0 auto",padding:20,borderRadius:"var(--r)"}}>
     {/* Client header */}
     <div className="rd-glass-card" style={{borderRadius:"var(--r)",padding:"28px 24px",marginBottom:20,position:"relative",overflow:"hidden"}}>
@@ -4434,6 +4464,32 @@ function PortalP({eObj,empEntries,empDocs,empRems,eEvs,accts,leafAccts,go}){
         {docsVenc>0&&<span>{docsVenc} documento{docsVenc>1?"s":""} vencido{docsVenc>1?"s":""}.</span>}
       </div>
     </div>}
+
+    {/* Resumen Tributario */}
+    <div className="rd-glass-card" style={{borderRadius:"var(--r)",padding:20,marginBottom:16}}>
+      <div style={{fontSize:12,fontWeight:600,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:4}}>Resumen Tributario {anioActual}</div>
+      <div style={{fontSize:10,color:"var(--tx3)",marginBottom:18}}>Estimado a partir de la contabilidad registrada — no reemplaza la declaración oficial (F29/F22).</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:16}}>
+        <div>
+          <div style={{fontSize:10,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:6}}>Utilidad {anioActual}</div>
+          <div style={{fontSize:16,fontWeight:700,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:utilidadAnio>=0?"var(--gn)":"var(--rd)"}}>${fmt(utilidadAnio)}</div>
+        </div>
+        <div>
+          <div style={{fontSize:10,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:6}}>PPM {anioActual} (estimado)</div>
+          <div style={{fontSize:16,fontWeight:700,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(ppmAnio)}</div>
+        </div>
+        <div>
+          <div style={{fontSize:10,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:6}}>IVA {labelPeriodoIva(periodoIvaVigente)||"sin periodo"}</div>
+          {ivaDeterminadoVigente===null?<div style={{fontSize:12,color:"var(--tx3)"}}>Sin documentos importados</div>:
+          <div style={{fontSize:16,fontWeight:700,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:ivaDeterminadoVigente>=0?"var(--rd)":"var(--gn)"}}>${fmt(Math.abs(ivaDeterminadoVigente))} <span style={{fontSize:10,fontWeight:400,fontFamily:"inherit"}}>{ivaDeterminadoVigente>=0?"a pagar":"a favor"}</span></div>}
+        </div>
+        <div>
+          <div style={{fontSize:10,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:6}}>Impuesto a la Renta estimado</div>
+          {!esProPymeGeneral?<div style={{fontSize:12,color:"var(--tx3)"}}>No disponible para régimen {eObj.regimen||"sin definir"}</div>:
+          <div style={{fontSize:16,fontWeight:700,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",color:saldoRenta>=0?"var(--rd)":"var(--gn)"}}>${fmt(Math.abs(saldoRenta))} <span style={{fontSize:10,fontWeight:400,fontFamily:"inherit"}}>{saldoRenta>=0?"a pagar":"a favor"}</span></div>}
+        </div>
+      </div>
+    </div>
 
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:16}}>
       {/* Recent documents */}
