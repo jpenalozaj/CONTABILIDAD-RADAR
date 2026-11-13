@@ -2,8 +2,8 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "./lib/supabaseClient";
 import { loadCollection, saveCollection } from "./lib/sync";
 import { normRut } from "./lib/rut";
-import { parseCartolaSantander, decodeRutFromGlosa } from "./lib/cartola";
-import { yaContabilizado, sugerirContraparte, armarAsiento, buscarReglaPorRut, buscarReglaPorPalabra } from "./lib/conciliacion";
+import { parseCartolaSantander } from "./lib/cartola";
+import { yaContabilizado, sugerirContraparte, armarAsiento, buscarReglaPorRut } from "./lib/conciliacion";
 import writeXlsxFile from "write-excel-file/browser";
 import { listarInvitaciones, crearInvitacion, revocarInvitacion, reactivarInvitacion, canjearCodigoPortal, obtenerMiVinculo, cargarDatosPortal } from "./lib/portal";
 
@@ -758,7 +758,7 @@ function RecordatoriosTrib(){
 }
 
 const GRADT={WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"};
-function HomeP({emps,eObj,evs,log}){
+function HomeP({emps,evs,log}){
   return(<div style={{maxWidth:900,margin:"0 auto"}}>
     <div style={{position:"relative",overflow:"hidden",background:"linear-gradient(135deg,var(--sf2),var(--sf))",borderRadius:"var(--r)",boxShadow:"var(--shadow)",border:"1px solid var(--bd)",padding:"44px 32px",marginBottom:28}}>
       <div aria-hidden style={{position:"absolute",top:-90,right:-70,width:280,height:280,borderRadius:"50%",background:"var(--grad)",opacity:.22,filter:"blur(70px)",pointerEvents:"none"}}/>
@@ -896,7 +896,7 @@ function F22V({ev,upd,del,emp,back}){
     setAiL(true);
     try{
       const yd=ATY.map(y=>{const est=r["e_"+y]||"sin evaluar";const obs=r["obs_"+y]||"";const ct=parseInt(r["cont_"+y])||0;
-        const dv=r["dv_"+y]||"";const edv=r["edv_"+y]||"";const res=r["res_"+y]||"";const rec=r["rec_"+y]||"";const erc=r["erc_"+y]||"";const liq=r["liq_"+y]||"";const ml=parseInt(r["mliq_"+y])||0;const lr=r["lraf_"+y]||"";
+        const dv=r["dv_"+y]||"";const edv=r["edv_"+y]||"";const res=r["res_"+y]||"";const rec=r["rec_"+y]||"";const erc=r["erc_"+y]||"";const liq=r["liq_"+y]||"";const ml=parseInt(r["mliq_"+y])||0;
         let txt="AT "+y+": "+est;if(est==="observada"){txt+=", Dev="+dv+"/"+edv+", Res="+res+", Rec="+rec+(erc?"/"+erc:"")+", Liq="+liq+(liq==="si"?"/$"+ml:"")+", Cont=$"+ct}if(obs)txt+=", Obs: "+obs;return txt}).join("\n");
       const prompt="Eres contador auditor chileno. Informe ejecutivo RADAR Renta F22.\nEmpresa: "+emp.name+" RUT: "+(emp.rut||"N/I")+" Regimen: "+(emp.regimen||"N/I")+"\nResultados:\n"+yd+"\nContingencia total: $"+tCont+"\nConclusion profesional: "+(ev.conclusionGeneral||"N/R")+"\nEstructura: 1)RESUMEN 2)HALLAZGOS 3)CONTINGENCIAS 4)RIESGO 5)RECOMENDACIONES 6)CONCLUSION. Texto plano, titulos MAYUSCULAS.";
       const rp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,messages:[{role:"user",content:prompt}]})});
@@ -1382,7 +1382,7 @@ function PlanCtas({accts,setAccts,aLog}){
 
 const TIPOS_COMPROBANTE=[{id:"ingreso",l:"Ingreso"},{id:"egreso",l:"Egreso"},{id:"traspaso",l:"Traspaso"}];
 const ORIGEN_LABELS={manual:"Manual",centralizacion:"Centralizacion",sii:"Importacion SII",csv:"CSV",conciliacion:"Conciliacion",depreciacion:"Depreciacion",recurrente:"Recurrente",honorarios:"Honorarios"};
-function Asientos({entries,setEntries,empEntries,leafAccts,eObj,aLog,ccostos,resaltar}){
+function Asientos({setEntries,empEntries,leafAccts,eObj,aLog,ccostos,resaltar}){
   const [showF,setShowF]=useState(false);
   const [editId,setEditId]=useState(null);
   const [resaltadoId,setResaltadoId]=useState(null);
@@ -2085,7 +2085,7 @@ function CuadraturaModal({fila,onElegir,onClose}){
   </div>);
 }
 
-function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog,reglas,importaciones,setImportaciones}){
+function CSVSII({setEntries,leafAccts,eObj,empEntries,aLog,reglas,importaciones,setImportaciones}){
   const [result,setResult]=useState(null);
   const [periodo,setPeriodo]=useState("");
   const [autoBusy,setAutoBusy]=useState(null);
@@ -2178,7 +2178,6 @@ function CSVSII({entries,setEntries,leafAccts,eObj,empEntries,aLog,reglas,import
     setResult({ok:true,msg:eliminarIds.size+" asientos duplicados o vacios eliminados."});
   };
 
-  const nombreCta=cd=>leafAccts.find(a=>a.cd===cd)?.nm||cd;
   const fmtPeriodoCorto=p=>/^\d{6}$/.test(p||"")?p.slice(4,6)+"/"+p.slice(0,4):(p||"—");
   const hayPreview=preview.compra||preview.venta;
   const filasActivas=preview[previewTab]?.rows||[];
@@ -2603,7 +2602,7 @@ function LibroCV({empEntries,tipo,eObj,irAAsiento}){
 }
 
 // ═══ CONCILIACION BANCARIA ═══
-function ConciliacionP({entries,setEntries,leafAccts,eObj,empEntries,aLog,reglas,setReglas,cartolas,setCartolas}){
+function ConciliacionP({setEntries,leafAccts,eObj,empEntries,aLog,reglas,setReglas,cartolas,setCartolas}){
   const [cuentaBanco,setCuentaBanco]=useState("");
   const [movs,setMovs]=useState(null); // null = sin cartola cargada
   const [nombreArchivo,setNombreArchivo]=useState("");
@@ -2950,7 +2949,6 @@ function B8Col({empEntries,accts,leafAccts,eObj,irACuenta}){
     return leafAccts.map(a=>{
       const s=b[a.cd]||{db:0,cr:0};if(s.db===0&&s.cr===0)return null;
       const sDeb=s.db>s.cr?s.db-s.cr:0;const sCre=s.cr>s.db?s.cr-s.db:0;
-      const isDeb=a.tp==="asset"||a.tp==="expense";
       const isBalance=a.tp==="asset"||a.tp==="liability"||a.tp==="equity";
       const invDeb=isBalance?sDeb:0;const invCre=isBalance?sCre:0;
       const resDeb=a.tp==="expense"?sDeb:0;const resCre=a.tp==="income"?sCre:0;
@@ -3046,7 +3044,6 @@ const PARAM_PREVIRED_DEFAULT={
   reformaCuentaObligatoria:0.1,reformaTopeExpectativaSis:2.5,reformaRentabilidadProtegida:0.9,
 };
 function getParamsPrevired(){const p=ld("rd_param_previred",null);return p?{...PARAM_PREVIRED_DEFAULT,...p,afp:{...PARAM_PREVIRED_DEFAULT.afp,...(p.afp||{})}}:PARAM_PREVIRED_DEFAULT}
-const AFP_RATES=PARAM_PREVIRED_DEFAULT.afp; // fallback para listar opciones del selector
 const SALUD_RATE=0.07;
 const CESANTIA_TRAB=0.006;const CESANTIA_EMP_INDEF=0.024;const CESANTIA_EMP_FIJO=0.03;
 // Tabla de Impuesto Unico (mensual, en tramos de UTM) -- tasas y rebajas
@@ -3296,7 +3293,7 @@ function PortalInviteBox({userId,empresaId,trabajadorId,nombre,aLog}){
   </div>);
 }
 
-function RemP({userId,eObj,rems,setRems,empRems,trabajadores,setTrabajadores,empTrabajadores,procesosRem,setProcesosRem,empProcesosRem,asistencia,setAsistencia,empAsistencia,ccostos,entries,setEntries,empEntries,leafAccts,aLog,go}){
+function RemP({userId,eObj,setRems,empRems,trabajadores,setTrabajadores,empTrabajadores,setProcesosRem,empProcesosRem,asistencia,setAsistencia,empAsistencia,ccostos,setEntries,empEntries,aLog,go}){
   const [vw,setVw]=useState("list");
   const [eid,setEid]=useState(null);
   const [fm,setFm]=useState({});
@@ -4028,7 +4025,7 @@ function TribV({ev,upd,del,emp,back}){
   if(showS)return(<div style={{maxWidth:800,margin:"0 auto"}}><Bk onClick={()=>setShowS(false)}>Volver a evaluacion</Bk>
     <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:32}}>
       <div style={{textAlign:"center",marginBottom:24}}><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:2}}>Evaluacion RADAR</div><div style={{fontSize:22,fontWeight:700,letterSpacing:-.3,lineHeight:1.15,marginTop:4}}>{emp.name}</div><div style={{fontSize:13,color:"var(--cy)",fontWeight:600,marginTop:4}}>RADAR Tributario</div></div>
-      {TRIB_SECTIONS.map((sc,si)=><div key={sc.id} style={{marginBottom:20}}>
+      {TRIB_SECTIONS.map(sc=><div key={sc.id} style={{marginBottom:20}}>
         <div style={{fontSize:12,fontWeight:700,color:"var(--cy)",textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>{sc.title}</div>
         {sc.questions.map(q=>{const val=r[q.id];if(!val||val==="")return null;const optLabel=q.opts?.find(o=>o.v===val)?.l||val;
           return<div key={q.id} style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,padding:"6px 0",borderBottom:"1px solid var(--bd)",fontSize:12}}>
@@ -4086,8 +4083,7 @@ const DOC_CATS=[
   {id:"otros",l:"Otros",icon:"📁",items:["Actas","Permisos","Patentes","Seguros","Contratos comerciales"]},
 ];
 
-function DocsP({eObj,docs,setDocs,empDocs,aLog,go}){
-  const [vw,setVw]=useState("list");
+function DocsP({eObj,setDocs,empDocs,aLog,go}){
   const [showAdd,setShowAdd]=useState(false);
   const [fm,setFm]=useState({nombre:"",categoria:"tributario",tipo:"",periodo:"",obs:"",fecha:new Date().toISOString().slice(0,10),estado:"vigente"});
   const [filtCat,setFiltCat]=useState("all");
@@ -4307,7 +4303,7 @@ function QCard({q,i,r,setR}){
 const TAREA_TIPOS=[{v:"f29",l:"Declaracion F29"},{v:"f22",l:"Declaracion F22"},{v:"dj",l:"Declaracion Jurada"},{v:"balance",l:"Balance"},{v:"eeff",l:"Estados Financieros"},{v:"auditoria",l:"Auditoria"},{v:"patente",l:"Patente Municipal"},{v:"sii",l:"Tramite SII"},{v:"reunion",l:"Reunion"},{v:"informe",l:"Informe"},{v:"otro",l:"Otro"}];
 const PRIORIDADES=[{v:"alta",l:"Alta",c:"var(--rd)"},{v:"media",l:"Media",c:"var(--am)"},{v:"baja",l:"Baja",c:"var(--gn)"}];
 
-function PlanP({eObj,tareas,setTareas,empTareas,aLog,go}){
+function PlanP({eObj,setTareas,empTareas,aLog,go}){
   const [showAdd,setShowAdd]=useState(false);
   const [filtro,setFiltro]=useState("pendiente");
   const [fm,setFm]=useState({titulo:"",tipo:"f29",prioridad:"media",vencimiento:"",notas:"",estado:"pendiente"});
@@ -4364,7 +4360,7 @@ function PlanP({eObj,tareas,setTareas,empTareas,aLog,go}){
 }
 
 // ═══ PORTAL DEL CLIENTE ═══
-function PortalP({eObj,empEntries,empDocs,empRems,eEvs,accts,leafAccts,go}){
+function PortalP({eObj,empEntries,empDocs,empRems,eEvs,leafAccts,go}){
   if(!eObj)return<Ey i="🏢" t="Selecciona una empresa" d="Activa una empresa para ver su portal."><Bt onClick={()=>go("empresas")} p={true}>Ir a Empresas</Bt></Ey>;
 
   // Calculate key metrics
