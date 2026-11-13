@@ -91,6 +91,7 @@ explícitamente lo contrario.
 
 **Ideas de menor prioridad (solo mencionadas, sin diseño)**
 Importador universal de cartolas con IA, preguntas en lenguaje natural sobre los datos, insights/narrativa automática, portal de autoservicio para clientes, importación automática de ventas e-commerce, conciliación de pagos parciales/múltiples facturas, OCR de boletas, Balance General Consolidado, constructor de Tablas de Parámetros genérico.
+- Reemplazar el backlog de este archivo (`CLAUDE.md`) por [Paperclip](https://github.com/paperclipai/paperclip) (orquestación open-source de tareas/agentes, self-hosted, no pide cuenta) — pedido explícitamente por el usuario, luego pospuesto él mismo al confirmar la implicancia: Paperclip corre como servidor Node.js + Postgres propio, así que para que el backlog persista entre sesiones tendría que correr en infraestructura del usuario (mismo patrón que `tools/*-local-server.mjs`), no dentro del sandbox efímero de una sesión. Retomar cuando el usuario decida dónde lo va a alojar.
 
 ## Restricciones ya decididas (de sesiones anteriores, no reabrir sin que el usuario lo pida)
 
