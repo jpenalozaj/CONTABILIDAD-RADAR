@@ -1,6 +1,6 @@
 ---
 name: ui-ux-pro-max
-description: Audita src/App.jsx contra el checklist de UX/accesibilidad de 10 categorias de ui-ux-pro-max (120 reglas, references/quick-reference.md) — foco (1) Accesibilidad, (2) Touch & Interaction. Tambien incluye el generador de sistema de diseño (scripts/search.py --design-system), instalado a pedido explicito del usuario el 2026-11-14 — ver seccion propia mas abajo sobre por que su resultado NUNCA se aplica a src/App.jsx sin confirmacion explicita nueva, aunque el usuario ya pidio correrlo una vez. Usar cuando se pida revisar/mejorar UI/UX, accesibilidad, o aplicar esta skill por nombre.
+description: Audita src/App.jsx contra el checklist de UX/accesibilidad de 10 categorias de ui-ux-pro-max (120 reglas, references/quick-reference.md) — foco (1) Accesibilidad, (2) Touch & Interaction. Tambien incluye el generador de sistema de diseño (scripts/search.py --design-system), instalado y aplicado a pedido explicito del usuario el 2026-11-14 (ver seccion propia mas abajo para la paleta/tipografia vigente y la regla de confirmacion antes de volver a cambiarla). Usar cuando se pida revisar/mejorar UI/UX, accesibilidad, o aplicar esta skill por nombre.
 ---
 
 # UI/UX Pro Max (adaptado para RADAR)
@@ -28,23 +28,42 @@ python3 .claude/skills/ui-ux-pro-max/scripts/search.py "<query>" --design-system
 y query orientada a "B2B financial professional accounting trust": estilo
 "Minimalism & Swiss Style", paleta navy/azul/gris (`#0F172A`/`#0369A1`/
 `#F8FAFC`), tipografia IBM Plex Sans — persistido en
-`design-system/radar/MASTER.md` como documento de referencia. **No se
-aplico a `src/App.jsx`**: contradice directamente la paleta lima/crema/
-verde-oscuro ya decidida y recien reafirmada (incluye el efecto vidrio
-`.rd-mesh-bg`/`.rd-glass-card` afinado especificamente para lima/oliva), y
-es un cambio de alcance total (cientos de `style={{...}}` en un archivo
-unico) y dificil de revertir. El dataset del generador tampoco tiene una
-categoria real para "software contable chileno" — el resultado es la
-aproximacion mas cercana disponible (B2B Service / Productivity Tool), no
-un match exacto.
+`design-system/radar/MASTER.md` como documento de referencia. El dataset
+del generador no tiene una categoria real para "software contable
+chileno" — el resultado es la aproximacion mas cercana disponible (B2B
+Service / Productivity Tool), no un match exacto.
+
+**Aplicado a `src/App.jsx` el mismo dia, pero no tal cual salio del
+generador** — el usuario no aprobo el output en bloque. El flujo real fue:
+generar mockups HTML comparativos (Playwright, nunca tocar codigo antes de
+mostrar), el usuario fue decidiendo pieza por pieza ("combinalas ambas" →
+diseño propio mezclando el header/nav navy de la generada con la identidad
+RADAR -- crema/lima/JetBrains Mono se mantenian; "no me gusta el crema de
+fondo" → 3 alternativas de fondo; "la tipografia me gusta mas la propuesta
+por la skill" → IBM Plex Sans; "el segundo" → fondo gris azulado
+`#F8FAFC`), y solo despues de esas 4 decisiones se pregunto explicitamente
+"¿aplico esto ahora al codigo real?" antes de tocar `src/App.jsx`. Paleta
+vigente ahora: `--bg:#F8FAFC`/`--sf:#FFFFFF`/`--tx3:#64748B`, sidebar
+`--navy:#0F172A` con texto `--on-navy`, tipografia `IBM Plex Sans`. Lima
+(`--cy`/`--cy-fill`), verde oscuro (`--tx`), `JetBrains Mono` en montos y
+`Fraunces` en el wordmark **no cambiaron** -- nunca estuvieron en discusion.
+Detalle completo de cada edicion en la entrada "Re-tema" de CLAUDE.md
+(seccion Mantenimiento).
 
 **Regla para el futuro**: el generador queda instalado y disponible para
 correrlo y guardar su resultado como referencia (`--persist`, no destructivo,
-solo crea archivos nuevos en `design-system/`). Pero **nunca** reemplazar
+solo crea archivos nuevos en `design-system/`). **Nunca** reemplazar
 colores/tipografia reales en `src/App.jsx` a partir de su output sin que el
-usuario lo confirme explicitamente sobre el resultado concreto generado (no
-alcanza con un pedido generico de "aplica el generador" — eso autoriza
-correrlo y mostrar/persistir el resultado, no sobrescribir la app).
+usuario confirme explicitamente sobre el resultado CONCRETO que se va a
+aplicar (no alcanza con un pedido generico de "aplica el generador" — eso
+solo autoriza correrlo y mostrar/persistir el resultado). La vez que si se
+aplico, la confirmacion llego recien despues de mostrar mockups y de que el
+usuario tomara cada decision de diseño una por una -- ese es el nivel de
+confirmacion que hace falta, no un "si" a la primera propuesta cruda del
+generador. Pendiente: `.rd-mesh-bg`/`.rd-glass-card` (efecto vidrio de
+Portal Cliente, aprobado en una sesion anterior con datos reales) no se
+tocaron en este cambio y puede que ya no luzcan iguales sobre el nuevo
+fondo gris azulado -- falta que el usuario lo revise ahi.
 
 ## Cuando usar
 
