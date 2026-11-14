@@ -1,29 +1,55 @@
 ---
 name: ui-ux-pro-max
-description: Audita src/App.jsx contra el checklist de UX/accesibilidad de 10 categorias de ui-ux-pro-max (120 reglas, references/quick-reference.md) — foco (1) Accesibilidad, (2) Touch & Interaction. Usar cuando se pida revisar/mejorar UI/UX, accesibilidad, o aplicar esta skill por nombre. NUNCA generar una paleta/estilo nuevo con esta skill para RADAR — su identidad visual ya esta decidida (ver CLAUDE.md, "Restricciones ya decididas").
+description: Audita src/App.jsx contra el checklist de UX/accesibilidad de 10 categorias de ui-ux-pro-max (120 reglas, references/quick-reference.md) — foco (1) Accesibilidad, (2) Touch & Interaction. Tambien incluye el generador de sistema de diseño (scripts/search.py --design-system), instalado a pedido explicito del usuario el 2026-11-14 — ver seccion propia mas abajo sobre por que su resultado NUNCA se aplica a src/App.jsx sin confirmacion explicita nueva, aunque el usuario ya pidio correrlo una vez. Usar cuando se pida revisar/mejorar UI/UX, accesibilidad, o aplicar esta skill por nombre.
 ---
 
 # UI/UX Pro Max (adaptado para RADAR)
 
-Adaptado de [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill)
-para el uso real que tiene sentido en RADAR: el original es sobre todo una
-herramienta de **generacion** de sistema de diseño (`search.py
---design-system`, con datos locales de 80 estilos/192 paletas/74 pares de
-tipografia) pensada para elegir la direccion visual de un producto nuevo.
-RADAR no es un producto nuevo — su identidad visual ya esta decidida y
-protegida explicitamente en CLAUDE.md ("tema claro, acento lima, texto
-`--tx:#1B4D2E`, `rd-tilt`, JetBrains Mono... nunca improvisado ni
-inconsistente, Restricciones ya decididas, no reabrir sin que el usuario lo
-pida"). Por eso esta adaptacion **no instala el script `search.py` ni los
-CSV de datos** — solo el checklist estatico de 120 reglas
-(`references/quick-reference.md`), usado como lente de auditoria contra la
-UI ya construida, nunca como generador de una paleta/estilo nuevo.
+Adaptado de [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill).
+El original es sobre todo una herramienta de **generacion** de sistema de
+diseño (`search.py --design-system`) pensada para elegir la direccion
+visual de un producto nuevo. RADAR no es un producto nuevo — su identidad
+visual ya esta decidida y protegida explicitamente en CLAUDE.md ("tema
+claro, acento lima, texto `--tx:#1B4D2E`, `rd-tilt`, JetBrains Mono...
+nunca improvisado ni inconsistente, Restricciones ya decididas, no reabrir
+sin que el usuario lo pida"). Primera pasada (auditoria de accesibilidad)
+instalo solo el checklist estatico; el usuario pidio explicitamente
+despues "aplica el generador de paletas" / "Maximo potencial", asi que
+`scripts/` y el subset de `data/*.csv` que necesita `--design-system`
+(`styles.csv`, `colors.csv`, `landing.csv`, `products.csv`,
+`typography.csv`, `ui-reasoning.csv`, `motion.csv` — no los otros dominios
+de la skill original como `ux`/`icons`/`chart`/`google-fonts`, que RADAR no
+usa) quedaron instalados tambien. Correr con:
+```bash
+python3 .claude/skills/ui-ux-pro-max/scripts/search.py "<query>" --design-system -p "RADAR" [--variance N --motion N --density N] [--persist --output-dir .]
+```
+
+**Resultado real obtenido (2026-11-14)**, con variance 3/motion 3/density 8
+y query orientada a "B2B financial professional accounting trust": estilo
+"Minimalism & Swiss Style", paleta navy/azul/gris (`#0F172A`/`#0369A1`/
+`#F8FAFC`), tipografia IBM Plex Sans — persistido en
+`design-system/radar/MASTER.md` como documento de referencia. **No se
+aplico a `src/App.jsx`**: contradice directamente la paleta lima/crema/
+verde-oscuro ya decidida y recien reafirmada (incluye el efecto vidrio
+`.rd-mesh-bg`/`.rd-glass-card` afinado especificamente para lima/oliva), y
+es un cambio de alcance total (cientos de `style={{...}}` en un archivo
+unico) y dificil de revertir. El dataset del generador tampoco tiene una
+categoria real para "software contable chileno" — el resultado es la
+aproximacion mas cercana disponible (B2B Service / Productivity Tool), no
+un match exacto.
+
+**Regla para el futuro**: el generador queda instalado y disponible para
+correrlo y guardar su resultado como referencia (`--persist`, no destructivo,
+solo crea archivos nuevos en `design-system/`). Pero **nunca** reemplazar
+colores/tipografia reales en `src/App.jsx` a partir de su output sin que el
+usuario lo confirme explicitamente sobre el resultado concreto generado (no
+alcanza con un pedido generico de "aplica el generador" — eso autoriza
+correrlo y mostrar/persistir el resultado, no sobrescribir la app).
 
 ## Cuando usar
 
-Pedido explicito de revisar/mejorar UI/UX o accesibilidad de RADAR, o de
-aplicar esta skill por nombre. No usar para elegir una paleta/estilo nuevo
-— eso ya esta decidido y lo protege CLAUDE.md.
+Pedido explicito de revisar/mejorar UI/UX o accesibilidad de RADAR, de
+correr el generador de paletas, o de aplicar esta skill por nombre.
 
 ## Prioridad (igual que el original — ver detalle completo en
 `references/quick-reference.md`)
