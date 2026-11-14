@@ -45,16 +45,21 @@ create unique index if not exists portal_links_trabajador_auth_idx
 alter table portal_links enable row level security;
 
 -- El contador ve y administra (crear/revocar) sus propias invitaciones.
+-- auth.uid() va envuelto en "(select ...)" -- Postgres lo cachea una sola
+-- vez por query en vez de re-evaluarlo fila por fila (patron recomendado
+-- por Supabase, mismo resultado de seguridad); importa mas aca porque
+-- "radar_data_select_portal_trabajador" mas abajo llama a auth.uid() varias
+-- veces dentro de una misma policy con subqueries.
 drop policy if exists "portal_links_contador_all" on portal_links;
 create policy "portal_links_contador_all" on portal_links
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  for all using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 
 -- El trabajador ya vinculado puede leer SU PROPIA fila (para saber a que
 -- empresa/ficha corresponde) -- nunca puede escribirla directamente; el
 -- vinculo inicial se hace solo a traves de la funcion de mas abajo.
 drop policy if exists "portal_links_trabajador_select" on portal_links;
 create policy "portal_links_trabajador_select" on portal_links
-  for select using (auth.uid() = trabajador_auth_id);
+  for select using ((select auth.uid()) = trabajador_auth_id);
 
 -- Nota de seguridad -- por que el canje de codigo NO es un UPDATE directo
 -- del cliente con policy "using (trabajador_auth_id is null)":
@@ -105,7 +110,7 @@ create policy "radar_data_select_portal_trabajador" on radar_data
   for select using (
     exists (
       select 1 from portal_links pl
-      where pl.trabajador_auth_id = auth.uid()
+      where pl.trabajador_auth_id = (select auth.uid())
         and pl.activo = true
         and pl.user_id = radar_data.user_id
         and (

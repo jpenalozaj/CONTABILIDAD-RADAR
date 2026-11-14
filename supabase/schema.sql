@@ -23,18 +23,23 @@ create index if not exists radar_data_user_collection_idx
 
 alter table radar_data enable row level security;
 
+-- auth.uid() va envuelto en "(select ...)" en las 4 policies de abajo:
+-- Postgres cachea el resultado una sola vez por query (lo trata como un
+-- InitPlan estable) en vez de re-evaluarlo fila por fila durante el scan
+-- -- mismo resultado de seguridad, mejor plan de ejecucion a medida que
+-- crece radar_data (patron recomendado por el propio equipo de Supabase).
 drop policy if exists "radar_data_select_own" on radar_data;
 create policy "radar_data_select_own" on radar_data
-  for select using (auth.uid() = user_id);
+  for select using ((select auth.uid()) = user_id);
 
 drop policy if exists "radar_data_insert_own" on radar_data;
 create policy "radar_data_insert_own" on radar_data
-  for insert with check (auth.uid() = user_id);
+  for insert with check ((select auth.uid()) = user_id);
 
 drop policy if exists "radar_data_update_own" on radar_data;
 create policy "radar_data_update_own" on radar_data
-  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  for update using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 
 drop policy if exists "radar_data_delete_own" on radar_data;
 create policy "radar_data_delete_own" on radar_data
-  for delete using (auth.uid() = user_id);
+  for delete using ((select auth.uid()) = user_id);

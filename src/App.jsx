@@ -1758,9 +1758,10 @@ function LibroCaja({empEntries,accts,eObj,irAAsiento}){
 
 function Balance({empEntries,accts,leafAccts,eObj,irACuenta}){
   const [fechaCorte,setFechaCorte]=useState(()=>new Date().toISOString().slice(0,10));
-  if(!empEntries.length)return<Ey i="⚖️" t="Sin datos" d="Registra asientos para generar el Balance."/>;
+  // Hooks antes del return temprano -- mismo motivo que en EERR/B8Col/PortalP.
   const filtradas=useMemo(()=>empEntries.filter(e=>e.date<=fechaCorte),[empEntries,fechaCorte]);
   const bals=useMemo(()=>{const b={};leafAccts.forEach(a=>{b[a.cd]={db:0,cr:0}});filtradas.forEach(e=>e.lines.forEach(l=>{if(!b[l.ac])b[l.ac]={db:0,cr:0};b[l.ac].db+=(l.db||0);b[l.ac].cr+=(l.cr||0)}));return b},[filtradas,leafAccts]);
+  if(!empEntries.length)return<Ey i="⚖️" t="Sin datos" d="Registra asientos para generar el Balance."/>;
   const getB=(cd,tp)=>{const b=bals[cd]||{db:0,cr:0};return(tp==="asset"||tp==="expense")?b.db-b.cr:b.cr-b.db};
   const mkSec=tp=>{const l2=accts.filter(a=>a.tp===tp&&a.lv===2);return l2.map(g=>{const ch=leafAccts.filter(a=>a.tp===tp&&a.cd.startsWith(g.cd+"."));const items=ch.map(c=>({cd:c.cd,nm:c.nm,bal:getB(c.cd,tp)})).filter(c=>c.bal!==0);return{grp:g.nm,items,sub:items.reduce((s,c)=>s+c.bal,0)}}).filter(g=>g.items.length>0)};
   const assets=mkSec("asset");const liabs=mkSec("liability");
@@ -1813,9 +1814,11 @@ function EERR({empEntries,accts,leafAccts,eObj,ccostos,irACuenta}){
   const anios=useMemo(()=>[...new Set(empEntries.map(e=>e.date?.slice(0,4)).filter(Boolean))].sort((a,b)=>b.localeCompare(a)),[empEntries]);
   const [anio,setAnio]=useState("todos");
   const [comparar,setComparar]=useState(false);
-  if(!empEntries.length)return<Ey i="📈" t="Sin datos" d="Registra asientos para generar el Estado de Resultados."/>;
-  const ccNombre=ccostos?.find(c=>c.id===filtroCC)?.nombre;
-
+  // Los hooks de abajo deben ir ANTES del "return temprano" que sigue --
+  // si empEntries.length pasa de 0 a >0 con el componente ya montado (ya
+  // paso: se agrega el primer asiento mientras esta pantalla sigue
+  // abierta), un hook que recien aparece despues de ese punto rompe la
+  // regla de React de llamar siempre los mismos hooks en el mismo orden.
   const calcPeriodo=(anioSel)=>{
     const base=filtroCC==="todos"?empEntries:empEntries.filter(e=>e.centroCosto===filtroCC);
     const filtradas=anioSel==="todos"?base:base.filter(e=>e.date?.slice(0,4)===anioSel);
@@ -1830,6 +1833,8 @@ function EERR({empEntries,accts,leafAccts,eObj,ccostos,irACuenta}){
   const actual=useMemo(()=>calcPeriodo(anio),[anio,filtroCC,empEntries]);
   const anioAnterior=anio==="todos"?null:String(parseInt(anio)-1);
   const anterior=useMemo(()=>comparar&&anioAnterior?calcPeriodo(anioAnterior):null,[comparar,anioAnterior,filtroCC,empEntries]);
+  if(!empEntries.length)return<Ey i="📈" t="Sin datos" d="Registra asientos para generar el Estado de Resultados."/>;
+  const ccNombre=ccostos?.find(c=>c.id===filtroCC)?.nombre;
   const variacion=(a,b)=>b===0?(a===0?0:null):((a-b)/Math.abs(b))*100;
   const fmtVar=v=>v===null?"—":(v>=0?"+":"")+v.toFixed(1)+"%";
   const{inc,exp,tI,tE,net}=actual;
@@ -2942,7 +2947,7 @@ function PorClasificar({empEntries,setEntries,leafAccts,eObj,aLog,reglas,setRegl
 
 // ═══ BALANCE 8 COLUMNAS ═══
 function B8Col({empEntries,accts,leafAccts,eObj,irACuenta}){
-  if(!empEntries.length)return<Ey i="🔢" t="Sin datos" d="Registra asientos para generar el Balance de 8 Columnas."/>;
+  // Hook antes del return temprano -- mismo motivo que en EERR/Balance/PortalP.
   const rows=useMemo(()=>{
     const b={};leafAccts.forEach(a=>{b[a.cd]={db:0,cr:0}});
     empEntries.forEach(e=>e.lines.forEach(l=>{if(!b[l.ac])b[l.ac]={db:0,cr:0};b[l.ac].db+=(l.db||0);b[l.ac].cr+=(l.cr||0)}));
@@ -2955,6 +2960,7 @@ function B8Col({empEntries,accts,leafAccts,eObj,irACuenta}){
       return{cd:a.cd,nm:a.nm,sumDb:s.db,sumCr:s.cr,salDb:sDeb,salCr:sCre,invDb:invDeb,invCre:invCre,resDb:resDeb,resCre:resCre};
     }).filter(Boolean);
   },[empEntries,leafAccts]);
+  if(!empEntries.length)return<Ey i="🔢" t="Sin datos" d="Registra asientos para generar el Balance de 8 Columnas."/>;
   const tot=(f)=>rows.reduce((s,r)=>s+(r[f]||0),0);
   return(<div className="report" style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden"}}>
     <ReportHeader eObj={eObj} title="Balance de 8 Columnas" subtitle={"Al "+new Date().toLocaleDateString("es-CL")}/>
@@ -4361,7 +4367,12 @@ function PlanP({eObj,setTareas,empTareas,aLog,go}){
 
 // ═══ PORTAL DEL CLIENTE ═══
 function PortalP({eObj,empEntries,empDocs,empRems,eEvs,leafAccts,go}){
-  if(!eObj)return<Ey i="🏢" t="Selecciona una empresa" d="Activa una empresa para ver su portal."><Bt onClick={()=>go("empresas")} p={true}>Ir a Empresas</Bt></Ey>;
+  // Los hooks (useMemo) de toda esta seccion van ANTES del "return
+  // temprano" de mas abajo -- si eObj pasa de null a una empresa real sin
+  // que el componente se desmonte, un hook que aparece recien despues de
+  // ese punto rompe la regla de React de llamar siempre los mismos hooks
+  // en el mismo orden. Por eso los accesos a eObj.* de aqui usan "?."
+  // -- deben sobrevivir a un render con eObj=null.
 
   // Calculate key metrics
   const bals=useMemo(()=>{const b={};leafAccts.forEach(a=>{b[a.cd]={db:0,cr:0}});empEntries.forEach(e=>e.lines.forEach(l=>{if(!b[l.ac])b[l.ac]={db:0,cr:0};b[l.ac].db+=(l.db||0);b[l.ac].cr+=(l.cr||0)}));return b},[empEntries,leafAccts]);
@@ -4403,10 +4414,10 @@ function PortalP({eObj,empEntries,empDocs,empRems,eEvs,leafAccts,go}){
   const totalIAnio=leafAccts.filter(a=>a.tp==="income").reduce((s,a)=>s+getBAnio(a.cd,a.tp),0);
   const totalXAnio=leafAccts.filter(a=>a.tp==="expense").reduce((s,a)=>s+getBAnio(a.cd,a.tp),0);
   const utilidadAnio=totalIAnio-totalXAnio;
-  const tasaPPM=eObj.tasaPPM??1;
+  const tasaPPM=eObj?.tasaPPM??1;
   const ppmAnio=Math.round(totalIAnio*tasaPPM/100);
-  const tasaIdpc=eObj.tasaIdpc??12.5;
-  const esProPymeGeneral=eObj.regimen==="Pro Pyme General (14 D N°3)";
+  const tasaIdpc=eObj?.tasaIdpc??12.5;
+  const esProPymeGeneral=eObj?.regimen==="Pro Pyme General (14 D N°3)";
   const impuestoDeterminado=esProPymeGeneral?Math.round(Math.max(0,utilidadAnio)*tasaIdpc/100):null;
   const saldoRenta=impuestoDeterminado!==null?impuestoDeterminado-ppmAnio:null;
   const docsIva=useMemo(()=>empEntries.filter(e=>e.tipoDoc==="compra"||e.tipoDoc==="venta"),[empEntries]);
@@ -4415,6 +4426,8 @@ function PortalP({eObj,empEntries,empDocs,empRems,eEvs,leafAccts,go}){
   const calcIvaMonto=(tipoDoc,periodo)=>docsIva.filter(d=>d.tipoDoc===tipoDoc&&d.periodo===periodo).reduce((s,r)=>s+(r.iva||0)*signoDocTributario(r.tipoDocCod),0);
   const ivaDeterminadoVigente=periodoIvaVigente?calcIvaMonto("venta",periodoIvaVigente)-calcIvaMonto("compra",periodoIvaVigente):null;
   const labelPeriodoIva=p=>{if(!p)return"";const mm=MESES.find(m=>m[0]===p.slice(4,6));return(mm?mm[1]:p.slice(4,6))+" "+p.slice(0,4)};
+
+  if(!eObj)return<Ey i="🏢" t="Selecciona una empresa" d="Activa una empresa para ver su portal."><Bt onClick={()=>go("empresas")} p={true}>Ir a Empresas</Bt></Ey>;
 
   return(<div className="rd-mesh-bg" style={{maxWidth:900,margin:"0 auto",padding:20,borderRadius:"var(--r)"}}>
     {/* Client header */}
