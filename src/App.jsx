@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useId } from "react";
 import { supabase } from "./lib/supabaseClient";
 import { loadCollection, saveCollection } from "./lib/sync";
 import { normRut } from "./lib/rut";
@@ -19,6 +19,11 @@ input::placeholder,textarea::placeholder{color:var(--tx3)}
 select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='%237A7868' stroke-width='2' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:16px;padding-right:36px}
 input[type=checkbox],input[type=radio]{accent-color:var(--cy2);width:auto;padding:0;cursor:pointer}
 textarea{resize:vertical;min-height:80px}button{font-family:inherit;cursor:pointer;transition:transform .1s ease-out}
+/* Foco visible solo para navegacion por teclado (no al hacer click con el
+   mouse) -- sin esto ningun boton de la app (son casi todos <button>, no
+   <a>) muestra donde esta el foco al tabular, principio "Focus Visible"
+   WCAG 2.4.7. */
+button:focus-visible{outline:2px solid var(--cy);outline-offset:2px}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
 @keyframes rpulse{0%,100%{opacity:1}50%{opacity:.4}}
 /* Respuesta instantanea al presionar (principio "Response" de Apple Design):
@@ -1364,14 +1369,14 @@ function PlanCtas({accts,setAccts,aLog}){
         <tbody>{accts.map(a=><tr key={a.cd} style={{borderBottom:"1px solid "+(a.lv===1?"var(--bd2)":"var(--bd)"),background:a.lv===1?"var(--sf2)":"transparent"}}>
           <td style={{padding:"7px 16px",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontSize:11,color:a.lv<=2?"var(--cy)":"var(--tx2)"}}>{a.cd}</td>
           <td style={{padding:"7px 8px",paddingLeft:lvPad[a.lv]||56,fontWeight:lvWeight[a.lv]||400,fontSize:lvSize[a.lv]||11}}>
-            {editCd===a.cd?<div style={{display:"flex",gap:6,alignItems:"center"}}><input value={editNm} onChange={e=>setEditNm(e.target.value)} style={{padding:"4px 8px",fontSize:12,background:"var(--sf2)",width:"100%"}} onKeyDown={e=>e.key==="Enter"&&saveEdit()}/><button onClick={saveEdit} style={{background:"var(--cy-fill)",color:"#1B4D2E",border:"none",borderRadius:4,padding:"4px 10px",fontSize:10,whiteSpace:"nowrap"}}>OK</button><button onClick={()=>setEditCd(null)} style={{background:"none",border:"none",color:"var(--tx3)",fontSize:10}}>x</button></div>:a.nm}
+            {editCd===a.cd?<div style={{display:"flex",gap:6,alignItems:"center"}}><input value={editNm} onChange={e=>setEditNm(e.target.value)} style={{padding:"4px 8px",fontSize:12,background:"var(--sf2)",width:"100%"}} onKeyDown={e=>e.key==="Enter"&&saveEdit()}/><button onClick={saveEdit} style={{background:"var(--cy-fill)",color:"#1B4D2E",border:"none",borderRadius:4,padding:"4px 10px",fontSize:10,whiteSpace:"nowrap"}}>OK</button><button onClick={()=>setEditCd(null)} aria-label="Cancelar" style={{background:"none",border:"none",color:"var(--tx3)",fontSize:10}}>x</button></div>:a.nm}
           </td>
           <td style={{padding:"7px 8px",fontSize:10,color:tpC[a.tp]}}>{tpL[a.tp]}</td>
           <td style={{padding:"7px 8px",fontSize:10,textAlign:"center",color:"var(--tx3)"}}>{a.lv}</td>
           <td style={{padding:"4px 8px",textAlign:"right"}}>
             {editCd!==a.cd&&<div style={{display:"flex",gap:2,justifyContent:"flex-end"}}>
               <button onClick={()=>{setEditCd(a.cd);setEditNm(a.nm)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",padding:3,opacity:.5}} title="Editar nombre">{IC.edit}</button>
-              {isLeaf(a.cd)&&<button onClick={()=>delA(a.cd)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",padding:3,opacity:.3}} title="Eliminar">x</button>}
+              {isLeaf(a.cd)&&<button onClick={()=>delA(a.cd)} aria-label="Eliminar cuenta" style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",padding:3,opacity:.3}} title="Eliminar">x</button>}
             </div>}
           </td>
         </tr>)}</tbody>
@@ -1456,7 +1461,7 @@ function Asientos({setEntries,empEntries,leafAccts,eObj,aLog,ccostos,resaltar}){
           <select value={ln.ac} onChange={e=>uLine(i,"ac",e.target.value)} style={{fontSize:12}}><option value="">Cuenta...</option>{leafAccts.map(a=><option key={a.cd} value={a.cd}>{a.cd} {a.nm}</option>)}</select>
           <input type="number" min="0" value={ln.db||""} placeholder="0" onChange={e=>uLine(i,"db",e.target.value)} style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontSize:12}}/>
           <input type="number" min="0" value={ln.cr||""} placeholder="0" onChange={e=>uLine(i,"cr",e.target.value)} style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontSize:12}}/>
-          <button onClick={()=>rmL(i)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",fontSize:14}}>x</button>
+          <button onClick={()=>rmL(i)} aria-label="Eliminar linea" style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",fontSize:14}}>x</button>
         </div>)}
       </div>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:12,paddingTop:12,borderTop:"1px solid var(--bd)"}}>
@@ -1484,7 +1489,7 @@ function Asientos({setEntries,empEntries,leafAccts,eObj,aLog,ccostos,resaltar}){
       <span style={{fontSize:11,color:"var(--tx3)",marginLeft:"auto",alignSelf:"center"}}>{entriesFiltradas.length} de {empEntries.length} asientos</span>
     </div>
     <div style={{display:"flex",flexDirection:"column",gap:8}}>{[...entriesFiltradas].sort((a,b)=>b.date.localeCompare(a.date)).map(e=><div key={e.id} id={"asiento-"+e.id} style={{background:"var(--sf)",border:"1px solid "+(resaltadoId===e.id?"var(--am)":editId===e.id?"var(--cy)":"var(--bd)"),boxShadow:resaltadoId===e.id?"0 0 0 3px rgba(251,191,36,.25), var(--shadow)":"var(--shadow)",borderRadius:"var(--r)",padding:16,transition:"box-shadow .3s,border-color .3s"}}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8,flexWrap:"wrap",gap:8}}><div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}><span style={{fontSize:10,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",background:"var(--sf2)",padding:"2px 8px",borderRadius:4}}>N {e.num}</span><span style={{fontSize:13,fontWeight:500}}>{e.desc}</span>{e.tipo&&<span style={{fontSize:10,background:"var(--sf2)",color:"var(--tx2)",padding:"2px 8px",borderRadius:4,border:"1px solid var(--bd)"}}>{TIPOS_COMPROBANTE.find(t=>t.id===e.tipo)?.l}</span>}<span style={{fontSize:10,background:e.origen&&e.origen!=="manual"?"rgba(155,168,136,.15)":"var(--cyg)",color:e.origen&&e.origen!=="manual"?"var(--pu)":"var(--cy2)",padding:"2px 8px",borderRadius:4}}>{ORIGEN_LABELS[e.origen]||"Manual"}</span>{e.centroCosto&&ccNombre[e.centroCosto]&&<span style={{fontSize:10,background:"var(--cyg)",color:"var(--cy)",padding:"2px 8px",borderRadius:4}}>{ccNombre[e.centroCosto]}</span>}{e.recurrente&&<span style={{fontSize:10,background:"rgba(155,168,136,.15)",color:"var(--pu)",padding:"2px 8px",borderRadius:4}}>↻ Recurrente</span>}</div><div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:11,color:"var(--tx3)"}}>{fD(e.date)}</span><button onClick={()=>openEdit(e)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.6,fontSize:11}}>editar</button><button onClick={async()=>{if(await rdConfirm("Eliminar este asiento?"))delE(e.id)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5}}>x</button></div></div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8,flexWrap:"wrap",gap:8}}><div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}><span style={{fontSize:10,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",background:"var(--sf2)",padding:"2px 8px",borderRadius:4}}>N {e.num}</span><span style={{fontSize:13,fontWeight:500}}>{e.desc}</span>{e.tipo&&<span style={{fontSize:10,background:"var(--sf2)",color:"var(--tx2)",padding:"2px 8px",borderRadius:4,border:"1px solid var(--bd)"}}>{TIPOS_COMPROBANTE.find(t=>t.id===e.tipo)?.l}</span>}<span style={{fontSize:10,background:e.origen&&e.origen!=="manual"?"rgba(155,168,136,.15)":"var(--cyg)",color:e.origen&&e.origen!=="manual"?"var(--pu)":"var(--cy2)",padding:"2px 8px",borderRadius:4}}>{ORIGEN_LABELS[e.origen]||"Manual"}</span>{e.centroCosto&&ccNombre[e.centroCosto]&&<span style={{fontSize:10,background:"var(--cyg)",color:"var(--cy)",padding:"2px 8px",borderRadius:4}}>{ccNombre[e.centroCosto]}</span>}{e.recurrente&&<span style={{fontSize:10,background:"rgba(155,168,136,.15)",color:"var(--pu)",padding:"2px 8px",borderRadius:4}}>↻ Recurrente</span>}</div><div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:11,color:"var(--tx3)"}}>{fD(e.date)}</span><button onClick={()=>openEdit(e)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.6,fontSize:11}}>editar</button><button onClick={async()=>{if(await rdConfirm("Eliminar este asiento?"))delE(e.id)}} aria-label="Eliminar asiento" style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5}}>x</button></div></div>
       <div style={{fontSize:11}}>{e.lines.map((l,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 80px 80px",gap:8,padding:"2px 0"}}><span style={{color:"var(--tx2)",paddingLeft:l.cr>0?20:0}}>{l.ac} {leafAccts.find(a=>a.cd===l.ac)?.nm||""}</span><span style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{l.db>0?"$"+fmt(l.db):""}</span><span style={{textAlign:"right",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>{l.cr>0?"$"+fmt(l.cr):""}</span></div>)}</div>
     </div>)}</div>
     {entriesFiltradas.length===0&&empEntries.length>0&&<Ey i="🔍" t="Sin resultados" d="Ningun asiento coincide con los filtros aplicados."/>}
@@ -3768,7 +3773,7 @@ function RemP({userId,eObj,setRems,empRems,trabajadores,setTrabajadores,empTraba
             <div style={{fontSize:11,color:"var(--tx3)"}}>{fD(ev.fechaInicio)}{ev.fechaFin!==ev.fechaInicio?" — "+fD(ev.fechaFin):""}{ev.observacion?" · "+ev.observacion:""}</div>
           </div>
           <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600}}>{dias} dia{dias!==1?"s":""}</div><div style={{fontSize:10,color:"var(--tx3)"}}>{tipo?.goce?"Con goce":"Sin goce"}</div></div>
-          <button onClick={()=>doDelAsistencia(ev.id)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5,padding:4}}>x</button>
+          <button onClick={()=>doDelAsistencia(ev.id)} aria-label="Eliminar registro" style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5,padding:4}}>x</button>
         </div>);
       })}</div>}
     </div>}
@@ -3807,7 +3812,7 @@ function RemP({userId,eObj,setRems,empRems,trabajadores,setTrabajadores,empTraba
       <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:600}}>{t.nombre} {t.apellido}</div><div style={{fontSize:11,color:"var(--tx3)"}}>{t.cargo||"Sin cargo"} · {t.rut}{t.activo===false?" · Inactivo":""}</div></div>
       <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(t.sueldoBase||0)}</div><div style={{fontSize:10,color:"var(--tx3)"}}>Sueldo base</div></div>
       <button onClick={e=>{e.stopPropagation();openEditT(t,"liquidaciones")}} style={{background:"none",border:"1px solid var(--bd)",borderRadius:"var(--rs)",color:"var(--tx2)",cursor:"pointer",fontSize:11,padding:"6px 10px",flexShrink:0}}>Liquidaciones</button>
-      <button onClick={async e=>{e.stopPropagation();if(await rdConfirm("Eliminar la ficha de "+t.nombre+"?"))doDelT(t.id)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5,padding:4}}>x</button>
+      <button onClick={async e=>{e.stopPropagation();if(await rdConfirm("Eliminar la ficha de "+t.nombre+"?"))doDelT(t.id)}} aria-label="Eliminar ficha" style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5,padding:4}}>x</button>
     </div>)}</div>}
   </div>);
   }
@@ -3858,7 +3863,7 @@ function RemP({userId,eObj,setRems,empRems,trabajadores,setTrabajadores,empTraba
         <div style={{width:40,height:40,borderRadius:10,background:"var(--sf2)",border:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"var(--tx2)",flexShrink:0}}>{(r.nombre||"?").slice(0,2).toUpperCase()}</div>
         <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:600}}>{r.nombre}</div><div style={{fontSize:11,color:"var(--tx3)"}}>{r.cargo||"Sin cargo"}</div></div>
         <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,color:"var(--gn)"}}>${fmt(r.liquido||0)}</div><div style={{fontSize:10,color:"var(--tx3)"}}>Liquido</div></div>
-        <button onClick={e=>{e.stopPropagation();doDel(r.id)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5,padding:4}}>x</button>
+        <button onClick={e=>{e.stopPropagation();doDel(r.id)}} aria-label="Eliminar liquidacion" style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5,padding:4}}>x</button>
       </div>)}</div>}
     </div>);
   }
@@ -3952,7 +3957,7 @@ function RemP({userId,eObj,setRems,empRems,trabajadores,setTrabajadores,empTraba
           <div style={{width:40,height:40,borderRadius:10,background:"var(--sf2)",border:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"var(--tx2)",flexShrink:0}}>{(r.nombre||"?").slice(0,2).toUpperCase()}</div>
           <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:600}}>{r.nombre}</div><div style={{fontSize:11,color:"var(--tx3)"}}>{r.cargo||"Sin cargo"}</div></div>
           <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,color:"var(--gn)"}}>${fmt(r.liquido||0)}</div><div style={{fontSize:10,color:"var(--tx3)"}}>Liquido</div></div>
-          <button onClick={e=>{e.stopPropagation();doDel(r.id)}} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5,padding:4}}>x</button>
+          <button onClick={e=>{e.stopPropagation();doDel(r.id)}} aria-label="Eliminar liquidacion" style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5,padding:4}}>x</button>
         </div>)}</div>
       </div>);
     });
@@ -4151,7 +4156,7 @@ function DocsP({eObj,setDocs,empDocs,aLog,go}){
         </div>
         <button onClick={()=>toggleEstado(d.id)} style={{fontSize:10,padding:"3px 10px",borderRadius:12,border:"none",background:estColor[d.estado]+"20",color:estColor[d.estado],fontWeight:600,cursor:"pointer"}}>{d.estado}</button>
         <span style={{fontSize:10,color:"var(--tx3)",flexShrink:0}}>{d.fecha?fD(d.fecha):""}</span>
-        <button onClick={()=>delDoc(d.id)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.4,padding:4}}>x</button>
+        <button onClick={()=>delDoc(d.id)} aria-label="Eliminar documento" style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.4,padding:4}}>x</button>
       </div>})}</div>}
   </div>);
 }
@@ -4360,7 +4365,7 @@ function PlanP({eObj,setTareas,empTareas,aLog,go}){
         </div>
         <span style={{fontSize:9,padding:"3px 8px",borderRadius:10,background:pri?.c+"20",color:pri?.c,fontWeight:600,flexShrink:0}}>{pri?.l}</span>
         {t.vencimiento&&<span style={{fontSize:10,color:vencida?"var(--rd)":"var(--tx3)",flexShrink:0,fontWeight:vencida?600:400}}>{fD(t.vencimiento)}</span>}
-        <button onClick={()=>delT(t.id)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.4,padding:4}}>x</button>
+        <button onClick={()=>delT(t.id)} aria-label="Eliminar tarea" style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.4,padding:4}}>x</button>
       </div>})}</div>}
   </div>);
 }
@@ -4594,7 +4599,7 @@ const CARTERA_SEED=[
   {rut:"76.961.330-7",nombre:"INSOC",tipo:"Empresa",responsable:"",servicios:{iva:true,imposiciones:false,renta:true,tramites:false},observaciones:"Cliente activo"},
   {rut:"76.071.865-3",nombre:"CUMBRES",tipo:"Empresa",responsable:"",servicios:{iva:true,imposiciones:false,renta:true,tramites:false},observaciones:"Cliente activo"},
 ].map(c=>({...c,id:uid(),telefono:c.telefono||"",correo:"",fechaIngreso:"",activo:true}));
-function Se({l,v,s,opts}){return<div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>{l}</label><select value={v||opts[0]} onChange={e=>s(e.target.value)}>{opts.map(o=><option key={o} value={o}>{o}</option>)}</select></div>}
+function Se({l,v,s,opts}){const id=useId();return<div><label htmlFor={id} style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>{l}</label><select id={id} value={v||opts[0]} onChange={e=>s(e.target.value)}>{opts.map(o=><option key={o} value={o}>{o}</option>)}</select></div>}
 function TdSel({v,onChange,opts,color}){return<select value={v||opts[0]} onChange={e=>onChange(e.target.value)} style={{padding:"4px 8px",fontSize:11,background:"var(--sf2)",color:color||"var(--tx)",border:"1px solid var(--bd)",borderRadius:6,fontWeight:600}}>{opts.map(o=><option key={o} value={o}>{o}</option>)}</select>}
 function TdInp({v,onChange,t,ph,w}){return<input type={t||"text"} value={v??""} placeholder={ph||""} onChange={e=>onChange(t==="number"?e.target.value:e.target.value)} style={{padding:"4px 8px",fontSize:11,background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:6,width:w||"100%"}}/>}
 
@@ -4955,4 +4960,4 @@ function Ey({i,t,d,children}){return<div style={{textAlign:"center",padding:"60p
 function IC2({t,items}){return<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20}}><div style={{fontSize:11,fontWeight:600,textTransform:"uppercase",letterSpacing:1,color:"var(--tx3)",marginBottom:14}}>{t}</div>{items.map((it,i)=><div key={i} style={{marginBottom:10}}><div style={{fontSize:10,color:"var(--tx3)",marginBottom:2}}>{it.l}</div><div style={{fontSize:13,fontWeight:500,color:it.v?"var(--tx)":"var(--tx3)"}}>{it.v||"\u2014"}</div></div>)}</div>}
 function Sc({t,children}){return<div style={{marginBottom:24}}><div style={{fontSize:11,fontWeight:600,textTransform:"uppercase",letterSpacing:1.5,color:"var(--cy)",marginBottom:14,paddingBottom:8,borderBottom:"1px solid var(--bd)"}}>{t}</div>{children}</div>}
 function FG({children}){return<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:14}}>{children}</div>}
-function Fi({l,v,s,ph,t="text"}){return<div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>{l}</label><input type={t} value={v||""} placeholder={ph||""} onChange={e=>s(e.target.value)}/></div>}
+function Fi({l,v,s,ph,t="text"}){const id=useId();return<div><label htmlFor={id} style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>{l}</label><input id={id} type={t} value={v||""} placeholder={ph||""} onChange={e=>s(e.target.value)}/></div>}
