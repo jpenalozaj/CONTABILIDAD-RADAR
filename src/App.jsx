@@ -339,6 +339,7 @@ function Dashboard({session,tema,toggleTema}){
   const [trabajadores,setTrabajadores]=useState([]);
   const [procesosRem,setProcesosRem]=useState([]);
   const [asistencia,setAsistencia]=useState([]);
+  const [habilitaciones,setHabilitaciones]=useState([]);
   const [docs,setDocs]=useState([]);
   const [tareas,setTareas]=useState([]);
   const [reglas,setReglas]=useState([]);
@@ -354,9 +355,9 @@ function Dashboard({session,tema,toggleTema}){
   const [carteraHonorarios,setCarteraHonorarios]=useState([]);
   const [carteraTramites,setCarteraTramites]=useState([]);
   const [sb,setSb]=useState(false);
-  const prevIds=useRef({e:new Set(),v:new Set(),l:new Set(),a:new Set(),en:new Set(),rm:new Set(),tb:new Set(),pr:new Set(),as:new Set(),dc:new Set(),ta:new Set(),rg:new Set(),cc:new Set(),af:new Set(),ho:new Set(),ct:new Set(),si:new Set(),kcl:new Set(),kiv:new Set(),kim:new Set(),kre:new Set(),khn:new Set(),ktr:new Set()});
+  const prevIds=useRef({e:new Set(),v:new Set(),l:new Set(),a:new Set(),en:new Set(),rm:new Set(),tb:new Set(),pr:new Set(),as:new Set(),hb:new Set(),dc:new Set(),ta:new Set(),rg:new Set(),cc:new Set(),af:new Set(),ho:new Set(),ct:new Set(),si:new Set(),kcl:new Set(),kiv:new Set(),kim:new Set(),kre:new Set(),khn:new Set(),ktr:new Set()});
   useEffect(()=>{let cancelled=false;(async()=>{
-    const[e,v,l,a,en,rm,tb,pr,as,dc,ta,rg,ho,cc,af,ct,si,kcl,kiv,kim,kre,khn,ktr]=await Promise.all([
+    const[e,v,l,a,en,rm,tb,pr,as,hb,dc,ta,rg,ho,cc,af,ct,si,kcl,kiv,kim,kre,khn,ktr]=await Promise.all([
       loadCollection(userId,"empresas",[]),
       loadCollection(userId,"evaluaciones",[]),
       loadCollection(userId,"log",[]),
@@ -366,6 +367,7 @@ function Dashboard({session,tema,toggleTema}){
       loadCollection(userId,"trabajadores",[]),
       loadCollection(userId,"procesos_rem",[]),
       loadCollection(userId,"asistencia",[]),
+      loadCollection(userId,"habilitaciones",[]),
       loadCollection(userId,"documentos",[]),
       loadCollection(userId,"tareas",[]),
       loadCollection(userId,"reglas_categorizacion",[]),
@@ -391,11 +393,11 @@ function Dashboard({session,tema,toggleTema}){
     prevIds.current={
       e:new Set(e.map(x=>String(x.id))),v:new Set(v.map(x=>String(x.id))),l:new Set(l.map(x=>String(x.id))),
       a:new Set(a.map(x=>String(x.cd))),en:new Set(en.map(x=>String(x.id))),rm:new Set(rm.map(x=>String(x.id))),
-      tb:new Set(tb.map(x=>String(x.id))),pr:new Set(pr.map(x=>String(x.id))),as:new Set(as.map(x=>String(x.id))),
+      tb:new Set(tb.map(x=>String(x.id))),pr:new Set(pr.map(x=>String(x.id))),as:new Set(as.map(x=>String(x.id))),hb:new Set(hb.map(x=>String(x.id))),
       dc:new Set(dc.map(x=>String(x.id))),ta:new Set(ta.map(x=>String(x.id))),rg:new Set(rg.map(x=>String(x.id))),cc:new Set(cc.map(x=>String(x.id))),af:new Set(af.map(x=>String(x.id))),ho:new Set(ho.map(x=>String(x.id))),ct:new Set(ct.map(x=>String(x.id))),si:new Set(si.map(x=>String(x.id))),
       kcl:new Set(kcl.map(x=>String(x.id))),kiv:new Set(kiv.map(x=>String(x.id))),kim:new Set(kim.map(x=>String(x.id))),kre:new Set(kre.map(x=>String(x.id))),khn:new Set(khn.map(x=>String(x.id))),ktr:new Set(ktr.map(x=>String(x.id))),
     };
-    setEmps(e);setEvs(v);setLog(l);setAccts(accFinal);setEntries(en);setRems(rm);setTrabajadores(tb);setProcesosRem(pr);setAsistencia(as);setDocs(dc);setTareas(ta);setReglas(rg);setCcostos(cc);setActivos(af);setHonorarios(ho);setCartolas(ct);setImportacionesSii(si);
+    setEmps(e);setEvs(v);setLog(l);setAccts(accFinal);setEntries(en);setRems(rm);setTrabajadores(tb);setProcesosRem(pr);setAsistencia(as);setHabilitaciones(hb);setDocs(dc);setTareas(ta);setReglas(rg);setCcostos(cc);setActivos(af);setHonorarios(ho);setCartolas(ct);setImportacionesSii(si);
     // Semilla unica: la primera vez que Jonas abre Cartera de Clientes (la
     // coleccion llega vacia desde Supabase) se precarga con sus 16 clientes
     // reales (vienen de Control_Contable_Clientes.xlsx, solo el registro --
@@ -414,6 +416,7 @@ function Dashboard({session,tema,toggleTema}){
   useEffect(()=>{if(rdy)saveCollection(userId,"trabajadores",trabajadores,prevIds.current.tb).then(s=>prevIds.current.tb=s)},[trabajadores,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"procesos_rem",procesosRem,prevIds.current.pr).then(s=>prevIds.current.pr=s)},[procesosRem,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"asistencia",asistencia,prevIds.current.as).then(s=>prevIds.current.as=s)},[asistencia,rdy]);
+  useEffect(()=>{if(rdy)saveCollection(userId,"habilitaciones",habilitaciones,prevIds.current.hb).then(s=>prevIds.current.hb=s)},[habilitaciones,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"documentos",docs,prevIds.current.dc).then(s=>prevIds.current.dc=s)},[docs,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"tareas",tareas,prevIds.current.ta).then(s=>prevIds.current.ta=s)},[tareas,rdy]);
   useEffect(()=>{if(rdy)saveCollection(userId,"reglas_categorizacion",reglas,prevIds.current.rg).then(s=>prevIds.current.rg=s)},[reglas,rdy]);
@@ -442,6 +445,7 @@ function Dashboard({session,tema,toggleTema}){
   const empTrabajadores=useMemo(()=>trabajadores.filter(t=>t.empresaId===aEmp),[trabajadores,aEmp]);
   const empProcesosRem=useMemo(()=>procesosRem.filter(p=>p.empresaId===aEmp),[procesosRem,aEmp]);
   const empAsistencia=useMemo(()=>asistencia.filter(a=>a.empresaId===aEmp),[asistencia,aEmp]);
+  const empHabilitaciones=useMemo(()=>habilitaciones.filter(h=>h.empresaId===aEmp),[habilitaciones,aEmp]);
   const empDocs=useMemo(()=>docs.filter(d=>d.empresaId===aEmp),[docs,aEmp]);
   const empTareas=useMemo(()=>tareas.filter(t=>t.empresaId===aEmp),[tareas,aEmp]);
   const leafAccts=useMemo(()=>accts.filter(a=>!accts.some(b=>b.cd!==a.cd&&b.cd.startsWith(a.cd+"."))),[accts]);
@@ -476,7 +480,7 @@ function Dashboard({session,tema,toggleTema}){
         {pg==="cartera"&&<CarteraP carteraClientes={carteraClientes} setCarteraClientes={setCarteraClientes} carteraIva={carteraIva} setCarteraIva={setCarteraIva} carteraImposiciones={carteraImposiciones} setCarteraImposiciones={setCarteraImposiciones} carteraRenta={carteraRenta} setCarteraRenta={setCarteraRenta} carteraHonorarios={carteraHonorarios} setCarteraHonorarios={setCarteraHonorarios} carteraTramites={carteraTramites} setCarteraTramites={setCarteraTramites} aLog={aLog}/>}
         {pg==="radar"&&<RadP eObj={eObj} evs={evs} setEvs={setEvs} eEvs={eEvs} aLog={aLog} go={go}/>}
         {pg==="contabilidad"&&<ContabP eObj={eObj} accts={accts} setAccts={setAccts} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go} reglas={empReglas} setReglas={setReglas} ccostos={empCcostos} setCcostos={setCcostos} activos={empActivos} setActivos={setActivos} honorarios={empHonorarios} setHonorarios={setHonorarios} cartolas={empCartolas} setCartolas={setCartolas} importacionesSii={empImportacionesSii} setImportacionesSii={setImportacionesSii}/>}
-        {pg==="remuneraciones"&&<RemP userId={userId} eObj={eObj} rems={rems} setRems={setRems} empRems={empRems} trabajadores={trabajadores} setTrabajadores={setTrabajadores} empTrabajadores={empTrabajadores} procesosRem={procesosRem} setProcesosRem={setProcesosRem} empProcesosRem={empProcesosRem} asistencia={asistencia} setAsistencia={setAsistencia} empAsistencia={empAsistencia} ccostos={empCcostos} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go}/>}
+        {pg==="remuneraciones"&&<RemP userId={userId} eObj={eObj} rems={rems} setRems={setRems} empRems={empRems} trabajadores={trabajadores} setTrabajadores={setTrabajadores} empTrabajadores={empTrabajadores} procesosRem={procesosRem} setProcesosRem={setProcesosRem} empProcesosRem={empProcesosRem} asistencia={asistencia} setAsistencia={setAsistencia} empAsistencia={empAsistencia} habilitaciones={habilitaciones} setHabilitaciones={setHabilitaciones} empHabilitaciones={empHabilitaciones} ccostos={empCcostos} entries={entries} setEntries={setEntries} empEntries={empEntries} leafAccts={leafAccts} aLog={aLog} go={go}/>}
         {pg==="documentos"&&<DocsP eObj={eObj} docs={docs} setDocs={setDocs} empDocs={empDocs} aLog={aLog} go={go}/>}
         {pg==="planificacion"&&<PlanP eObj={eObj} tareas={tareas} setTareas={setTareas} empTareas={empTareas} aLog={aLog} go={go}/>}
         {pg==="portal"&&<PortalP eObj={eObj} empEntries={empEntries} empDocs={empDocs} empRems={empRems} eEvs={eEvs} accts={accts} leafAccts={leafAccts} go={go}/>}
@@ -3542,13 +3546,15 @@ function PortalInviteBox({userId,empresaId,trabajadorId,nombre,aLog}){
   </div>);
 }
 
-function RemP({userId,eObj,setRems,empRems,trabajadores,setTrabajadores,empTrabajadores,setProcesosRem,empProcesosRem,asistencia,setAsistencia,empAsistencia,ccostos,setEntries,empEntries,aLog,go}){
+function RemP({userId,eObj,setRems,empRems,trabajadores,setTrabajadores,empTrabajadores,setProcesosRem,empProcesosRem,asistencia,setAsistencia,empAsistencia,habilitaciones,setHabilitaciones,empHabilitaciones,ccostos,setEntries,empEntries,aLog,go}){
   const [vw,setVw]=useState("list");
   const [eid,setEid]=useState(null);
   const [fm,setFm]=useState({});
   const [tid,setTid]=useState(null);
   const [tfm,setTfm]=useState({});
   const [afm,setAfm]=useState(null);
+  const [hfm,setHfm]=useState(null);
+  const [hEditId,setHEditId]=useState(null);
   const [buscarT,setBuscarT]=useState("");
   const [buscarL,setBuscarL]=useState("");
   const [ftab,setFtab]=useState("resumen");
@@ -3665,6 +3671,47 @@ function RemP({userId,eObj,setRems,empRems,trabajadores,setTrabajadores,empTraba
     setAfm(null);
   };
   const doDelAsistencia=id=>setAsistencia(p=>p.filter(a=>a.id!==id));
+
+  // ── Habilitacion (cursos/certificados/licencias para entrar a una
+  // faena -- contratistas mineros y otros rubros con requisitos previos).
+  // No hay una plantilla fija de pasos: el usuario arma los pasos de cada
+  // habilitacion a mano, porque la mecanica real varia por cliente/rubro
+  // y no hay una especificacion oficial unica que fabricar (mismo
+  // criterio que DJ 1887/Previred: no inventar un checklist regulatorio
+  // sin la fuente). ──
+  const ESTADOS_PASO_HAB=[{id:"pendiente",l:"Pendiente",c:"var(--tx3)"},{id:"en_tramite",l:"En tramite",c:"var(--am)"},{id:"completo",l:"Completo",c:"var(--gn)"}];
+  const emptyPasoHab=()=>({id:uid(),nombre:"",estado:"pendiente",responsable:"trabajador",vencimiento:"",notas:""});
+  const emptyHF=()=>({nombre:"",pasos:[emptyPasoHab()]});
+  const openNewHabilitacion=()=>{setHfm(emptyHF());setHEditId(null)};
+  const openEditHabilitacion=h=>{setHfm({nombre:h.nombre,pasos:h.pasos.map(p=>({...p}))});setHEditId(h.id)};
+  const addPasoHab=()=>setHfm(p=>({...p,pasos:[...p.pasos,emptyPasoHab()]}));
+  const rmPasoHab=i=>setHfm(p=>({...p,pasos:p.pasos.filter((_,j)=>j!==i)}));
+  const setPasoHab=(i,patch)=>setHfm(p=>({...p,pasos:p.pasos.map((x,j)=>j===i?{...x,...patch}:x)}));
+  const doSaveHabilitacion=()=>{
+    if(!hfm.nombre.trim())return;
+    if(hEditId){
+      setHabilitaciones(p=>p.map(h=>h.id===hEditId?{...h,nombre:hfm.nombre,pasos:hfm.pasos}:h));
+      aLog("Habilitacion actualizada",hfm.nombre+" - "+(tfm.nombre||""));
+    }else{
+      setHabilitaciones(p=>[...p,{id:uid(),empresaId:eObj.id,trabajadorId:tid,nombre:hfm.nombre,pasos:hfm.pasos}]);
+      aLog("Habilitacion registrada",hfm.nombre+" - "+(tfm.nombre||""));
+    }
+    setHfm(null);setHEditId(null);
+  };
+  const doDelHabilitacion=async id=>{
+    if(await rdConfirm("Eliminar esta habilitacion?"))setHabilitaciones(p=>p.filter(h=>h.id!==id));
+  };
+  // Marcar un paso completo/pendiente sin reabrir el formulario entero --
+  // a diferencia de Asistencia (solo alta/baja), aca hace falta poder
+  // actualizar el estado de un paso en linea; "en tramite" solo se puede
+  // elegir abriendo "Editar" (el toggle rapido es binario a proposito).
+  const toggleEstadoPaso=(habId,pasoId)=>setHabilitaciones(p=>p.map(h=>h.id!==habId?h:{...h,pasos:h.pasos.map(ps=>ps.id!==pasoId?ps:{...ps,estado:ps.estado==="completo"?"pendiente":"completo"})}));
+  const vencimientoClase=fecha=>{
+    if(!fecha)return null;
+    const hoy=new Date();hoy.setHours(0,0,0,0);
+    const dias=Math.round((new Date(fecha+"T00:00:00")-hoy)/86400000);
+    return dias<0?"vencido":dias<=30?"proximo":null;
+  };
 
   // ── Liquidaciones ──
   const emptyF=()=>({trabajadorId:"",nombre:"",rut:"",cargo:"",afp:"habitat",isapre:"fonasa",contratoTipo:"indefinido",sueldoBase:0,gratificacion:0,bonos:0,horasExtra:0,colacion:0,movilizacion:0,periodo:new Date().toISOString().slice(0,7),diasSinGoce:0,diasLicencia:0,centroCosto:"",asignaciones:[]});
@@ -3906,7 +3953,8 @@ function RemP({userId,eObj,setRems,empRems,trabajadores,setTrabajadores,empTraba
     const totLiqHist=hist.reduce((s,r)=>s+(r.liquido||0),0);
     const totCostoHist=hist.reduce((s,r)=>s+(r.costoEmpresa||0),0);
     const eventosAsistencia=tid?empAsistencia.filter(a=>a.trabajadorId===tid).sort((a,b)=>(b.fechaInicio||"").localeCompare(a.fechaInicio||"")):[];
-    const fichaTabs=[{id:"resumen",l:"Resumen"},{id:"liquidaciones",l:"Liquidaciones"+(hist.length>0?" ("+hist.length+")":"")},{id:"asistencia",l:"Asistencia"+(eventosAsistencia.length>0?" ("+eventosAsistencia.length+")":"")},{id:"documentos",l:"Documentos"},{id:"vacaciones",l:"Vacaciones"}];
+    const habilitacionesT=tid?empHabilitaciones.filter(h=>h.trabajadorId===tid):[];
+    const fichaTabs=[{id:"resumen",l:"Resumen"},{id:"liquidaciones",l:"Liquidaciones"+(hist.length>0?" ("+hist.length+")":"")},{id:"asistencia",l:"Asistencia"+(eventosAsistencia.length>0?" ("+eventosAsistencia.length+")":"")},{id:"habilitacion",l:"Habilitacion"+(habilitacionesT.length>0?" ("+habilitacionesT.length+")":"")},{id:"documentos",l:"Documentos"},{id:"vacaciones",l:"Vacaciones"}];
     return(<div style={{maxWidth:700,margin:"0 auto"}}>
     <Bk onClick={()=>setVw("trabajadores")}>Volver</Bk>
 
@@ -4065,6 +4113,49 @@ function RemP({userId,eObj,setRems,empRems,trabajadores,setTrabajadores,empTraba
       })}</div>}
     </div>}
 
+    {tid&&ftab==="habilitacion"&&<div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:12}}>
+        <div style={{fontSize:11,color:"var(--tx3)"}}>Cursos, certificados y licencias que debe completar el trabajador (o la empresa) para poder entrar a una faena -- tu armas los pasos, RADAR no inventa un checklist fijo.</div>
+        {!hfm&&<Bt onClick={openNewHabilitacion} p={true}>{IC.plus} Nueva habilitacion</Bt>}
+      </div>
+      {hfm&&<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20,marginBottom:16}}>
+        <div style={{marginBottom:16}}><Fi l="Nombre de la habilitacion" v={hfm.nombre} s={v=>setHfm(p=>({...p,nombre:v}))} ph="Ej. Habilitacion minera - Faena Norte"/></div>
+        <div style={{fontSize:11,color:"var(--tx3)",marginBottom:8,fontWeight:500}}>Pasos</div>
+        <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:12}}>
+          {hfm.pasos.map((p,i)=><div key={p.id} style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+            <input value={p.nombre} onChange={e=>setPasoHab(i,{nombre:e.target.value})} placeholder="Ej. Curso de alturas" style={{flex:2,minWidth:160}}/>
+            <select value={p.estado} onChange={e=>setPasoHab(i,{estado:e.target.value})} style={{flex:1,minWidth:110}}>{ESTADOS_PASO_HAB.map(es=><option key={es.id} value={es.id}>{es.l}</option>)}</select>
+            <select value={p.responsable} onChange={e=>setPasoHab(i,{responsable:e.target.value})} style={{flex:1,minWidth:110}}><option value="trabajador">Trabajador</option><option value="empleador">Empleador</option></select>
+            <input type="date" value={p.vencimiento} onChange={e=>setPasoHab(i,{vencimiento:e.target.value})} style={{width:140}}/>
+            <button type="button" onClick={()=>rmPasoHab(i)} aria-label="Quitar paso" style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",fontSize:14}}>x</button>
+          </div>)}
+        </div>
+        <button type="button" onClick={addPasoHab} style={{fontSize:11,color:"var(--cy)",background:"none",border:"none",cursor:"pointer",padding:0,marginBottom:16,display:"block"}}>+ Agregar paso</button>
+        <div style={{display:"flex",gap:12}}><Bt onClick={doSaveHabilitacion} p={true}>Guardar</Bt><Bt onClick={()=>{setHfm(null);setHEditId(null)}}>Cancelar</Bt></div>
+      </div>}
+      {habilitacionesT.length===0&&!hfm?<Ey i="🪪" t="Sin habilitaciones registradas" d="Este trabajador no tiene procesos de habilitacion registrados."/>
+      :<div style={{display:"flex",flexDirection:"column",gap:12}}>{habilitacionesT.map(h=>{
+        const completos=h.pasos.filter(p=>p.estado==="completo").length;
+        return(<div key={h.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
+            <div><div style={{fontSize:13,fontWeight:600}}>{h.nombre}</div><div style={{fontSize:11,color:"var(--tx3)"}}>{completos} de {h.pasos.length} pasos completos</div></div>
+            <div style={{display:"flex",gap:8,alignItems:"center"}}><Bt onClick={()=>openEditHabilitacion(h)}>Editar</Bt><button onClick={()=>doDelHabilitacion(h.id)} aria-label="Eliminar habilitacion" style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5,padding:4}}>x</button></div>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:0}}>{h.pasos.map(p=>{
+            const vc=vencimientoClase(p.vencimiento);
+            const estInfo=ESTADOS_PASO_HAB.find(es=>es.id===p.estado);
+            return(<div key={p.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderTop:"1px solid var(--bd)",flexWrap:"wrap"}}>
+              <div style={{width:8,height:8,borderRadius:999,background:estInfo?.c,flexShrink:0}}/>
+              <div style={{flex:1,minWidth:140,fontSize:12}}>{p.nombre||"(sin nombre)"}</div>
+              <div style={{fontSize:10,color:"var(--tx3)",textTransform:"capitalize"}}>{p.responsable}</div>
+              {p.vencimiento&&<div style={{fontSize:11,color:vc==="vencido"?"var(--rd)":vc==="proximo"?"var(--am)":"var(--tx3)",fontWeight:vc?600:400}}>{fD(p.vencimiento)}{vc==="vencido"?" (vencido)":vc==="proximo"?" (proximo)":""}</div>}
+              <button onClick={()=>toggleEstadoPaso(h.id,p.id)} style={{fontSize:10,padding:"3px 10px",borderRadius:12,border:"1px solid var(--bd)",background:p.estado==="completo"?"var(--cy-fill)":"var(--sf2)",color:p.estado==="completo"?"var(--on-accent)":"var(--tx2)",cursor:"pointer",whiteSpace:"nowrap"}}>{p.estado==="completo"?"Completo":"Marcar completo"}</button>
+            </div>);
+          })}</div>
+        </div>);
+      })}</div>}
+    </div>}
+
     {tid&&ftab==="documentos"&&<Ey i="📁" t="Documentos" d="Contratos, anexos y certificados del trabajador. Proximamente."/>}
     {tid&&ftab==="vacaciones"&&<Ey i="🌴" t="Vacaciones" d="Dias disponibles, solicitudes y feriado legal. Proximamente."/>}
   </div>);
@@ -4175,6 +4266,21 @@ function RemP({userId,eObj,setRems,empRems,trabajadores,setTrabajadores,empTraba
       </div>
       <Bt onClick={openNew} p={true}>{IC.plus} Nueva Liquidacion</Bt>
     </div>
+
+    {(()=>{
+      const hoy=new Date();hoy.setHours(0,0,0,0);
+      const pasosConVencimiento=empHabilitaciones.flatMap(h=>h.pasos.filter(p=>p.vencimiento&&p.estado!=="completo"));
+      const vencidos=pasosConVencimiento.filter(p=>new Date(p.vencimiento+"T00:00:00")<hoy).length;
+      const proximos=pasosConVencimiento.filter(p=>{const d=Math.round((new Date(p.vencimiento+"T00:00:00")-hoy)/86400000);return d>=0&&d<=30}).length;
+      if(vencidos===0&&proximos===0)return null;
+      const rojo=vencidos>0;
+      return(<div style={{background:rojo?"rgba(220,38,38,.1)":"rgba(180,83,9,.1)",border:"1px solid "+(rojo?"var(--rd)":"var(--am)"),borderRadius:"var(--rs)",padding:"10px 14px",marginBottom:16,fontSize:12,color:rojo?"var(--rd)":"var(--am)"}}>
+        {vencidos>0&&<>{vencidos} habilitacion{vencidos!==1?"es":""} vencida{vencidos!==1?"s":""}</>}
+        {vencidos>0&&proximos>0&&" · "}
+        {proximos>0&&<>{proximos} por vencer en 30 dias</>}
+        {" — revisa la pestana Habilitacion en la ficha de cada trabajador."}
+      </div>);
+    })()}
 
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12,marginBottom:16}}>
       <div className="rd-hover-lift rd-tilt" style={{"--tilt":"-1deg","--tilty":"4px",background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16}}><div style={{fontSize:10,textTransform:"uppercase",color:"var(--tx3)",marginBottom:4,fontWeight:600}}>Total Liquido</div><div style={{fontSize:22,fontWeight:800,letterSpacing:-.3,lineHeight:1.2,color:"var(--gn)"}}>${fmt(totLiq)}</div></div>
