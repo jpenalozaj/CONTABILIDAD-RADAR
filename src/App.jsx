@@ -526,6 +526,7 @@ html,body{margin:0;padding:0;overflow-x:clip}
 .rdlp .rdlp-btn-ghost:hover{background:rgba(255,255,255,.1)}
 .rdlp-nav{position:sticky;top:0;z-index:20;height:72px;display:flex;align-items:center;background:rgba(36,38,43,.7);backdrop-filter:blur(16px) saturate(1.3);-webkit-backdrop-filter:blur(16px) saturate(1.3);border-bottom:1px solid var(--lp-rule)}
 .rdlp-navin{display:flex;align-items:center;gap:40px;width:100%}
+.rdlp-brand{display:flex;align-items:center;gap:10px;color:var(--lp-accent)}
 .rdlp-word{font-family:var(--lp-font-display);font-weight:500;font-size:20px;letter-spacing:-.01em;color:var(--lp-ink)}
 .rdlp-navlinks{display:flex;gap:28px;margin-left:8px;flex:1}
 .rdlp-navlinks a{font-size:15px;color:var(--lp-muted)}
@@ -601,7 +602,7 @@ function LandingP({onEnter}){
   return(<div className="rdlp"><style>{LP_ST}</style>
     <header className="rdlp-nav">
       <div className="rdlp-container rdlp-navin">
-        <div className="rdlp-word">RADAR</div>
+        <div className="rdlp-brand">{IC.radar}<span className="rdlp-word">RADAR</span></div>
         <nav className="rdlp-navlinks">
           <a href="#producto">Producto</a>
           <a href="#seguridad">Seguridad</a>
@@ -680,7 +681,7 @@ function LandingP({onEnter}){
 
     <footer className="rdlp-footer">
       <div className="rdlp-container">
-        <div className="rdlp-word" style={{fontSize:16}}>RADAR</div>
+        <div className="rdlp-brand"><svg viewBox="0 0 32 32" style={{width:20,height:20}}><circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" strokeWidth="1.5" opacity=".3"/><circle cx="16" cy="16" r="9" fill="none" stroke="currentColor" strokeWidth="1.5" opacity=".5"/><circle cx="16" cy="16" r="4" fill="none" stroke="currentColor" strokeWidth="1.5" opacity=".7"/><line x1="16" y1="16" x2="16" y2="2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><circle cx="16" cy="16" r="2" fill="currentColor"/></svg><span className="rdlp-word" style={{fontSize:16}}>RADAR</span></div>
         <div className="rdlp-foot-line">Software contable y tributario para estudios y empresas en Chile.</div>
         <div className="rdlp-legal">Fotografia: Thomas Bresson, <a href="https://commons.wikimedia.org/wiki/File:Vallee-brouillard.jpg" target="_blank" rel="noopener noreferrer">CC BY 3.0, via Wikimedia Commons</a>.</div>
       </div>
