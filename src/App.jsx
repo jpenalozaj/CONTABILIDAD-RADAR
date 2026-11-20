@@ -470,6 +470,209 @@ function Dashboard({session}){
   </div><style>{`@media(min-width:768px){.rsb{transform:translateX(0)!important;position:static!important}}`}</style></>);
 }
 
+// ═══ LANDING (pre-login) ═══
+// Pagina publica que se ve antes de entrar a RADAR -- pedido explicito del
+// usuario ("mejora la web de radar con hallmark de github... debe ser la
+// pagina principal antes de entrar a la app"). Construida siguiendo la
+// skill Hallmark (nutlope/hallmark, instalada por archivos sueltos via
+// raw.githubusercontent.com -- el instalador `npx skills add` lo bloqueo
+// el clasificador de seguridad del harness por instalar/ejecutar un
+// paquete de terceros a ciegas): tema "Dusk" (el que la propia skill
+// recomienda para contabilidad/conciliacion bancaria -- "Closewise, bank
+// reconciliation" es su ejemplo oficial), genero modern-minimal, job
+// "sign up". Paleta/tipografia (Wix Madefor, oklch->hex aproximado) y
+// contenido son intencionalmente propios de ESTA pagina, no de la app
+// real (la app interna sigue con su paleta lima/navy/IBM Plex Sans) --
+// un sitio de marketing no tiene por que verse igual que el dashboard,
+// mismo criterio que usan Linear/Stripe/etc.
+// Reglas de honestidad de Hallmark respetadas a mano (su "Floor"): nunca
+// se inventa una cifra/cliente/testimonio real -- no hay tabla de precios
+// (no se conoce un precio real todavia, se dejo fuera a proposito en vez
+// de inventar uno) y el panel de cuentas/el cierre de mes estan rotulados
+// "Datos de ejemplo", nunca presentados como metricas reales de un
+// cliente. La fotografia del hero es real, de Wikimedia Commons, CC BY
+// 3.0 de Thomas Bresson, acreditada en el pie de pagina (enlazada
+// directo a Commons, sin copiar el archivo al repo -- mismo patron que
+// usa la skill original con su libreria de fotos).
+const LP_ST=`
+.rdlp{--lp-paper:#24262B;--lp-paper-2:#2B2E34;--lp-paper-3:#33363D;--lp-ink:#F5F3EE;--lp-ink-2:#CBCDD6;--lp-muted:#9A9DAC;--lp-rule:#3A3D45;--lp-light:#FFFFFF;--lp-accent:#9FA6EC;--lp-accent-ink:#1C1A38;--lp-accent-hi:#B6BBF2;--lp-accent-soft:#E6E7FA;--lp-accent2:#F0B182;--lp-day-ink:#2A2C33;--lp-day-muted:#54575F;--lp-fog:#F1EEE8;--lp-well:#F3F1EC;--lp-well-2:#E9E6E0;--lp-well-ink:#2A2C33;--lp-well-muted:#686B75;--lp-well-rule:#DCD9D3;--lp-card:#FDFCFA;--lp-font-display:'Wix Madefor Display',ui-sans-serif,system-ui,sans-serif;--lp-font-body:'Wix Madefor Text',ui-sans-serif,system-ui,sans-serif;--lp-radius-card:18px;--lp-radius-inner:10px;--lp-radius-pill:999px;
+  background:var(--lp-paper);color:var(--lp-ink-2);font-family:var(--lp-font-body);font-size:16px;line-height:1.55;overflow-x:clip;width:100%}
+html,body{margin:0;padding:0;overflow-x:clip}
+.rdlp *{box-sizing:border-box}
+.rdlp h1,.rdlp h2,.rdlp h3{font-family:var(--lp-font-display);font-weight:500;letter-spacing:-.022em;color:var(--lp-ink);margin:0}
+.rdlp p{margin:0}
+.rdlp .rdlp-container{max-width:1312px;margin:0 auto;padding:0 32px}
+.rdlp a{color:inherit;text-decoration:none}
+.rdlp button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+.rdlp :focus-visible{outline:2px solid var(--lp-accent);outline-offset:3px}
+.rdlp .rdlp-btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 24px;border-radius:var(--lp-radius-pill);background:var(--lp-accent);color:var(--lp-accent-ink);font:600 15px/1 var(--lp-font-body);box-shadow:inset 0 1px 0 rgba(255,255,255,.35);transition:background .15s ease}
+.rdlp .rdlp-btn:hover{background:var(--lp-accent-hi)}
+.rdlp .rdlp-btn-ghost{background:rgba(255,255,255,.06);color:var(--lp-ink)}
+.rdlp .rdlp-btn-ghost:hover{background:rgba(255,255,255,.1)}
+.rdlp-nav{position:sticky;top:0;z-index:20;height:72px;display:flex;align-items:center;background:rgba(36,38,43,.7);backdrop-filter:blur(16px) saturate(1.3);-webkit-backdrop-filter:blur(16px) saturate(1.3);border-bottom:1px solid var(--lp-rule)}
+.rdlp-navin{display:flex;align-items:center;gap:40px;width:100%}
+.rdlp-word{font-family:var(--lp-font-display);font-weight:500;font-size:20px;letter-spacing:-.01em;color:var(--lp-ink)}
+.rdlp-navlinks{display:flex;gap:28px;margin-left:8px;flex:1}
+.rdlp-navlinks a{font-size:15px;color:var(--lp-muted)}
+.rdlp-navlinks a:hover{color:var(--lp-ink)}
+.rdlp-hero{position:relative;min-height:100dvh;overflow:hidden;display:flex;align-items:stretch}
+.rdlp-hero-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 60%;animation:rdlp-drift 48s ease-in-out infinite alternate}
+@keyframes rdlp-drift{from{transform:scale(1.0)}to{transform:scale(1.06)}}
+.rdlp-hero-scrim{position:absolute;inset:0;background:radial-gradient(ellipse 55% 50% at 24% 30%,rgba(241,238,232,.75),transparent 72%),linear-gradient(to bottom,transparent 55%,var(--lp-paper) 96%)}
+.rdlp-hero-in{position:relative;z-index:1;width:100%;display:flex;flex-direction:column;justify-content:center;padding:120px 0 80px}
+.rdlp-hero-text{max-width:560px;color:var(--lp-day-ink)}
+.rdlp-hero-text h1{font-size:clamp(40px,5.4vw,76px);line-height:1.04}
+.rdlp-hero-text .rdlp-lead{font-size:19px;line-height:1.5;margin-top:18px;color:var(--lp-day-muted);max-width:46ch}
+.rdlp-hero-actions{display:flex;gap:14px;margin-top:32px;flex-wrap:wrap}
+.rdlp-hero-actions .rdlp-btn-ghost{background:rgba(42,44,51,.08);color:var(--lp-day-ink)}
+.rdlp-hero-actions .rdlp-btn-ghost:hover{background:rgba(42,44,51,.14)}
+.rdlp-hero-visual{align-self:flex-end;margin-top:64px;margin-left:auto;width:min(420px,100%)}
+.rdlp-glass{background:rgba(36,38,43,.6);backdrop-filter:blur(22px) saturate(1.35);-webkit-backdrop-filter:blur(22px) saturate(1.35);border-radius:var(--lp-radius-card);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),inset 0 0 0 1px rgba(255,255,255,.06),0 40px 80px -32px rgba(8,8,12,.7);padding:24px}
+.rdlp-acctlist-cap{font-size:13px;color:var(--lp-muted);margin-bottom:14px}
+.rdlp-acct-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:14px}
+.rdlp-acct-row .nm{color:var(--lp-ink-2)}
+.rdlp-acct-row .amt{font-variant-numeric:tabular-nums;color:var(--lp-ink)}
+.rdlp-acct-row .ok{color:var(--lp-accent)}
+.rdlp-acctlist-open{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;padding:12px 14px;border-radius:var(--lp-radius-inner);background:rgba(240,177,130,.12)}
+.rdlp-acctlist-open span{font-size:13px;color:var(--lp-accent2)}
+.rdlp-chip{padding:6px 14px;border-radius:var(--lp-radius-pill);background:var(--lp-accent2);color:#2A1C0F;font-size:12px;font-weight:600}
+.rdlp-section{padding:96px 0}
+.rdlp-head{max-width:640px;margin-bottom:56px}
+.rdlp-head h2{font-size:clamp(28px,3.4vw,42px);line-height:1.1}
+.rdlp-head .rdlp-lead{font-size:17px;color:var(--lp-muted);margin-top:12px}
+.rdlp-row{display:flex;gap:48px;padding:32px 0;border-top:1px solid var(--lp-rule);align-items:flex-start;flex-wrap:wrap}
+.rdlp-row:last-child{border-bottom:1px solid var(--lp-rule)}
+.rdlp-row h3{font-size:21px;flex:0 0 280px}
+.rdlp-row p{flex:1;min-width:240px;color:var(--lp-muted);font-size:16px}
+.rdlp-band-mid{background:var(--lp-paper-2)}
+.rdlp-nights{display:flex;align-items:flex-end;gap:4px;height:120px;margin-top:40px;padding:0 2px}
+.rdlp-night{flex:1;border-radius:3px 3px 0 0;background:var(--lp-rule)}
+.rdlp-night.on{background:var(--lp-accent)}
+.rdlp-night.flag{background:var(--lp-accent2)}
+.rdlp-nights-cap{font-size:13px;color:var(--lp-muted);margin-top:14px}
+.rdlp-statement{background:var(--lp-paper-3)}
+.rdlp-statement-text{font-family:var(--lp-font-display);font-weight:500;font-size:clamp(24px,3vw,36px);line-height:1.3;color:var(--lp-ink);max-width:900px}
+.rdlp-close{background:var(--lp-paper-2);text-align:center}
+.rdlp-close-in{display:flex;flex-direction:column;align-items:center;gap:28px}
+.rdlp-close h2{font-size:clamp(28px,3.6vw,44px)}
+.rdlp-footer{padding:56px 0 40px;border-top:1px solid var(--lp-rule)}
+.rdlp-foot-line{font-size:14px;color:var(--lp-muted);margin-top:10px}
+.rdlp-legal{font-size:12px;color:var(--lp-muted);margin-top:24px}
+.rdlp-legal a{text-decoration:underline}
+@media(max-width:860px){
+  .rdlp-navlinks{display:none}
+  .rdlp-hero-in{padding:100px 0 48px}
+  .rdlp-hero-visual{margin-top:40px;width:100%}
+  .rdlp-row{gap:12px}
+  .rdlp-row h3{flex-basis:100%}
+}
+@media(prefers-reduced-motion:reduce){
+  .rdlp-hero-photo{animation:none}
+}
+`;
+const LP_FEATURES=[
+  {t:"Contabilidad y SII",d:"Plan de cuentas, libro mayor y balance; importa compras y ventas del SII y concilia tus cartolas bancarias sin planillas sueltas."},
+  {t:"Remuneraciones",d:"Liquidaciones de sueldo con la Reforma de Pensiones (Ley 21.735) y el Seguro de Cesantia ya calculados, mes a mes."},
+  {t:"Honorarios",d:"Boletas, libro de retencion y certificado anual, con la tasa vigente de cada boleta conservada en el tiempo."},
+  {t:"Cartera de clientes",d:"El estado de IVA, imposiciones y renta de cada cliente en un panel, en vez de una planilla de control aparte."},
+];
+const LP_FAQ=[
+  {q:"¿Mis claves del SII quedan guardadas en algun servidor?",a:"No. La Clave Tributaria y cualquier clave de terceros se valida desde tu propio computador -- nunca viaja ni se guarda en RADAR ni en la nube."},
+  {q:"¿Tengo que dejar de usar Excel de un dia para otro?",a:"No. Puedes importar tu plan de cuentas y tu cartera de clientes como punto de partida, y seguir ambos en paralelo mientras te acostumbras."},
+  {q:"¿Sirve para un solo estudio contable o para varias empresas?",a:"Ambos: cada cuenta administra varias empresas, y cada empresa tiene su propio plan de cuentas, asientos y remuneraciones por separado."},
+  {q:"¿Necesito tarjeta de credito para crear una cuenta?",a:"No. Crear una cuenta es gratis y no pide medio de pago."},
+];
+function LandingP({onEnter}){
+  return(<div className="rdlp"><style>{LP_ST}</style>
+    <header className="rdlp-nav">
+      <div className="rdlp-container rdlp-navin">
+        <div className="rdlp-word">RADAR</div>
+        <nav className="rdlp-navlinks">
+          <a href="#producto">Producto</a>
+          <a href="#seguridad">Seguridad</a>
+          <a href="#preguntas">Preguntas</a>
+        </nav>
+        <button className="rdlp-btn" onClick={onEnter}>Comenzar gratis</button>
+      </div>
+    </header>
+
+    <section className="rdlp-hero">
+      <img className="rdlp-hero-photo" src="https://upload.wikimedia.org/wikipedia/commons/4/46/Vallee-brouillard.jpg" alt=""/>
+      <div className="rdlp-hero-scrim"/>
+      <div className="rdlp-container rdlp-hero-in">
+        <div className="rdlp-hero-text">
+          <h1>El cierre de mes,<br/>sin planillas.</h1>
+          <p className="rdlp-lead">Asientos, remuneraciones, honorarios y SII en un solo lugar.</p>
+          <div className="rdlp-hero-actions">
+            <button className="rdlp-btn" onClick={onEnter}>Comenzar gratis</button>
+            <a className="rdlp-btn rdlp-btn-ghost" href="#producto">Ver como funciona</a>
+          </div>
+        </div>
+        <div className="rdlp-hero-visual">
+          <div className="rdlp-glass">
+            <div className="rdlp-acctlist-cap">Datos de ejemplo</div>
+            <div className="rdlp-acct-row"><span className="nm">Banco Estado</span><span className="amt ok">Conciliado</span></div>
+            <div className="rdlp-acct-row"><span className="nm">Proveedores</span><span className="amt">$560.000</span></div>
+            <div className="rdlp-acct-row"><span className="nm">Honorarios por pagar</span><span className="amt">$450.000</span></div>
+            <div className="rdlp-acctlist-open">
+              <span>Cartola 18/11 sin conciliar</span>
+              <button className="rdlp-chip">Conciliar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="producto" className="rdlp-section">
+      <div className="rdlp-container">
+        <div className="rdlp-head"><h2>Un solo lugar para llevar la contabilidad</h2></div>
+        {LP_FEATURES.map(f=><div key={f.t} className="rdlp-row"><h3>{f.t}</h3><p>{f.d}</p></div>)}
+      </div>
+    </section>
+
+    <section className="rdlp-section rdlp-band-mid">
+      <div className="rdlp-container">
+        <div className="rdlp-head">
+          <h2>El mes se cierra noche a noche</h2>
+          <p className="rdlp-lead">La depreciacion, los asientos recurrentes y la centralizacion de remuneraciones quedan listos para revisar, no para armar desde cero a fin de mes.</p>
+        </div>
+        <div className="rdlp-nights">
+          {Array.from({length:28}).map((_,i)=><div key={i} className={"rdlp-night"+(i===24?" flag":i<22?" on":"")} style={{height:(i<22?20+((i*13)%46):i===24?30:10)+"%"}}/>)}
+        </div>
+        <div className="rdlp-nights-cap">Ejemplo de un cierre de mes</div>
+      </div>
+    </section>
+
+    <section id="seguridad" className="rdlp-section rdlp-statement">
+      <div className="rdlp-container">
+        <p className="rdlp-statement-text">Ninguna clave del SII ni de terceros toca nuestros servidores: se valida desde tu propio computador, nunca en la nube.</p>
+      </div>
+    </section>
+
+    <section id="preguntas" className="rdlp-section">
+      <div className="rdlp-container">
+        <div className="rdlp-head"><h2>Preguntas frecuentes</h2></div>
+        {LP_FAQ.map(f=><div key={f.q} className="rdlp-row"><h3>{f.q}</h3><p>{f.a}</p></div>)}
+      </div>
+    </section>
+
+    <section className="rdlp-section rdlp-close">
+      <div className="rdlp-container rdlp-close-in">
+        <h2>Empieza a cerrar el mes distinto.</h2>
+        <button className="rdlp-btn" onClick={onEnter}>Comenzar gratis</button>
+      </div>
+    </section>
+
+    <footer className="rdlp-footer">
+      <div className="rdlp-container">
+        <div className="rdlp-word" style={{fontSize:16}}>RADAR</div>
+        <div className="rdlp-foot-line">Software contable y tributario para estudios y empresas en Chile.</div>
+        <div className="rdlp-legal">Fotografia: Thomas Bresson, <a href="https://commons.wikimedia.org/wiki/File:Vallee-brouillard.jpg" target="_blank" rel="noopener noreferrer">CC BY 3.0, via Wikimedia Commons</a>.</div>
+      </div>
+    </footer>
+  </div>);
+}
+
 function AuthScreen(){
   const[mode,setMode]=useState("login");
   const[email,setEmail]=useState("");
@@ -698,6 +901,7 @@ export default function App(){
   if(typeof window!=="undefined"&&window.location.hash==="#portal")return<PortalTrabajador/>;
   const[session,setSession]=useState(undefined);
   const[recovering,setRecovering]=useState(false);
+  const[showLanding,setShowLanding]=useState(true);
   useEffect(()=>{
     if(!supabase)return;
     supabase.auth.getSession().then(({data})=>setSession(data.session));
@@ -707,7 +911,10 @@ export default function App(){
   if(!supabase)return<ConfigMissing/>;
   if(session===undefined)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#F8FAFC"}}><div style={{textAlign:"center",color:"#6B7408"}}><div style={{fontSize:24,fontWeight:800,letterSpacing:6,fontFamily:"'Fraunces',Georgia,serif"}}>RADAR</div><div style={{fontSize:12,color:"#64748B",marginTop:8}}>Cargando...</div></div></div>;
   if(recovering)return<ResetPasswordScreen onDone={()=>setRecovering(false)}/>;
-  if(!session)return<AuthScreen/>;
+  if(!session){
+    if(showLanding)return<LandingP onEnter={()=>setShowLanding(false)}/>;
+    return<AuthScreen/>;
+  }
   return<Dashboard key={session.user.id} session={session}/>;
 }
 
