@@ -13,6 +13,161 @@ que implique guardar una clave "cifrada en el servidor" (como hace Nubox con
 su Integración SII) se descarta por defecto a menos que el usuario decida
 explícitamente lo contrario.
 
+## Plan: RADAR como app full stack propia (servidor + base SaaS)
+
+Pedido del usuario (2026-11-20): "haz un plan para convertirla en una app
+full stack". Aclarado con el usuario qué significa esto acá — confirmó
+**"Servidor/API propia"** + **"Base para venderla como SaaS"** (no eligió
+"puesta en producción real" como foco, aunque varias etapas de abajo la
+requieren como prerequisito práctico).
+
+**Diagnóstico de dónde está parada hoy, antes de planificar**: RADAR ya
+tiene un backend real (Supabase: Postgres + Auth + RLS) — técnicamente ya
+es "full stack" en el sentido mínimo. Lo que falta es una **capa de
+servidor de confianza** entre el navegador y la base de datos. Hoy el
+patrón es 100% "cliente habla directo con Postgres": `src/lib/sync.js`
+hace `upsert`/`delete` directo contra una sola tabla genérica
+(`radar_data`: `user_id`+`collection`+`row_id`+`payload jsonb`, ver
+`supabase/schema.sql`) usando la `anon key`, y la única barrera de
+seguridad es RLS (`auth.uid() = user_id`). Eso alcanza para aislar los
+datos de cada cuenta entre sí, pero **no alcanza** para nada que requiera
+un secreto o una regla que un usuario no deba poder saltarse editando el
+request a mano: hoy no existe ningún `.env` server-side (`.env.example`
+solo tiene las 2 variables públicas de Supabase) — cero secretos en
+ningún lado todavía.
+
+**Decisión de infraestructura para el servidor nuevo**: **Supabase Edge
+Functions** (Deno), no un servidor Node/Express aparte. Razón: reutiliza
+el proyecto de Supabase que ya existe (un solo dashboard, una sola cuenta,
+nada nuevo que Jonas tenga que aprender a administrar además de lo que ya
+usa) y resuelve los 3 casos reales de abajo sin necesitar un servidor
+corriendo 24/7. El frontend (Vite/React) se despliega aparte en Vercel
+como sitio estático — eso ya estaba planificado de una conversación
+anterior (dominio `radarconsultores.cl`), sigue siendo el plan.
+
+### Etapa 0 — Decisiones que solo puede tomar el usuario (bloquean las etapas de SaaS, no las de servidor)
+
+- **Pasarela de pago**: Stripe (soporta Chile, mejor documentación/soporte,
+  cobra en USD salvo que se configure CLP) vs. **Flow.cl** o Webpay
+  (Transbank) — pasarelas chilenas, más naturales para cobrar en CLP a
+  otros contadores y punto importante: **la suscripción de RADAR también
+  necesita emitir boleta/factura electrónica al cliente** (un contador
+  exige su propio comprobante tributario) — Flow ya resuelve esto
+  nativo, Stripe no. Recomendación: Flow.cl, pero es la decisión del
+  usuario, no se elige por defecto.
+- **Modelo de cuenta**: ¿"1 login de Supabase Auth = 1 estudio contable"
+  (como funciona hoy, cada fila ya vive bajo un solo `user_id`, cero
+  migración) o necesita desde ya que 2+ personas del mismo estudio
+  compartan las mismas empresas? Recomendación: arrancar con el modelo de
+  hoy (más simple, ya funciona) y dejar "multi-usuario por estudio" como
+  fase futura solo si un cliente real lo pide — migrar `radar_data` de
+  `user_id` a un `estudio_id` compartido es una migración de datos real,
+  no se hace especulativamente.
+- **Planes y límites**: cuántos tiers (ej. Prueba/Básico/Pro), qué limita
+  cada uno (n° de empresas, n° de trabajadores, uso de IA) y precio —
+  nada de esto se inventa, lo define el usuario.
+
+### Etapa 1 — Primer caso de uso real: "Generar Informe IA" por Edge Function
+
+Ya identificado en una auditoría anterior (`security-review`): las 4
+llamadas a `api.anthropic.com` (botones "Generar Informe IA" de las
+evaluaciones F22/Tributario/Financiero/360, `src/App.jsx` líneas ~1155,
+4429, 4618, 4671) nunca tuvieron API key — siempre caen al informe local
+de respaldo sin avisar. Es el candidato ideal para la primera Edge
+Function: bajo riesgo (no toca el modelo de datos ni RLS), beneficio
+inmediato y visible, y sirve de plantilla para las siguientes.
+- Una función `supabase/functions/generar-informe/index.ts`: recibe las
+  respuestas de la evaluación + tipo (F22/Tributario/Financiero/360),
+  arma el prompt (ya existe, hoy vive duplicado 4 veces en el cliente),
+  llama a la API de Anthropic con la key guardada como secreto de Supabase
+  (`supabase secrets set ANTHROPIC_API_KEY=...`, nunca en `.env` del
+  frontend), devuelve el texto.
+  - Nota (2026-11, misma sesión que el re-tema): los IDs de modelo que ya
+    usa el código (`claude-sonnet-4-6`) hay que revisarlos contra los
+    vigentes al momento de implementar esto — no asumir que siguen
+    sirviendo.
+- Las 4 llamadas del cliente cambian de `fetch("https://api.anthropic.com/v1/messages",...)`
+  a `supabase.functions.invoke("generar-informe",{body:{...}})` —
+  mismo *fallback* a informe local si falla, ya existe el patrón.
+- Verificación posible en este sandbox: solo sintaxis/build — una Edge
+  Function real requiere `supabase functions deploy` y un secreto real,
+  no se puede probar end-to-end sin que el usuario la despliegue a su
+  proyecto.
+
+### Etapa 2 — Modelo de datos de suscripción (tabla separada, nunca en `radar_data`)
+
+Punto de seguridad clave: el estado de la suscripción **no puede** vivir
+como una colección más dentro de `radar_data`, porque esa tabla es
+escribible por el propio usuario vía RLS — cualquiera podría escribirse
+a sí mismo `{"plan":"pro"}` con la `anon key` y su JWT válido. Necesita
+una tabla nueva:
+```sql
+create table suscripciones(
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  plan text not null default 'prueba',
+  estado text not null default 'activa', -- activa|vencida|cancelada
+  proveedor_customer_id text, proveedor_subscription_id text,
+  periodo_fin timestamptz, updated_at timestamptz not null default now()
+);
+-- RLS: el usuario SOLO puede leer su propia fila. Ninguna policy de
+-- insert/update/delete para 'authenticated' -- solo la Edge Function,
+-- con la service_role key (que ignora RLS), puede escribir acá.
+```
+- Una segunda Edge Function `webhook-pago` recibe los webhooks del
+  proveedor elegido en la Etapa 0 (pago exitoso/fallido/cancelación),
+  valida la firma del webhook, y es la única que escribe en
+  `suscripciones` (con la `service_role key`, guardada como secreto,
+  igual que la de Anthropic — nunca en el cliente).
+
+### Etapa 3 — Límites de plan
+
+Una vez que existe `suscripciones`, hacer cumplir los límites del plan
+(ej. "Prueba = máx. 1 empresa") con un trigger de Postgres `BEFORE INSERT`
+sobre `radar_data` cuando `collection='empresas'`, que cuenta cuántas
+empresas tiene ya ese `user_id` y lo compara contra su plan — vive en la
+base de datos, no se puede saltar desde el cliente aunque alguien edite
+el request a mano. Qué limita cada plan es parte de la decisión de la
+Etapa 0.
+
+### Etapa 4 — Onboarding de un nuevo estudio contable
+
+Flujo real para vender a un contador distinto de Jonas: crear cuenta
+(`AuthScreen`, ya existe) → fila en `suscripciones` con plan "prueba" por
+defecto (trigger `on auth.users insert`, o la primera acción post-login)
+→ plan de cuentas IFRS por defecto ya existe como plantilla client-side,
+confirmar que se siembra igual para cualquier cuenta nueva, no solo la de
+Jonas → wizard de primera empresa (ya existe, `openNewE`/similar).
+
+### Etapa 5 (futura, no ahora) — Multi-usuario por estudio
+
+Solo si algún cliente real de RADAR lo pide: migrar de `user_id` a un
+`estudio_id` compartido en `radar_data` + una tabla `miembros_estudio`
+(roles). Es una migración de datos real sobre una tabla que para entonces
+puede tener datos reales de varios estudios — no se hace
+especulativamente, se diseña en detalle recién cuando haga falta.
+
+### Lo que esto NO cambia
+
+- El principio de arquitectura de arriba (ninguna clave real del usuario
+  del SII/Previred/Fintoc toca un servidor) sigue intacto — las Edge
+  Functions nuevas son para *secretos de RADAR* (API key de Anthropic,
+  credenciales del proveedor de pago), nunca para credenciales del
+  usuario. Los puentes locales (`tools/*-local-server.mjs`) no se tocan.
+- El patrón `radar_data` + RLS para las ~20 colecciones de negocio
+  (empresas, asientos, remuneraciones, plan de cuentas, etc.) **no se
+  reescribe** — sigue siendo client-directo-a-Postgres, que es correcto
+  para datos que ya están bien aislados por `user_id`. El servidor nuevo
+  es solo para lo que genuinamente necesita un secreto o una regla que no
+  se le puede confiar al cliente (IA, pagos, límites de plan).
+
+### Orden de ejecución
+
+Etapa 1 es independiente y se puede ejecutar ya (no depende de ninguna
+decisión de la Etapa 0). Las Etapas 2-4 están bloqueadas por las
+decisiones de la Etapa 0 (proveedor de pago, planes/precios). Cada etapa
+se implementa, verifica y commitea por separado, mismo ritmo que el resto
+del proyecto.
+
 ## Fases pendientes (identificadas, no todas diseñadas en detalle)
 
 **Revisión de diseño/correctitud (sesión del 2026-10-06)**
