@@ -78,6 +78,12 @@ button:active:not(:disabled){transform:scale(.97)}
 .rd-hover-lift{transition:transform .2s ease-out,box-shadow .2s ease-out}
 .rd-hover-lift:hover{transform:translateY(-3px)}
 @media (prefers-reduced-motion: reduce){.rd-hover-lift{transition:none}.rd-hover-lift:hover{transform:none}}
+/* Fila dentro de una lista contenida en una sola tarjeta (en vez de una
+   tarjeta+sombra por fila) -- solo un tinte de fondo al pasar el mouse,
+   la jerarquia la da el contenedor, no cada fila. Piloto Remuneraciones. */
+.rd-row-hover{transition:background-color .15s ease-out}
+.rd-row-hover:hover{background:var(--sf2)}
+@media (prefers-reduced-motion: reduce){.rd-row-hover{transition:none}}
 /* Tarjetas deliberadamente desalineadas (leve rotacion/offset via
    variables CSS) en vez de una grilla perfectamente pareja -- se
    enderezan al pasar el mouse, y se aplanan en pantallas chicas donde
@@ -3659,6 +3665,7 @@ function RemP({userId,eObj,setRems,empRems,trabajadores,setTrabajadores,empTraba
     if(empRems.some(r=>r.trabajadorId===id)){rdAlert("Este trabajador tiene liquidaciones guardadas -- no se puede eliminar su ficha. Si ya no trabaja en la empresa, marcalo como inactivo en vez de eliminarlo.");return}
     setTrabajadores(p=>p.filter(t=>t.id!==id));
   };
+  const toggleActivoT=id=>setTrabajadores(p=>p.map(t=>t.id===id?{...t,activo:t.activo===false}:t));
 
   // ── Asistencia (ausencias/licencias/permisos) ──
   const emptyAF=()=>({tipo:"ausencia",fechaInicio:new Date().toISOString().slice(0,10),fechaFin:new Date().toISOString().slice(0,10),observacion:""});
@@ -4064,8 +4071,8 @@ function RemP({userId,eObj,setRems,empRems,trabajadores,setTrabajadores,empTraba
         const tImpY=rowsY.reduce((s,r)=>s+(r.totalImponible||0),0);
         const tImpUnicoY=rowsY.reduce((s,r)=>s+(r.impUnico||0),0);
         const tLiqY=rowsY.reduce((s,r)=>s+(r.liquido||0),0);
-        return(<div key={y} style={{marginBottom:20}}>
-          <div style={{display:"flex",flexWrap:"wrap",gap:12,alignItems:"baseline",justifyContent:"space-between",marginBottom:8,paddingBottom:8,borderBottom:"1px solid var(--bd)"}}>
+        return(<div key={y} style={{marginBottom:24}}>
+          <div style={{display:"flex",flexWrap:"wrap",gap:12,alignItems:"baseline",justifyContent:"space-between",marginBottom:10,paddingBottom:8,borderBottom:"1px solid var(--bd)"}}>
             <div style={{fontSize:13,fontWeight:700}}>{y} <span style={{fontSize:11,fontWeight:400,color:"var(--tx3)"}}>· {rowsY.length} mes{rowsY.length!==1?"es":""} · base para DJ 1887</span></div>
             <div style={{display:"flex",gap:16,fontSize:11,color:"var(--tx3)",flexWrap:"wrap"}}>
               <span>Imponible anual <b style={{color:"var(--tx2)"}}>${fmt(tImpY)}</b></span>
@@ -4073,7 +4080,7 @@ function RemP({userId,eObj,setRems,empRems,trabajadores,setTrabajadores,empTraba
               <span>Liquido <b style={{color:"var(--gn)"}}>${fmt(tLiqY)}</b></span>
             </div>
           </div>
-          <div style={{display:"flex",flexDirection:"column",gap:8}}>{rowsY.map(r=><div key={r.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16,cursor:"pointer"}} onClick={()=>openComprobante(r)}>
+          <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden"}}>{rowsY.map((r,i)=><div key={r.id} className="rd-row-hover" style={{borderTop:i>0?"1px solid var(--bd)":"none",padding:"14px 16px",display:"flex",alignItems:"center",gap:16,cursor:"pointer"}} onClick={()=>openComprobante(r)}>
             <div style={{width:72,flexShrink:0}}><div style={{fontSize:13,fontWeight:600}}>{r.periodo}</div><div style={{fontSize:10,color:"var(--tx3)"}}>Periodo</div></div>
             <div style={{flex:1,minWidth:0}}><div style={{fontSize:12,color:"var(--tx2)"}}>Haberes ${fmt(r.totalHaberes||0)}</div><div style={{fontSize:11,color:"var(--tx3)"}}>Descuentos ${fmt(r.totalDescuentos||0)}</div></div>
             <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,color:"var(--gn)"}}>${fmt(r.liquido||0)}</div><div style={{fontSize:10,color:"var(--tx3)"}}>Liquido</div></div>
@@ -4098,10 +4105,10 @@ function RemP({userId,eObj,setRems,empRems,trabajadores,setTrabajadores,empTraba
         <div style={{display:"flex",gap:12}}><Bt onClick={doSaveAsistencia} p={true}>Guardar</Bt><Bt onClick={()=>setAfm(null)}>Cancelar</Bt></div>
       </div>}
       {eventosAsistencia.length===0?<Ey i="📅" t="Sin eventos de asistencia" d="Este trabajador no tiene ausencias, licencias ni permisos registrados."/>
-      :<div style={{display:"flex",flexDirection:"column",gap:8}}>{eventosAsistencia.map(ev=>{
+      :<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden"}}>{eventosAsistencia.map((ev,i)=>{
         const tipo=TIPOS_ASISTENCIA.find(t=>t.id===ev.tipo);
         const dias=Math.round((new Date(ev.fechaFin+"T12:00:00")-new Date(ev.fechaInicio+"T12:00:00"))/86400000)+1;
-        return(<div key={ev.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16}}>
+        return(<div key={ev.id} className="rd-row-hover" style={{borderTop:i>0?"1px solid var(--bd)":"none",padding:"14px 16px",display:"flex",alignItems:"center",gap:16}}>
           <div style={{width:8,height:8,borderRadius:999,background:tipo?.goce?"var(--gn)":"var(--am)",flexShrink:0}}/>
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontSize:13,fontWeight:600}}>{tipo?.l||ev.tipo}</div>
@@ -4185,10 +4192,11 @@ function RemP({userId,eObj,setRems,empRems,trabajadores,setTrabajadores,empTraba
     </div>}
     {empTrabajadores.length===0?<Ey i="👥" t="Sin trabajadores" d="Crea la ficha de tu primer trabajador."><Bt onClick={openNewT} p={true}>Crear trabajador</Bt></Ey>
     :trabajadoresFiltrados.length===0?<Ey i="🔍" t="Sin resultados" d="Ningun trabajador coincide con la busqueda."/>
-    :<div style={{display:"flex",flexDirection:"column",gap:8}}>{trabajadoresFiltrados.map(t=><div key={t.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16,cursor:"pointer",opacity:t.activo===false?.55:1}} onClick={()=>openEditT(t)}>
+    :<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden"}}>{trabajadoresFiltrados.map((t,i)=><div key={t.id} className="rd-row-hover" style={{borderTop:i>0?"1px solid var(--bd)":"none",padding:"14px 16px",display:"flex",alignItems:"center",gap:16,cursor:"pointer",opacity:t.activo===false?.55:1}} onClick={()=>openEditT(t)}>
       <div style={{width:40,height:40,borderRadius:10,background:t.activo===false?"var(--sf2)":"var(--cy-fill)",border:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:t.activo===false?"var(--tx2)":"#1B4D2E",flexShrink:0}}>{(t.nombre||"?").slice(0,2).toUpperCase()}</div>
-      <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:600}}>{t.nombre} {t.apellido}</div><div style={{fontSize:11,color:"var(--tx3)"}}>{t.cargo||"Sin cargo"} · {t.rut}{t.activo===false?" · Inactivo":""}</div></div>
+      <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:600}}>{t.nombre} {t.apellido}</div><div style={{fontSize:11,color:"var(--tx3)"}}>{t.cargo||"Sin cargo"} · {t.rut}</div></div>
       <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}>${fmt(t.sueldoBase||0)}</div><div style={{fontSize:10,color:"var(--tx3)"}}>Sueldo base</div></div>
+      <div onClick={e=>e.stopPropagation()}><Sw checked={t.activo!==false} onChange={()=>toggleActivoT(t.id)}/></div>
       <button onClick={e=>{e.stopPropagation();openEditT(t,"liquidaciones")}} style={{background:"none",border:"1px solid var(--bd)",borderRadius:"var(--rs)",color:"var(--tx2)",cursor:"pointer",fontSize:11,padding:"6px 10px",flexShrink:0}}>Liquidaciones</button>
       <button onClick={async e=>{e.stopPropagation();if(await rdConfirm("Eliminar la ficha de "+t.nombre+"?"))doDelT(t.id)}} aria-label="Eliminar ficha" style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",opacity:.5,padding:4}}>x</button>
     </div>)}</div>}
@@ -4226,8 +4234,8 @@ function RemP({userId,eObj,setRems,empRems,trabajadores,setTrabajadores,empTraba
       </div>
 
       <div style={{fontSize:12,fontWeight:600,marginBottom:10,color:"var(--tx2)"}}>Entregables del cierre</div>
-      <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:24}}>
-        {entregables.map(en=><div key={en.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:14,display:"flex",alignItems:"center",gap:12,opacity:en.proximamente?.6:1}}>
+      <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden",marginBottom:24}}>
+        {entregables.map((en,i)=><div key={en.id} className="rd-row-hover" style={{borderTop:i>0?"1px solid var(--bd)":"none",padding:"12px 14px",display:"flex",alignItems:"center",gap:12,opacity:en.proximamente?.6:1}}>
           <div style={{width:22,height:22,borderRadius:7,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:en.done?"var(--gn)":"var(--sf2)",border:"1px solid var(--bd)",color:"#fff"}}>{en.done?IC.check:null}</div>
           <div style={{flex:1,minWidth:0}}><div style={{fontSize:12,fontWeight:600,color:"var(--tx2)"}}>{en.l}</div><div style={{fontSize:11,color:"var(--tx3)"}}>{en.sub}</div></div>
           {en.accion&&<Bt onClick={en.accion.onClick}>{en.accion.l}</Bt>}
@@ -4237,7 +4245,7 @@ function RemP({userId,eObj,setRems,empRems,trabajadores,setTrabajadores,empTraba
 
       <div style={{fontSize:12,fontWeight:600,marginBottom:10,color:"var(--tx2)"}}>Liquidaciones de este periodo</div>
       {rowsP.length===0?<Ey i="👥" t="Sin liquidaciones" d="Todavia no hay liquidaciones para este periodo."><Bt onClick={()=>openNewParaPeriodo(p)} p={true}>Crear liquidacion</Bt></Ey>
-      :<div style={{display:"flex",flexDirection:"column",gap:8}}>{rowsP.map(r=><div key={r.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16,cursor:"pointer"}} onClick={()=>openComprobante(r)}>
+      :<div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden"}}>{rowsP.map((r,i)=><div key={r.id} className="rd-row-hover" style={{borderTop:i>0?"1px solid var(--bd)":"none",padding:"14px 16px",display:"flex",alignItems:"center",gap:16,cursor:"pointer"}} onClick={()=>openComprobante(r)}>
         <div style={{width:40,height:40,borderRadius:10,background:"var(--sf2)",border:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"var(--tx2)",flexShrink:0}}>{(r.nombre||"?").slice(0,2).toUpperCase()}</div>
         <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:600}}>{r.nombre}</div><div style={{fontSize:11,color:"var(--tx3)"}}>{r.cargo||"Sin cargo"}</div></div>
         <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,color:"var(--gn)"}}>${fmt(r.liquido||0)}</div><div style={{fontSize:10,color:"var(--tx3)"}}>Liquido</div></div>
@@ -4346,7 +4354,7 @@ function RemP({userId,eObj,setRems,empRems,trabajadores,setTrabajadores,empTraba
           {esActual&&<span style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:.4,color:"var(--on-accent)",background:"var(--cy-fill)",padding:"3px 8px",borderRadius:999}}>Periodo actual</span>}
           <span style={{fontSize:11,color:"var(--tx3)"}}>{rowsP.length} liquidacion{rowsP.length!==1?"es":""} · ${fmt(totP)} liquido</span>
         </div>
-        <div style={{display:"flex",flexDirection:"column",gap:8}}>{rowsP.map(r=><div key={r.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16,cursor:"pointer"}} onClick={()=>openComprobante(r)}>
+        <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden"}}>{rowsP.map((r,i)=><div key={r.id} className="rd-row-hover" style={{borderTop:i>0?"1px solid var(--bd)":"none",padding:"14px 16px",display:"flex",alignItems:"center",gap:16,cursor:"pointer"}} onClick={()=>openComprobante(r)}>
           <div style={{width:40,height:40,borderRadius:10,background:"var(--sf2)",border:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"var(--tx2)",flexShrink:0}}>{(r.nombre||"?").slice(0,2).toUpperCase()}</div>
           <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:600}}>{r.nombre}</div><div style={{fontSize:11,color:"var(--tx3)"}}>{r.cargo||"Sin cargo"}</div></div>
           <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,color:"var(--gn)"}}>${fmt(r.liquido||0)}</div><div style={{fontSize:10,color:"var(--tx3)"}}>Liquido</div></div>
