@@ -3667,13 +3667,14 @@ function RemP({userId,eObj,setRems,empRems,trabajadores,setTrabajadores,empTraba
   const doDelAsistencia=id=>setAsistencia(p=>p.filter(a=>a.id!==id));
 
   // ── Liquidaciones ──
-  const emptyF=()=>({trabajadorId:"",nombre:"",rut:"",cargo:"",afp:"habitat",isapre:"fonasa",contratoTipo:"indefinido",sueldoBase:0,gratificacion:0,bonos:0,horasExtra:0,colacion:0,movilizacion:0,periodo:new Date().toISOString().slice(0,7),diasSinGoce:0,diasLicencia:0,centroCosto:""});
+  const emptyF=()=>({trabajadorId:"",nombre:"",rut:"",cargo:"",afp:"habitat",isapre:"fonasa",contratoTipo:"indefinido",sueldoBase:0,gratificacion:0,bonos:0,horasExtra:0,colacion:0,movilizacion:0,periodo:new Date().toISOString().slice(0,7),diasSinGoce:0,diasLicencia:0,centroCosto:"",asignaciones:[]});
   const elegirTrabajador=idT=>{
     const t=empTrabajadores.find(x=>x.id===idT);
     if(!t){setFm(p=>({...p,trabajadorId:""}));return}
     setFm(p=>{
       const{diasSinGoce,diasLicencia}=diasAsistenciaEnPeriodo(empAsistencia,idT,p.periodo);
-      return{...p,trabajadorId:idT,nombre:t.nombre+(t.apellido?" "+t.apellido:""),rut:t.rut,cargo:t.cargo||"",afp:t.afp||"habitat",isapre:t.isapre||"fonasa",contratoTipo:t.contratoTipo||"indefinido",sueldoBase:t.sueldoBase||0,gratificacion:t.gratificacion||0,colacion:t.colacion||0,movilizacion:t.movilizacion||0,diasSinGoce,diasLicencia,centroCosto:t.centroCosto||""};
+      const diasPeriodo=p.periodo?new Date(parseInt(p.periodo.slice(0,4),10),parseInt(p.periodo.slice(5,7),10),0).getDate():30;
+      return{...p,trabajadorId:idT,nombre:t.nombre+(t.apellido?" "+t.apellido:""),rut:t.rut,cargo:t.cargo||"",afp:t.afp||"habitat",isapre:t.isapre||"fonasa",contratoTipo:t.contratoTipo||"indefinido",sueldoBase:t.sueldoBase||0,gratificacion:t.gratificacion||0,colacion:t.colacion||0,movilizacion:t.movilizacion||0,diasSinGoce,diasLicencia,centroCosto:t.centroCosto||"",asignaciones:[{centroCostoId:t.centroCosto||"",dias:diasPeriodo,monto:null}]};
     });
   };
   const cambiarPeriodoForm=periodo=>{
@@ -3688,7 +3689,11 @@ function RemP({userId,eObj,setRems,empRems,trabajadores,setTrabajadores,empTraba
   const doSave=()=>{
     if(!fm.nombre||!fm.sueldoBase)return;
     const calc=calcRem(fm,eObj);
-    const rec={...fm,...calc,id:eid||uid(),empresaId:eObj.id};
+    // centroCosto queda sincronizado con la primera asignacion -- sigue
+    // siendo lo que lee el comprobante impreso y cualquier vista vieja;
+    // la fuente de verdad real para el reparto contable es "asignaciones".
+    const centroCosto=fm.asignaciones?.[0]?.centroCostoId??fm.centroCosto??"";
+    const rec={...fm,...calc,centroCosto,id:eid||uid(),empresaId:eObj.id};
     if(eid){setRems(p=>p.map(r=>r.id===eid?rec:r));aLog("Liquidacion actualizada",fm.nombre)}
     else{setRems(p=>[...p,rec]);aLog("Liquidacion creada",fm.nombre)}
     setVw("list");
@@ -3704,38 +3709,58 @@ function RemP({userId,eObj,setRems,empRems,trabajadores,setTrabajadores,empTraba
   // codigos como 2.1.08/2.1.05/2.1.07 que no existen, y cargaba todo a
   // 5.2.01 que es una cuenta de grupo, no de detalle -- esos montos no
   // calzaban en el Balance ni en el Libro Mayor). Ademas genera un asiento
-  // separado POR CENTRO DE COSTO (reusa el campo centroCosto que ya existe
-  // en cada asiento), para que el gasto de remuneraciones quede repartido
-  // igual que cualquier otro gasto con centro de costo.
+  // separado POR CENTRO DE COSTO, para que el gasto de remuneraciones
+  // quede repartido igual que cualquier otro gasto con centro de costo.
+  //
+  // Reparto multi-faena: una liquidacion puede tener mas de una
+  // "asignacion" (trabajador repartido entre 2+ faenas el mismo mes, ver
+  // el bloque "Reparto por faena" del formulario). asignacionesDe()
+  // devuelve, para una liquidacion, la lista {ccId,fraction} que reparte
+  // su gasto -- liquidaciones viejas sin "asignaciones" guardado (o con
+  // un solo elemento) caen en el caso simple: una sola fraccion de 1,
+  // comportamiento identico al de antes de este cambio, sin necesidad de
+  // migrar datos.
+  const asignacionesDe=r=>{
+    const asigs=(r.asignaciones&&r.asignaciones.length)?r.asignaciones:[{centroCostoId:r.centroCosto||"",dias:1,monto:null}];
+    if(asigs.length===1)return[{ccId:asigs[0].centroCostoId||"",fraction:1}];
+    const usaMontos=asigs.some(a=>a.monto!=null&&a.monto!=="");
+    const total=usaMontos?asigs.reduce((s,a)=>s+(Number(a.monto)||0),0):asigs.reduce((s,a)=>s+(Number(a.dias)||0),0);
+    if(total<=0)return[{ccId:asigs[0].centroCostoId||"",fraction:1}];
+    return asigs.map(a=>({ccId:a.centroCostoId||"",fraction:(usaMontos?(Number(a.monto)||0):(Number(a.dias)||0))/total}));
+  };
   const descCentralizacion=(p,ccNombre)=>"Centralizacion remuneraciones "+p+(ccNombre?" - "+ccNombre:"");
   const estaCentralizado=p=>empEntries.some(e=>(e.desc||"").startsWith("Centralizacion remuneraciones "+p));
   const genAsiento=(periodo)=>{
     const rowsP=periodo?empRems.filter(r=>r.periodo===periodo):empRems;
     if(rowsP.length===0)return;
     const grupos=new Map();
-    rowsP.forEach(r=>{const key=r.centroCosto||"";if(!grupos.has(key))grupos.set(key,[]);grupos.get(key).push(r)});
+    rowsP.forEach(r=>asignacionesDe(r).forEach(({ccId,fraction})=>{
+      if(!grupos.has(ccId))grupos.set(ccId,[]);
+      grupos.get(ccId).push({r,fraction});
+    }));
     let nCount=Math.max(0,...empEntries.map(e=>parseInt(e.num)||0));
-    let creados=0,saltados=0;
+    const creadosIds=new Set(),saltadosIds=new Set();
     grupos.forEach((rows,ccId)=>{
       const ccNombre=ccId?(ccostos||[]).find(c=>c.id===ccId)?.nombre:"";
-      const desc=descCentralizacion(periodo||rows[0]?.periodo,ccNombre);
-      if(empEntries.some(e=>e.desc===desc)){saltados+=rows.length;return}
-      const tSueldos=rows.reduce((s,r)=>s+(r.totalImponible-r.gratificacion-r.horasExtra),0);
-      const tGrat=rows.reduce((s,r)=>s+r.gratificacion,0);
-      const tHE=rows.reduce((s,r)=>s+r.horasExtra,0);
-      const tNI=rows.reduce((s,r)=>s+r.totalNoImponible,0);
+      const desc=descCentralizacion(periodo||rows[0]?.r?.periodo,ccNombre);
+      if(empEntries.some(e=>e.desc===desc)){rows.forEach(({r})=>saltadosIds.add(r.trabajadorId));return}
+      const suma=campo=>Math.round(rows.reduce((s,{r,fraction})=>s+(campo(r)||0)*fraction,0));
+      const tSueldos=suma(r=>r.totalImponible-r.gratificacion-r.horasExtra);
+      const tGrat=suma(r=>r.gratificacion);
+      const tHE=suma(r=>r.horasExtra);
+      const tNI=suma(r=>r.totalNoImponible);
       // Reforma de Pensiones (Ley 21.735): 100% de cargo del empleador, se
       // suman al mismo gasto previsional y se pagan junto con el resto de
       // las imposiciones en la misma planilla Previred (ver nota en
       // PARAM_PREVIRED_DEFAULT).
-      const tReforma=rows.reduce((s,r)=>s+(r.reformaCuentaObligatoria||0)+(r.expectativaVida||0)+(r.rentabilidadProtegida||0),0);
-      const tSegAccidentes=rows.reduce((s,r)=>s+(r.segAccidentes||0),0);
-      const tCostoPrev=rows.reduce((s,r)=>s+r.cesantiaEmp+r.sisMonto,0)+tReforma+tSegAccidentes;
-      const tAFP=rows.reduce((s,r)=>s+r.afpMonto+r.sisMonto,0);
-      const tSalud=rows.reduce((s,r)=>s+r.saludMonto,0);
-      const tCesPagar=rows.reduce((s,r)=>s+r.cesantiaTrab+r.cesantiaEmp,0);
-      const tImp=rows.reduce((s,r)=>s+r.impUnico,0);
-      const tLiq=rows.reduce((s,r)=>s+r.liquido,0);
+      const tReforma=suma(r=>(r.reformaCuentaObligatoria||0)+(r.expectativaVida||0)+(r.rentabilidadProtegida||0));
+      const tSegAccidentes=suma(r=>r.segAccidentes||0);
+      const tCostoPrev=suma(r=>r.cesantiaEmp+r.sisMonto)+tReforma+tSegAccidentes;
+      const tAFP=suma(r=>r.afpMonto+r.sisMonto);
+      const tSalud=suma(r=>r.saludMonto);
+      const tCesPagar=suma(r=>r.cesantiaTrab+r.cesantiaEmp);
+      const tImp=suma(r=>r.impUnico);
+      const tLiq=suma(r=>r.liquido);
       const lines=[];
       if(tSueldos>0)lines.push({ac:"5.2.01.001",db:tSueldos,cr:0});
       if(tGrat>0)lines.push({ac:"5.2.01.002",db:tGrat,cr:0});
@@ -3754,11 +3779,12 @@ function RemP({userId,eObj,setRems,empRems,trabajadores,setTrabajadores,empTraba
       nCount+=1;
       const entry={id:uid(),empresaId:eObj.id,num:String(nCount).padStart(4,"0"),date:new Date().toISOString().slice(0,10),desc,origen:"centralizacion",centroCosto:ccId||null,lines};
       setEntries(p=>[...p,entry]);
-      aLog("Asiento remuneraciones",rows.length+" trabajadores - "+eObj.name+(ccNombre?" - "+ccNombre:""));
-      creados+=rows.length;
+      const nTrab=new Set(rows.map(({r})=>r.trabajadorId)).size;
+      aLog("Asiento remuneraciones",nTrab+" trabajador"+(nTrab!==1?"es":"")+" - "+eObj.name+(ccNombre?" - "+ccNombre:""));
+      rows.forEach(({r})=>creadosIds.add(r.trabajadorId));
     });
-    if(creados===0){rdAlert(saltados>0?"Este periodo ya estaba centralizado.":"Nada que centralizar.");return}
-    rdAlert("Centralizacion creada: "+creados+" trabajador"+(creados!==1?"es":"")+(saltados>0?" ("+saltados+" ya estaban centralizados)":"")+".");
+    if(creadosIds.size===0){rdAlert(saltadosIds.size>0?"Este periodo ya estaba centralizado.":"Nada que centralizar.");return}
+    rdAlert("Centralizacion creada: "+creadosIds.size+" trabajador"+(creadosIds.size!==1?"es":"")+(saltadosIds.size>0?" ("+saltadosIds.size+" ya estaban centralizados)":"")+".");
   };
 
   const preview=fm.sueldoBase>0?calcRem(fm,eObj):null;
@@ -3784,7 +3810,29 @@ function RemP({userId,eObj,setRems,empRems,trabajadores,setTrabajadores,empTraba
         <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>AFP</label><select value={fm.afp} onChange={e=>setFm(p=>({...p,afp:e.target.value}))}>{Object.keys(params.afp).map(k=><option key={k} value={k}>{k.charAt(0).toUpperCase()+k.slice(1)} ({params.afp[k].r}%)</option>)}</select></div>
         <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Salud</label><select value={fm.isapre} onChange={e=>setFm(p=>({...p,isapre:e.target.value}))}><option value="fonasa">Fonasa (7%)</option><option value="isapre">Isapre</option></select></div>
         <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Contrato</label><select value={fm.contratoTipo} onChange={e=>setFm(p=>({...p,contratoTipo:e.target.value}))}><option value="indefinido">Indefinido</option><option value="fijo">Plazo Fijo</option></select></div>
-        {ccostos?.length>0&&<div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Centro de Costo</label><select value={fm.centroCosto} onChange={e=>setFm(p=>({...p,centroCosto:e.target.value}))}><option value="">Sin centro de costo</option>{ccostos.map(c=><option key={c.id} value={c.id}>{c.nombre}</option>)}</select></div>}
+        {ccostos?.length>0&&<div style={{gridColumn:(fm.asignaciones||[]).length>1?"1/-1":undefined}}>
+          <label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Centro de Costo{(fm.asignaciones||[]).length>1?" — reparto por faena":""}</label>
+          {(fm.asignaciones||[]).length<=1?
+            <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
+              <select value={fm.asignaciones?.[0]?.centroCostoId||""} onChange={e=>setFm(p=>({...p,centroCosto:e.target.value,asignaciones:[{...(p.asignaciones?.[0]||{dias:30,monto:null}),centroCostoId:e.target.value}]}))} style={{flex:1,minWidth:180}}>
+                <option value="">Sin centro de costo</option>
+                {ccostos.map(c=><option key={c.id} value={c.id}>{c.nombre}</option>)}
+              </select>
+              <button type="button" onClick={()=>setFm(p=>({...p,asignaciones:[...(p.asignaciones?.length?p.asignaciones:[{centroCostoId:p.centroCosto||"",dias:30,monto:null}]),{centroCostoId:"",dias:0,monto:null}]}))} style={{fontSize:11,color:"var(--cy)",background:"none",border:"none",cursor:"pointer",whiteSpace:"nowrap",padding:0}}>+ Repartir en mas de una faena</button>
+            </div>
+          :<div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {fm.asignaciones.map((a,i)=><div key={i} style={{display:"flex",gap:8,alignItems:"center"}}>
+              <select value={a.centroCostoId} onChange={e=>setFm(p=>({...p,asignaciones:p.asignaciones.map((x,j)=>j===i?{...x,centroCostoId:e.target.value}:x)}))} style={{flex:2,minWidth:140}}>
+                <option value="">Sin centro de costo</option>
+                {ccostos.map(c=><option key={c.id} value={c.id}>{c.nombre}</option>)}
+              </select>
+              <input type="number" min="0" value={a.dias} onChange={e=>setFm(p=>({...p,asignaciones:p.asignaciones.map((x,j)=>j===i?{...x,dias:parseInt(e.target.value)||0}:x)}))} placeholder="Dias" style={{width:70,textAlign:"right"}}/>
+              <button type="button" onClick={()=>setFm(p=>({...p,asignaciones:p.asignaciones.filter((_,j)=>j!==i)}))} aria-label="Quitar faena" style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",fontSize:14}}>x</button>
+            </div>)}
+            <button type="button" onClick={()=>setFm(p=>({...p,asignaciones:[...p.asignaciones,{centroCostoId:"",dias:0,monto:null}]}))} style={{fontSize:11,color:"var(--cy)",background:"none",border:"none",cursor:"pointer",alignSelf:"flex-start",padding:0}}>+ Agregar faena</button>
+            <div style={{fontSize:10,color:"var(--tx3)"}}>El sueldo se reparte entre las faenas segun los dias indicados (proporcional) al centralizar.</div>
+          </div>}
+        </div>}
       </FG></Sc>
       <Sc t="Haberes Imponibles"><FG>
         <Fi l="Sueldo Base" v={fm.sueldoBase} s={v=>setFm(p=>({...p,sueldoBase:parseInt(v)||0}))} t="number"/>
@@ -3839,7 +3887,8 @@ function RemP({userId,eObj,setRems,empRems,trabajadores,setTrabajadores,empTraba
   // explicita aparte.
   if(vw==="comprobante"){
     const r=fm;
-    const ccNom=r.centroCosto?(ccostos||[]).find(c=>c.id===r.centroCosto)?.nombre:"";
+    const ccIds=[...new Set((r.asignaciones?.length?r.asignaciones:[{centroCostoId:r.centroCosto||""}]).map(a=>a.centroCostoId).filter(Boolean))];
+    const ccNom=ccIds.map(id=>(ccostos||[]).find(c=>c.id===id)?.nombre).filter(Boolean).join(" / ");
     return(<div style={{maxWidth:700,margin:"0 auto"}}>
       <div className="no-print" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
         <Bk onClick={()=>setVw("list")}>Volver</Bk>
