@@ -778,15 +778,17 @@ function ConfigMissing(){
 }
 
 // ═══ PORTAL DEL TRABAJADOR ═══
-// App completamente aparte de la del contador (se entra agregando
-// "#portal" a la URL de RADAR, ver el branch en App() mas abajo). Usa el
-// mismo cliente de Supabase pero una sesion de Auth distinta -- si el
-// contador ya tiene sesion abierta en el mismo navegador, el trabajador
-// debe cerrarla primero o usar otro navegador/ventana privada; eso es
-// comportamiento normal de Supabase Auth (una sesion por almacenamiento
-// del navegador), no una limitacion de RADAR. Toda la seguridad real
-// (que solo vea SUS liquidaciones ya pagadas) vive en las policies RLS
-// de supabase/portal_trabajador.sql, no en este codigo.
+// App completamente aparte de la del contador -- en produccion vive en su
+// propio subdominio (portal.radarconsultores.cl, ver el chequeo de
+// hostname en App() mas abajo); "#portal" en la URL sigue funcionando
+// como respaldo y para desarrollo local (localhost no tiene subdominios).
+// Usa el mismo cliente de Supabase pero una sesion de Auth distinta -- al
+// vivir en un origen (subdominio) separado del dominio principal, el
+// navegador guarda esa sesion aparte de la del contador automaticamente,
+// sin choque aunque ambos esten logueados al mismo tiempo en el mismo
+// navegador. Toda la seguridad real (que solo vea SUS liquidaciones ya
+// pagadas) vive en las policies RLS de supabase/portal_trabajador.sql, no
+// en este codigo.
 function PortalCargando(){
   return(<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)"}}><div style={{textAlign:"center",color:"var(--cy)"}}><div style={{fontSize:20,fontWeight:800,letterSpacing:4,fontFamily:"'Fraunces',Georgia,serif"}}>RADAR</div><div style={{fontSize:12,color:"var(--tx3)",marginTop:8}}>Cargando...</div></div></div>);
 }
@@ -914,7 +916,14 @@ function PortalTrabajador(){
 }
 
 export default function App(){
-  if(typeof window!=="undefined"&&window.location.hash==="#portal")return<PortalTrabajador/>;
+  // Produccion: portal.radarconsultores.cl entra directo al Portal del
+  // Trabajador por subdominio propio (sesion de Auth distinta del
+  // contador -- localStorage se particiona por origen, asi que ya no
+  // chocan en el mismo navegador). "#portal" sigue funcionando en local
+  // (localhost no tiene subdominios) y como respaldo si alguien entra al
+  // dominio principal con el hash a mano.
+  const esPortalTrabajador=typeof window!=="undefined"&&(window.location.hash==="#portal"||window.location.hostname.startsWith("portal."));
+  if(esPortalTrabajador)return<PortalTrabajador/>;
   const[session,setSession]=useState(undefined);
   const[recovering,setRecovering]=useState(false);
   const[showLanding,setShowLanding]=useState(true);
@@ -3527,7 +3536,7 @@ function PortalInviteBox({userId,empresaId,trabajadorId,nombre,aLog}){
     {!loading&&ultima&&!ultima.activo&&<div style={{fontSize:11,color:"var(--tx3)",marginTop:10}}>Acceso revocado. Reactivalo para que {ultima.trabajador_auth_id?"vuelva a entrar con su misma cuenta":"pueda canjear el mismo codigo"}.</div>}
     {!loading&&ultima&&ultima.activo&&ultima.trabajador_auth_id&&<div style={{fontSize:11,color:"var(--gn)",fontWeight:600,marginTop:10}}>✓ Acceso activo desde {fD(ultima.created_at.slice(0,10))}</div>}
     {!loading&&ultima&&ultima.activo&&!ultima.trabajador_auth_id&&<div style={{marginTop:10}}>
-      <div style={{fontSize:11,color:"var(--tx3)",marginBottom:6}}>Invitacion pendiente — dale este codigo a {nombre||"el trabajador"} fuera de RADAR (de palabra, WhatsApp) para que active su acceso en la pantalla del Portal (agrega <code>#portal</code> al final de la URL de RADAR):</div>
+      <div style={{fontSize:11,color:"var(--tx3)",marginBottom:6}}>Invitacion pendiente — dale este codigo a {nombre||"el trabajador"} fuera de RADAR (de palabra, WhatsApp) junto con <strong>portal.radarconsultores.cl</strong> para que active su acceso:</div>
       <div style={{fontSize:20,fontWeight:800,letterSpacing:3,fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:"10px 16px",display:"inline-block"}}>{ultima.codigo}</div>
     </div>}
   </div>);
