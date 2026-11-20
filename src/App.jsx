@@ -11,7 +11,14 @@ const ST = `@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;0,700;1,600&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#F8FAFC;--sf:#FFFFFF;--sf2:#F1F5F9;--bd:#E2E8F0;--bd2:#CBD5E1;--tx:#1B4D2E;--tx2:#4A4836;--tx3:#64748B;--cy:#6B7408;--cy2:#4D5306;--cyg:rgba(107,116,8,.12);--cy-fill:#D4F000;--gn:#0D8A5F;--am:#B45309;--rd:#DC2626;--pu:#5F6B4A;--navy:#0F172A;--blue:#0369A1;--on-navy:#CBD5E1;--r:12px;--rs:8px;--shadow:0 1px 0 rgba(255,255,255,.6) inset,0 10px 24px -10px rgba(40,35,10,.18),0 2px 6px -2px rgba(40,35,10,.12);--glass:rgba(255,255,255,.72);--grad:linear-gradient(135deg,#5C6B04,#8FA300);--grad-gn:linear-gradient(135deg,#0D8A5F,#059669);--grad-am:linear-gradient(135deg,#B45309,#D97706);--grad-pu:linear-gradient(135deg,#4A5538,#6B7A52)}
+:root{--bg:#F8FAFC;--sf:#FFFFFF;--sf2:#F1F5F9;--bd:#E2E8F0;--bd2:#CBD5E1;--tx:#1B4D2E;--tx2:#4A4836;--tx3:#64748B;--cy:#6B7408;--cy2:#4D5306;--cyg:rgba(107,116,8,.12);--cy-fill:#D4F000;--gn:#0D8A5F;--am:#B45309;--rd:#DC2626;--pu:#5F6B4A;--navy:#0F172A;--blue:#0369A1;--on-navy:#CBD5E1;--on-accent:#1B4D2E;--on-accent-2:#4A4836;--r:12px;--rs:8px;--shadow:0 1px 0 rgba(255,255,255,.6) inset,0 10px 24px -10px rgba(40,35,10,.18),0 2px 6px -2px rgba(40,35,10,.12);--glass:rgba(255,255,255,.72);--glass-card:rgba(250,249,240,.65);--grad:linear-gradient(135deg,#5C6B04,#8FA300);--grad-gn:linear-gradient(135deg,#0D8A5F,#059669);--grad-am:linear-gradient(135deg,#B45309,#D97706);--grad-pu:linear-gradient(135deg,#4A5538,#6B7A52);--grad-banner:linear-gradient(135deg,var(--cy-fill),#F2F6D9)}
+/* Modo oscuro -- toggle manual (no sigue prefers-color-scheme del SO),
+   paleta tomada del tema "Dusk" de la landing (ver LandingP/LP_ST) para
+   que al pasar de un modo a otro la app se sienta de la misma familia.
+   --on-accent/--on-accent-2 NO se redefinen aca a proposito: el texto
+   sobre una superficie de acento (boton lima, banner tipo "Buk") sigue
+   siendo oscuro en los dos modos porque esa superficie siempre es clara. */
+:root[data-theme="dark"]{--bg:#24262B;--sf:#2B2E34;--sf2:#33363D;--bd:#3A3D45;--bd2:#474B54;--tx:#F5F3EE;--tx2:#CBCDD6;--tx3:#9A9DAC;--cy:#9FA6EC;--cy2:#7C83D1;--cyg:rgba(159,166,236,.18);--cy-fill:#9FA6EC;--gn:#34D399;--am:#FBBF24;--rd:#F87171;--pu:#A5A9C4;--glass:rgba(36,38,43,.7);--glass-card:rgba(43,46,52,.6);--grad-banner:linear-gradient(135deg,var(--cy-fill),#4C50A3);--shadow:0 1px 0 rgba(255,255,255,.04) inset,0 10px 24px -10px rgba(0,0,0,.55),0 2px 6px -2px rgba(0,0,0,.4)}
 body{font-family:'IBM Plex Sans',system-ui,sans-serif;background:var(--bg);color:var(--tx)}
 input,select,textarea{font-family:inherit;background:var(--sf);border:1px solid var(--bd);color:var(--tx);border-radius:var(--rs);padding:10px 14px;font-size:13px;outline:none;width:100%;transition:border-color .2s}
 input:focus,select:focus,textarea:focus{border-color:var(--cy);box-shadow:0 0 0 3px var(--cyg)}
@@ -55,7 +62,7 @@ button:active:not(:disabled){transform:scale(.97)}
    (la luz "pegando" en el vidrio real -- principio de materiales de
    Apple Design: el borde superior mas claro que el resto). */
 .rd-glass-card{
-  background:rgba(250,249,240,.65);
+  background:var(--glass-card);
   backdrop-filter:blur(22px) saturate(150%);
   -webkit-backdrop-filter:blur(22px) saturate(150%);
   border:1px solid rgba(255,255,255,.35);
@@ -116,6 +123,10 @@ button:active:not(:disabled){transform:scale(.97)}
 function ld(k,fb){try{const r=localStorage.getItem(k);return r?JSON.parse(r):fb}catch{return fb}}
 function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){console.error(e)}}
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+// Lee la preferencia de modo oscuro guardada ANTES de que <style>{ST}</style>
+// exista en el DOM (las 2 pantallas de pre-montaje no pueden usar var()
+// todavia) -- ver el toggle real en Dashboard/App.
+const temaOscuroGuardado=()=>{try{return localStorage.getItem("radar-theme")==="dark"}catch{return false}};
 const SVCS=[{id:"contabilidad",label:"Contabilidad",icon:"\u{1F4CA}",color:"#6B7408"},{id:"tributario",label:"Tributario",icon:"\u{1F4CB}",color:"#5F6B4A"},{id:"auditoria",label:"Auditor\u00eda",icon:"\u{1F50D}",color:"#B45309"},{id:"remuneraciones",label:"Remuneraciones",icon:"\u{1F465}",color:"#0D8A5F"},{id:"consultoria",label:"Consultor\u00eda",icon:"\u{1F4A1}",color:"#EC4899"},{id:"compliance",label:"Compliance",icon:"\u{1F6E1}",color:"#6366F1"}];
 const REGS=["Pro Pyme General (14 D N\u00b03)","Pro Pyme Transparente (14 D N\u00b08)","Semi Integrado (14 A)","Renta Presunta (34)","Otro"];
 const ETYPES=[{id:"renta",label:"RADAR Renta (F22)",icon:"\u{1F4CB}",color:"#5F6B4A",desc:"Revision integral del F22 - ultimos 5 anos tributarios"},{id:"tributario",label:"RADAR Tributario",icon:"\u2696\uFE0F",color:"#6B7408",desc:"Cumplimiento F29, DJ, situacion tributaria"},{id:"financiero",label:"RADAR Financiero",icon:"\u{1F4CA}",color:"#0D8A5F",desc:"Liquidez, endeudamiento, rentabilidad, capital de trabajo"},{id:"auditoria",label:"RADAR Auditoria",icon:"\u{1F50D}",color:"#B45309",desc:"Planificacion, riesgos, COSO",soon:true},{id:"360",label:"RADAR 360",icon:"\u{1F3AF}",color:"#DC2626",desc:"Diagnostico completo - todas las areas"}];
@@ -314,7 +325,7 @@ function mkQ(y){return[
 function visQ(qs,r){const v=[];if(!qs.length)return v;v.push(qs[0]);let c=qs[0];while(c){const rv=r[c.id];if(rv===undefined||rv===""||rv===null)break;const ni=c.nx?c.nx(rv):null;if(!ni)break;const nq=qs.find(q=>q.id===ni);if(!nq)break;v.push(nq);c=nq}return v}
 function ySt(y,r){const e=r["e_"+y];if(!e)return{s:"pend",l:"Sin evaluar",c:"#64748B"};if(e==="aceptada")return{s:"ok",l:"Aceptada",c:"#0D8A5F"};if(e==="no_presentada")return{s:"alert",l:"No presentada",c:"#DC2626"};if(r["obs_"+y])return{s:"rev",l:"Observada - Revisada",c:"#B45309"};return{s:"proc",l:"Observada - En revision",c:"#B45309"}}
 
-function Dashboard({session}){
+function Dashboard({session,tema,toggleTema}){
   const userId=session.user.id;
   const [rdy,setRdy]=useState(false);
   const [pg,setPg]=useState("inicio");
@@ -441,13 +452,17 @@ function Dashboard({session}){
   const carteraIcon=<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{width:20,height:20}}><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/><path d="M2 13h20"/></svg>;
   const nav=[{id:"inicio",label:"Inicio",icon:IC.home},{id:"empresas",label:"Empresas",icon:IC.emp},{id:"cartera",label:"Mis Clientes",icon:carteraIcon},{id:"radar",label:"RADAR",icon:IC.eval},{id:"contabilidad",label:"Contabilidad",icon:IC.contab},{id:"remuneraciones",label:"Remuneraciones",icon:remIcon},{id:"documentos",label:"Documentos",icon:docIcon},{id:"planificacion",label:"Planificacion",icon:planIcon},{id:"portal",label:"Portal Cliente",icon:portalIcon}];
   const go=p=>{if(!nav.find(n=>n.id===p)?.soon){setPg(p);setSb(false)}};
-  if(!rdy)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#F8FAFC"}}><div style={{textAlign:"center",color:"#6B7408"}}><div style={{fontSize:24,fontWeight:800,letterSpacing:6,fontFamily:"'Fraunces',Georgia,serif"}}>RADAR</div><div style={{fontSize:12,color:"#64748B",marginTop:8}}>Cargando...</div></div></div>;
+  if(!rdy)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:temaOscuroGuardado()?"#24262B":"#F8FAFC"}}><div style={{textAlign:"center",color:temaOscuroGuardado()?"#9FA6EC":"#6B7408"}}><div style={{fontSize:24,fontWeight:800,letterSpacing:6,fontFamily:"'Fraunces',Georgia,serif"}}>RADAR</div><div style={{fontSize:12,color:temaOscuroGuardado()?"#9A9DAC":"#64748B",marginTop:8}}>Cargando...</div></div></div>;
   return(<><style>{ST}</style><DialogHost/><div style={{display:"flex",height:"100vh",overflow:"hidden",background:"var(--bg)"}}>
     {sb&&<div onClick={()=>setSb(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:40}}/>}
     <aside className="rsb rd-glass" style={{position:"fixed",zIndex:50,top:0,bottom:0,left:0,width:260,background:"var(--navy)",borderRight:"1px solid var(--bd)",display:"flex",flexDirection:"column",transform:sb?"translateX(0)":"translateX(-100%)",transition:"transform .25s"}}>
       <div style={{padding:"24px 20px 20px",borderBottom:"1px solid rgba(255,255,255,.1)"}}><div style={{display:"flex",alignItems:"center",gap:12}}><div style={{color:"var(--cy-fill)"}}>{IC.radar}</div><div><div style={{fontSize:18,fontWeight:800,letterSpacing:4,color:"var(--cy-fill)",fontFamily:"'Fraunces',Georgia,serif"}}>RADAR</div><div style={{fontSize:10,color:"var(--on-navy)",letterSpacing:1,opacity:.6}}>INTELIGENCIA EMPRESARIAL</div></div></div></div>
       {emps.length>0&&<div style={{padding:"16px 16px 8px"}}><div style={{fontSize:10,textTransform:"uppercase",letterSpacing:1.5,color:"var(--on-navy)",opacity:.6,marginBottom:8,paddingLeft:4}}>Empresa Activa</div><select value={aEmp||""} onChange={e=>setAEmp(e.target.value)} style={{fontSize:12,padding:"8px 12px",background:"var(--sf2)"}}>{emps.map(e=><option key={e.id} value={e.id}>{e.name}</option>)}</select></div>}
       <nav style={{flex:1,padding:12,overflowY:"auto"}}><div style={{display:"flex",flexDirection:"column",gap:2}}>{nav.map(n=><button key={n.id} onClick={()=>go(n.id)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:"var(--rs)",border:"none",width:"100%",textAlign:"left",fontSize:13,fontWeight:pg===n.id?700:400,background:"transparent",color:pg===n.id?"var(--cy-fill)":n.soon?"var(--tx3)":"var(--on-navy)",opacity:n.soon?.5:1,cursor:n.soon?"default":"pointer"}}>{n.icon}<span style={{position:"relative"}}>{n.label}{pg===n.id&&<svg aria-hidden viewBox="0 0 100 8" preserveAspectRatio="none" style={{position:"absolute",left:0,bottom:-6,width:"100%",height:6,overflow:"visible"}}><path d="M0,5 C10,0 20,0 30,5 C40,10 50,10 60,5 C70,0 80,0 90,5 C95,7.5 98,6 100,5" fill="none" stroke="var(--cy-fill)" strokeWidth="1.6" strokeLinecap="round"/></svg>}</span>{n.soon&&<span style={{marginLeft:"auto",fontSize:9,background:"var(--bd)",padding:"2px 6px",borderRadius:4,color:"var(--tx3)"}}>Pronto</span>}</button>)}</div></nav>
+      <div style={{padding:"10px 20px",borderTop:"1px solid rgba(255,255,255,.1)",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+        <span style={{fontSize:11,color:"var(--on-navy)",opacity:.75}}>Modo oscuro</span>
+        <Sw checked={tema==="dark"} onChange={toggleTema}/>
+      </div>
       <div style={{padding:"14px 20px",borderTop:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
         <div style={{fontSize:10,color:"var(--tx3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={session.user.email}>{session.user.email}</div>
         <button onClick={()=>supabase.auth.signOut()} style={{background:"none",border:"none",color:"var(--tx3)",fontSize:10,cursor:"pointer",flexShrink:0,padding:0}}>Salir</button>
@@ -710,7 +725,7 @@ function AuthScreen(){
         </div>
         {mode==="login"&&<button type="button" onClick={()=>{setMode("forgot");setMsg(null)}} style={{background:"none",border:"none",color:"var(--tx3)",fontSize:11,textAlign:"right",width:"100%",marginTop:8,cursor:"pointer",padding:0}}>Olvidaste tu contrasena?</button>}
         {msg&&<div style={{marginTop:14,fontSize:12,padding:"10px 12px",borderRadius:"var(--rs)",background:msg.t==="err"?"rgba(239,68,68,.1)":"rgba(16,185,129,.1)",color:msg.t==="err"?"var(--rd)":"var(--gn)",border:"1px solid "+(msg.t==="err"?"rgba(239,68,68,.2)":"rgba(16,185,129,.2)")}}>{msg.m}</div>}
-        <button type="submit" disabled={busy} style={{marginTop:18,width:"100%",padding:"12px 0",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"#1B4D2E",fontWeight:600,fontSize:13,cursor:busy?"default":"pointer",opacity:busy?.6:1}}>{busy?"Un momento...":mode==="login"?"Iniciar sesion":mode==="signup"?"Crear cuenta":"Enviar link de recuperacion"}</button>
+        <button type="submit" disabled={busy} style={{marginTop:18,width:"100%",padding:"12px 0",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"var(--on-accent)",fontWeight:600,fontSize:13,cursor:busy?"default":"pointer",opacity:busy?.6:1}}>{busy?"Un momento...":mode==="login"?"Iniciar sesion":mode==="signup"?"Crear cuenta":"Enviar link de recuperacion"}</button>
         {mode==="forgot"&&<button type="button" onClick={()=>{setMode("login");setMsg(null)}} style={{background:"none",border:"none",color:"var(--tx3)",fontSize:11,width:"100%",marginTop:10,cursor:"pointer",padding:0}}>Volver a iniciar sesion</button>}
       </form>
     </div>
@@ -737,8 +752,8 @@ function ResetPasswordScreen({onDone}){
         <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Nueva contrasena</label><input type="password" required minLength={6} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Minimo 6 caracteres"/></div>
         {msg&&<div style={{marginTop:14,fontSize:12,padding:"10px 12px",borderRadius:"var(--rs)",background:msg.t==="err"?"rgba(239,68,68,.1)":"rgba(16,185,129,.1)",color:msg.t==="err"?"var(--rd)":"var(--gn)",border:"1px solid "+(msg.t==="err"?"rgba(239,68,68,.2)":"rgba(16,185,129,.2)")}}>{msg.m}</div>}
         {msg?.t==="ok"
-          ?<button type="button" onClick={onDone} style={{marginTop:18,width:"100%",padding:"12px 0",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"#1B4D2E",fontWeight:600,fontSize:13,cursor:"pointer"}}>Ir a RADAR</button>
-          :<button type="submit" disabled={busy} style={{marginTop:18,width:"100%",padding:"12px 0",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"#1B4D2E",fontWeight:600,fontSize:13,cursor:busy?"default":"pointer",opacity:busy?.6:1}}>{busy?"Un momento...":"Guardar nueva contrasena"}</button>}
+          ?<button type="button" onClick={onDone} style={{marginTop:18,width:"100%",padding:"12px 0",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"var(--on-accent)",fontWeight:600,fontSize:13,cursor:"pointer"}}>Ir a RADAR</button>
+          :<button type="submit" disabled={busy} style={{marginTop:18,width:"100%",padding:"12px 0",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"var(--on-accent)",fontWeight:600,fontSize:13,cursor:busy?"default":"pointer",opacity:busy?.6:1}}>{busy?"Un momento...":"Guardar nueva contrasena"}</button>}
       </form>
     </div>
   </>);
@@ -802,7 +817,7 @@ function PortalAuthScreen(){
           <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Contrasena</label><input type="password" required minLength={6} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Minimo 6 caracteres"/></div>
         </div>
         {msg&&<div style={{marginTop:14,fontSize:12,padding:"10px 12px",borderRadius:"var(--rs)",background:msg.t==="err"?"rgba(239,68,68,.1)":"rgba(16,185,129,.1)",color:msg.t==="err"?"var(--rd)":"var(--gn)",border:"1px solid "+(msg.t==="err"?"rgba(239,68,68,.2)":"rgba(16,185,129,.2)")}}>{msg.m}</div>}
-        <button type="submit" disabled={busy} style={{marginTop:18,width:"100%",padding:"12px 0",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"#1B4D2E",fontWeight:600,fontSize:13,cursor:busy?"default":"pointer",opacity:busy?.6:1}}>{busy?"Un momento...":mode==="login"?"Iniciar sesion":"Crear cuenta"}</button>
+        <button type="submit" disabled={busy} style={{marginTop:18,width:"100%",padding:"12px 0",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"var(--on-accent)",fontWeight:600,fontSize:13,cursor:busy?"default":"pointer",opacity:busy?.6:1}}>{busy?"Un momento...":mode==="login"?"Iniciar sesion":"Crear cuenta"}</button>
       </form>
     </div>
   </>);
@@ -828,7 +843,7 @@ function PortalActivarScreen({onActivado}){
         <div style={{fontSize:12,color:"var(--tx3)",marginBottom:16,lineHeight:1.5}}>Ingresa el codigo que te dio tu empleador para ver tus liquidaciones.</div>
         <input value={codigo} onChange={e=>setCodigo(e.target.value.toUpperCase())} placeholder="Codigo de invitacion" style={{fontSize:16,letterSpacing:2,textAlign:"center",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"}}/>
         {msg&&<div style={{marginTop:14,fontSize:12,padding:"10px 12px",borderRadius:"var(--rs)",background:"rgba(239,68,68,.1)",color:"var(--rd)",border:"1px solid rgba(239,68,68,.2)"}}>{msg.m}</div>}
-        <button type="submit" disabled={busy||!codigo.trim()} style={{marginTop:18,width:"100%",padding:"12px 0",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"#1B4D2E",fontWeight:600,fontSize:13,cursor:busy?"default":"pointer",opacity:busy?.6:1}}>{busy?"Activando...":"Activar"}</button>
+        <button type="submit" disabled={busy||!codigo.trim()} style={{marginTop:18,width:"100%",padding:"12px 0",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"var(--on-accent)",fontWeight:600,fontSize:13,cursor:busy?"default":"pointer",opacity:busy?.6:1}}>{busy?"Activando...":"Activar"}</button>
         <button type="button" onClick={()=>supabase.auth.signOut()} style={{background:"none",border:"none",color:"var(--tx3)",fontSize:11,width:"100%",marginTop:12,cursor:"pointer",padding:0}}>Cerrar sesion</button>
       </form>
     </div>
@@ -902,6 +917,12 @@ export default function App(){
   const[session,setSession]=useState(undefined);
   const[recovering,setRecovering]=useState(false);
   const[showLanding,setShowLanding]=useState(true);
+  const[tema,setTema]=useState(()=>temaOscuroGuardado()?"dark":"light");
+  useEffect(()=>{
+    document.documentElement.setAttribute("data-theme",tema);
+    try{localStorage.setItem("radar-theme",tema)}catch{}
+  },[tema]);
+  const toggleTema=()=>setTema(t=>t==="dark"?"light":"dark");
   useEffect(()=>{
     if(!supabase)return;
     supabase.auth.getSession().then(({data})=>setSession(data.session));
@@ -909,13 +930,13 @@ export default function App(){
     return()=>sub.subscription.unsubscribe();
   },[]);
   if(!supabase)return<ConfigMissing/>;
-  if(session===undefined)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#F8FAFC"}}><div style={{textAlign:"center",color:"#6B7408"}}><div style={{fontSize:24,fontWeight:800,letterSpacing:6,fontFamily:"'Fraunces',Georgia,serif"}}>RADAR</div><div style={{fontSize:12,color:"#64748B",marginTop:8}}>Cargando...</div></div></div>;
+  if(session===undefined)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:temaOscuroGuardado()?"#24262B":"#F8FAFC"}}><div style={{textAlign:"center",color:temaOscuroGuardado()?"#9FA6EC":"#6B7408"}}><div style={{fontSize:24,fontWeight:800,letterSpacing:6,fontFamily:"'Fraunces',Georgia,serif"}}>RADAR</div><div style={{fontSize:12,color:temaOscuroGuardado()?"#9A9DAC":"#64748B",marginTop:8}}>Cargando...</div></div></div>;
   if(recovering)return<ResetPasswordScreen onDone={()=>setRecovering(false)}/>;
   if(!session){
     if(showLanding)return<LandingP onEnter={()=>setShowLanding(false)}/>;
     return<AuthScreen/>;
   }
-  return<Dashboard key={session.user.id} session={session}/>;
+  return<Dashboard key={session.user.id} session={session} tema={tema} toggleTema={toggleTema}/>;
 }
 
 // ═══ RECORDATORIOS TRIBUTARIOS ═══
@@ -1132,7 +1153,7 @@ function F22V({ev,upd,del,emp,back}){
       <div style={{borderTop:"1px solid var(--bd)",paddingTop:24,marginTop:8}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16,flexWrap:"wrap",gap:12}}>
           <div><div style={{fontSize:13,fontWeight:700,color:"var(--cy)"}}>Informe Ejecutivo con IA</div><div style={{fontSize:11,color:"var(--tx3)"}}>Generado a partir de los datos de la evaluacion</div></div>
-          <button onClick={genAI} disabled={aiL} style={{display:"flex",alignItems:"center",gap:8,background:aiL?"var(--sf2)":"linear-gradient(135deg, #D4F000, #8FA300)",color:"#1B4D2E",border:"none",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600,cursor:aiL?"wait":"pointer",opacity:aiL?.7:1}}>{aiL?"Generando...":aiR?"Regenerar Informe":"Generar Informe"}</button>
+          <button onClick={genAI} disabled={aiL} style={{display:"flex",alignItems:"center",gap:8,background:aiL?"var(--sf2)":"linear-gradient(135deg, #D4F000, #8FA300)",color:"var(--on-accent)",border:"none",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600,cursor:aiL?"wait":"pointer",opacity:aiL?.7:1}}>{aiL?"Generando...":aiR?"Regenerar Informe":"Generar Informe"}</button>
         </div>
         {aiL&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:32,textAlign:"center"}}><div style={{fontSize:28,marginBottom:12,animation:"rpulse 1.5s infinite"}}>🤖</div><div style={{fontSize:14,fontWeight:600,color:"var(--cy)"}}>Analizando evaluacion...</div><div style={{fontSize:12,color:"var(--tx3)",marginTop:4}}>Revisando datos, contingencias y observaciones profesionales.</div></div>}
         {!aiL&&aiR&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:24}}><div style={{whiteSpace:"pre-wrap",fontSize:13,lineHeight:1.7,color:"var(--tx)"}}>{aiR}</div><div style={{display:"flex",gap:8,marginTop:20,paddingTop:16,borderTop:"1px solid var(--bd)"}}><button onClick={()=>{navigator.clipboard.writeText(aiR);rdAlert("Copiado!")}} style={{display:"flex",alignItems:"center",gap:6,background:"var(--sf)",border:"1px solid var(--bd)",color:"var(--tx2)",padding:"8px 16px",borderRadius:"var(--rs)",fontSize:12}}>Copiar informe</button><button onClick={genAI} style={{display:"flex",alignItems:"center",gap:6,background:"var(--sf)",border:"1px solid var(--bd)",color:"var(--tx2)",padding:"8px 16px",borderRadius:"var(--rs)",fontSize:12}}>Regenerar</button></div></div>}
@@ -1272,7 +1293,7 @@ function CentrosCosto({ccostos,setCcostos,eObj,aLog}){
     <div style={{fontSize:12,color:"var(--tx3)",marginBottom:16}}>Agrupa asientos por proyecto o area (ej. "Obra Maipu", "Administracion") para filtrar el Libro Diario y el Estado de Resultados por separado.</div>
     <div style={{display:"flex",gap:8,marginBottom:16}}>
       <input value={nombre} onChange={e=>setNombre(e.target.value)} onKeyDown={e=>e.key==="Enter"&&agregar()} placeholder="Nombre del centro de costo" style={{maxWidth:300}}/>
-      <button onClick={agregar} disabled={!nombre.trim()} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"#1B4D2E",fontSize:12,fontWeight:600,cursor:nombre.trim()?"pointer":"default",opacity:nombre.trim()?1:.5}}>Agregar</button>
+      <button onClick={agregar} disabled={!nombre.trim()} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"var(--on-accent)",fontSize:12,fontWeight:600,cursor:nombre.trim()?"pointer":"default",opacity:nombre.trim()?1:.5}}>Agregar</button>
     </div>
     {ccostos.length===0?<Ey i="🏷️" t="Sin centros de costo" d="Agrega uno para poder asignarlo a tus asientos."/>:
     <div style={{display:"flex",flexDirection:"column",gap:6}}>{ccostos.map(c=>
@@ -1576,7 +1597,7 @@ function PlanCtas({accts,setAccts,aLog}){
         <tbody>{accts.map(a=><tr key={a.cd} style={{borderBottom:"1px solid "+(a.lv===1?"var(--bd2)":"var(--bd)"),background:a.lv===1?"var(--sf2)":"transparent"}}>
           <td style={{padding:"7px 16px",fontFamily:"'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",fontSize:11,color:a.lv<=2?"var(--cy)":"var(--tx2)"}}>{a.cd}</td>
           <td style={{padding:"7px 8px",paddingLeft:lvPad[a.lv]||56,fontWeight:lvWeight[a.lv]||400,fontSize:lvSize[a.lv]||11}}>
-            {editCd===a.cd?<div style={{display:"flex",gap:6,alignItems:"center"}}><input value={editNm} onChange={e=>setEditNm(e.target.value)} style={{padding:"4px 8px",fontSize:12,background:"var(--sf2)",width:"100%"}} onKeyDown={e=>e.key==="Enter"&&saveEdit()}/><button onClick={saveEdit} style={{background:"var(--cy-fill)",color:"#1B4D2E",border:"none",borderRadius:4,padding:"4px 10px",fontSize:10,whiteSpace:"nowrap"}}>OK</button><button onClick={()=>setEditCd(null)} aria-label="Cancelar" style={{background:"none",border:"none",color:"var(--tx3)",fontSize:10}}>x</button></div>:a.nm}
+            {editCd===a.cd?<div style={{display:"flex",gap:6,alignItems:"center"}}><input value={editNm} onChange={e=>setEditNm(e.target.value)} style={{padding:"4px 8px",fontSize:12,background:"var(--sf2)",width:"100%"}} onKeyDown={e=>e.key==="Enter"&&saveEdit()}/><button onClick={saveEdit} style={{background:"var(--cy-fill)",color:"var(--on-accent)",border:"none",borderRadius:4,padding:"4px 10px",fontSize:10,whiteSpace:"nowrap"}}>OK</button><button onClick={()=>setEditCd(null)} aria-label="Cancelar" style={{background:"none",border:"none",color:"var(--tx3)",fontSize:10}}>x</button></div>:a.nm}
           </td>
           <td style={{padding:"7px 8px",fontSize:10,color:tpC[a.tp]}}>{tpL[a.tp]}</td>
           <td style={{padding:"7px 8px",fontSize:10,textAlign:"center",color:"var(--tx3)"}}>{a.lv}</td>
@@ -2409,7 +2430,7 @@ function CSVSII({setEntries,leafAccts,eObj,empEntries,aLog,reglas,importaciones,
       <div style={{fontSize:15,fontWeight:600,marginBottom:4}}>Paso 2 — Trae los documentos</div>
       <div style={{fontSize:12,color:"var(--tx3)",marginBottom:16}}>Automatico (requiere <code>node tools/sii-local-server.mjs</code> corriendo, ver <code>tools/README.md</code>) o CSV descargado a mano. Ninguno de los dos crea asientos todavia — primero quedan en revision abajo.</div>
       <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap",marginBottom:16}}>
-        <button onClick={()=>importarAuto("compra")} disabled={!!autoBusy} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"#1B4D2E",fontSize:12,fontWeight:600,cursor:autoBusy?"default":"pointer",opacity:autoBusy?.6:1}}>{autoBusy==="compra"?"Trayendo...":"Traer Compras (automatico)"}</button>
+        <button onClick={()=>importarAuto("compra")} disabled={!!autoBusy} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"var(--on-accent)",fontSize:12,fontWeight:600,cursor:autoBusy?"default":"pointer",opacity:autoBusy?.6:1}}>{autoBusy==="compra"?"Trayendo...":"Traer Compras (automatico)"}</button>
         <button onClick={()=>importarAuto("venta")} disabled={!!autoBusy} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--pu)",color:"#fff",fontSize:12,fontWeight:600,cursor:autoBusy?"default":"pointer",opacity:autoBusy?.6:1}}>{autoBusy==="venta"?"Trayendo...":"Traer Ventas (automatico)"}</button>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
@@ -2436,7 +2457,7 @@ function CSVSII({setEntries,leafAccts,eObj,empEntries,aLog,reglas,importaciones,
         {sel[previewTab].size>0&&<div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap",marginBottom:12,background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:12}}>
           <span style={{fontSize:12,color:"var(--tx3)"}}>{sel[previewTab].size} seleccionados</span>
           <select value={cuentaLote[previewTab]} onChange={e=>setCuentaLote(p=>({...p,[previewTab]:e.target.value}))} style={{maxWidth:280}}><option value="">-- Cuenta destino en lote --</option>{leafAccts.map(a=><option key={a.cd} value={a.cd}>{a.cd} {a.nm}</option>)}</select>
-          <button onClick={()=>aplicarCuentaLote(previewTab)} disabled={!cuentaLote[previewTab]} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"#1B4D2E",fontSize:12,fontWeight:600,cursor:cuentaLote[previewTab]?"pointer":"default",opacity:cuentaLote[previewTab]?1:.5}}>Aplicar a seleccionados</button>
+          <button onClick={()=>aplicarCuentaLote(previewTab)} disabled={!cuentaLote[previewTab]} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"var(--on-accent)",fontSize:12,fontWeight:600,cursor:cuentaLote[previewTab]?"pointer":"default",opacity:cuentaLote[previewTab]?1:.5}}>Aplicar a seleccionados</button>
         </div>}
         <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden",marginBottom:12}}>
           <div style={{overflowX:"auto"}}><table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
@@ -2914,7 +2935,7 @@ function ConciliacionP({setEntries,leafAccts,eObj,empEntries,aLog,reglas,setRegl
         <div><label style={{fontSize:11,color:"var(--tx3)",display:"block",marginBottom:6,fontWeight:500}}>Cuenta bancaria (Disponible)</label>
           <select value={cuentaBanco} onChange={e=>setCuentaBanco(e.target.value)}><option value="">-- Selecciona --</option>{bancoLeaf.map(a=><option key={a.cd} value={a.cd}>{a.cd} {a.nm}</option>)}</select>
         </div>
-        <label style={{display:"inline-flex",alignItems:"center",gap:8,background:"var(--cy-fill)",color:"#1B4D2E",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>Cargar cartola<input type="file" accept=".xlsx" onChange={e=>{if(e.target.files?.[0])cargarCartola(e.target.files[0]);e.target.value=""}} style={{display:"none"}}/></label>
+        <label style={{display:"inline-flex",alignItems:"center",gap:8,background:"var(--cy-fill)",color:"var(--on-accent)",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>Cargar cartola<input type="file" accept=".xlsx" onChange={e=>{if(e.target.files?.[0])cargarCartola(e.target.files[0]);e.target.value=""}} style={{display:"none"}}/></label>
       </div>
       {loading&&<div style={{marginTop:12,fontSize:12,color:"var(--tx3)"}}>Leyendo cartola...</div>}
       {err&&<div style={{marginTop:12,background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.3)",borderRadius:"var(--rs)",padding:12,fontSize:12,color:"var(--rd)"}}>{err}</div>}
@@ -2932,7 +2953,7 @@ function ConciliacionP({setEntries,leafAccts,eObj,empEntries,aLog,reglas,setRegl
           <option value="">-- Contracuenta en lote --</option>
           {leafAccts.map(a=><option key={a.cd} value={a.cd}>{a.cd} {a.nm}</option>)}
         </select>
-        <button onClick={aplicarLote} disabled={!cuentaLote||sel.size===0} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"#1B4D2E",fontSize:12,fontWeight:600,cursor:(!cuentaLote||sel.size===0)?"default":"pointer",opacity:(!cuentaLote||sel.size===0)?.5:1}}>Aplicar a seleccionados</button>
+        <button onClick={aplicarLote} disabled={!cuentaLote||sel.size===0} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"var(--on-accent)",fontSize:12,fontWeight:600,cursor:(!cuentaLote||sel.size===0)?"default":"pointer",opacity:(!cuentaLote||sel.size===0)?.5:1}}>Aplicar a seleccionados</button>
       </div>}
 
       <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden",marginBottom:16}}>
@@ -3006,7 +3027,7 @@ function ConciliacionP({setEntries,leafAccts,eObj,empEntries,aLog,reglas,setRegl
         <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
           <input placeholder="Palabra clave en la glosa" value={nuevaPalabra} onChange={e=>setNuevaPalabra(e.target.value)} style={{maxWidth:220}}/>
           <select value={nuevaPalabraCta} onChange={e=>setNuevaPalabraCta(e.target.value)} style={{maxWidth:280}}><option value="">-- Cuenta destino --</option>{leafAccts.map(a=><option key={a.cd} value={a.cd}>{a.cd} {a.nm}</option>)}</select>
-          <button onClick={agregarReglaPalabra} disabled={!nuevaPalabra.trim()||!nuevaPalabraCta} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"#1B4D2E",fontSize:12,fontWeight:600,cursor:(!nuevaPalabra.trim()||!nuevaPalabraCta)?"default":"pointer",opacity:(!nuevaPalabra.trim()||!nuevaPalabraCta)?.5:1}}>Agregar regla</button>
+          <button onClick={agregarReglaPalabra} disabled={!nuevaPalabra.trim()||!nuevaPalabraCta} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"var(--on-accent)",fontSize:12,fontWeight:600,cursor:(!nuevaPalabra.trim()||!nuevaPalabraCta)?"default":"pointer",opacity:(!nuevaPalabra.trim()||!nuevaPalabraCta)?.5:1}}>Agregar regla</button>
         </div>
         {reglasPalabra.length===0?<div style={{fontSize:12,color:"var(--tx3)"}}>Sin reglas por palabra clave todavia.</div>:
         <div style={{display:"flex",flexDirection:"column",gap:6}}>{reglasPalabra.map(r=>
@@ -3094,7 +3115,7 @@ function PorClasificar({empEntries,setEntries,leafAccts,eObj,aLog,reglas,setRegl
         <option value="">-- Cuenta destino --</option>
         {leafAccts.map(a=><option key={a.cd} value={a.cd}>{a.cd} {a.nm}</option>)}
       </select>
-      <button onClick={aplicarLote} disabled={!cuentaLote||sel.size===0} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"#1B4D2E",fontSize:12,fontWeight:600,cursor:(!cuentaLote||sel.size===0)?"default":"pointer",opacity:(!cuentaLote||sel.size===0)?.5:1}}>Reclasificar seleccionados</button>
+      <button onClick={aplicarLote} disabled={!cuentaLote||sel.size===0} style={{padding:"8px 18px",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"var(--on-accent)",fontSize:12,fontWeight:600,cursor:(!cuentaLote||sel.size===0)?"default":"pointer",opacity:(!cuentaLote||sel.size===0)?.5:1}}>Reclasificar seleccionados</button>
     </div>
 
     <div style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",overflow:"hidden",marginBottom:24}}>
@@ -3143,7 +3164,7 @@ function PorClasificar({empEntries,setEntries,leafAccts,eObj,aLog,reglas,setRegl
             <option value="">-- Cuenta --</option>
             {leafAccts.map(a=><option key={a.cd} value={a.cd}>{a.cd} {a.nm}</option>)}
           </select>
-          <button onClick={agregarPalabra} disabled={!nuevaPalabra.trim()||!nuevaPalabraCta} style={{padding:"8px 16px",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"#1B4D2E",fontSize:12,fontWeight:600,cursor:"pointer"}}>Agregar regla</button>
+          <button onClick={agregarPalabra} disabled={!nuevaPalabra.trim()||!nuevaPalabraCta} style={{padding:"8px 16px",borderRadius:"var(--rs)",border:"none",background:"var(--cy-fill)",color:"var(--on-accent)",fontSize:12,fontWeight:600,cursor:"pointer"}}>Agregar regla</button>
         </div>
         {reglas.length===0?<div style={{fontSize:12,color:"var(--tx3)"}}>Sin reglas todavia.</div>:
         <div style={{display:"flex",flexDirection:"column",gap:6}}>{reglas.map(r=>
@@ -3830,11 +3851,11 @@ function RemP({userId,eObj,setRems,empRems,trabajadores,setTrabajadores,empTraba
     return(<div style={{maxWidth:700,margin:"0 auto"}}>
     <Bk onClick={()=>setVw("trabajadores")}>Volver</Bk>
 
-    <div style={{background:"linear-gradient(135deg,var(--cy-fill),#F2F6D9)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20,marginBottom:16,display:"flex",alignItems:"center",gap:16}}>
-      <div style={{width:56,height:56,borderRadius:14,background:"var(--sf)",border:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:700,color:"#1B4D2E",flexShrink:0}}>{(tfm.nombre||"?").slice(0,2).toUpperCase()}</div>
+    <div style={{background:"var(--grad-banner)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20,marginBottom:16,display:"flex",alignItems:"center",gap:16}}>
+      <div style={{width:56,height:56,borderRadius:14,background:"var(--sf)",border:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:700,color:"var(--tx)",flexShrink:0}}>{(tfm.nombre||"?").slice(0,2).toUpperCase()}</div>
       <div style={{minWidth:0,flex:1}}>
-        <div style={{fontSize:18,fontWeight:700,color:"#1B4D2E"}}>{tid?(tfm.nombre+" "+(tfm.apellido||"")):"Nuevo Trabajador"}</div>
-        <div style={{fontSize:12,color:"#4A4836",marginTop:2}}>{tid?[tfm.cargo||"Sin cargo",tfm.rut].filter(Boolean).join(" · "):"Completa la ficha para crearlo"}</div>
+        <div style={{fontSize:18,fontWeight:700,color:"var(--on-accent)"}}>{tid?(tfm.nombre+" "+(tfm.apellido||"")):"Nuevo Trabajador"}</div>
+        <div style={{fontSize:12,color:"var(--on-accent-2)",marginTop:2}}>{tid?[tfm.cargo||"Sin cargo",tfm.rut].filter(Boolean).join(" · "):"Completa la ficha para crearlo"}</div>
       </div>
       {tid&&<span style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:.4,padding:"5px 12px",borderRadius:999,background:tfm.activo!==false?"#1B4D2E":"var(--sf)",color:tfm.activo!==false?"var(--cy-fill)":"var(--tx3)",flexShrink:0}}>{tfm.activo!==false?"Activo":"Inactivo"}</span>}
     </div>
@@ -3999,7 +4020,7 @@ function RemP({userId,eObj,setRems,empRems,trabajadores,setTrabajadores,empTraba
     return(<div style={{maxWidth:900,margin:"0 auto"}}>
     <div style={{display:"flex",flexWrap:"wrap",gap:12,marginBottom:20,alignItems:"center",justifyContent:"space-between"}}>
       <div style={{display:"flex",alignItems:"center",gap:12}}>
-        <div style={{width:42,height:42,borderRadius:12,background:"var(--cy-fill)",color:"#1B4D2E",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{IC.emp}</div>
+        <div style={{width:42,height:42,borderRadius:12,background:"var(--cy-fill)",color:"var(--on-accent)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{IC.emp}</div>
         <div><div style={{fontSize:16,fontWeight:700}}>Trabajadores</div><div style={{fontSize:12,color:"var(--tx3)",marginTop:2}}>{eObj.name} · {activosN} activo{activosN!==1?"s":""}{empTrabajadores.length!==activosN?" · "+(empTrabajadores.length-activosN)+" inactivo"+(empTrabajadores.length-activosN!==1?"s":""):""}</div></div>
       </div>
       <div style={{display:"flex",gap:8}}><Bt onClick={()=>setVw("list")}>Ver liquidaciones</Bt><Bt onClick={openNewT} p={true}>{IC.plus} Nuevo Trabajador</Bt></div>
@@ -4044,10 +4065,10 @@ function RemP({userId,eObj,setRems,empRems,trabajadores,setTrabajadores,empTraba
     return(<div style={{maxWidth:700,margin:"0 auto"}}>
       <Bk onClick={()=>setVw("list")}>Volver</Bk>
 
-      <div style={{background:"linear-gradient(135deg,var(--cy-fill),#F2F6D9)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20,marginBottom:16}}>
-        <div style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:.4,color:"#4A4836",marginBottom:4}}>Proceso de remuneraciones</div>
-        <div style={{fontSize:19,fontWeight:700,color:"#1B4D2E",textTransform:"capitalize"}}>{labelPeriodo(p)}</div>
-        <div style={{fontSize:12,color:"#4A4836",marginTop:2}}>{rowsP.length} liquidacion{rowsP.length!==1?"es":""} · ${fmt(totP)} liquido</div>
+      <div style={{background:"var(--grad-banner)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20,marginBottom:16}}>
+        <div style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:.4,color:"var(--on-accent-2)",marginBottom:4}}>Proceso de remuneraciones</div>
+        <div style={{fontSize:19,fontWeight:700,color:"var(--on-accent)",textTransform:"capitalize"}}>{labelPeriodo(p)}</div>
+        <div style={{fontSize:12,color:"var(--on-accent-2)",marginTop:2}}>{rowsP.length} liquidacion{rowsP.length!==1?"es":""} · ${fmt(totP)} liquido</div>
       </div>
 
       <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap"}}>
@@ -4090,7 +4111,7 @@ function RemP({userId,eObj,setRems,empRems,trabajadores,setTrabajadores,empTraba
   return(<div style={{maxWidth:900,margin:"0 auto"}}>
     <div style={{display:"flex",flexWrap:"wrap",gap:12,marginBottom:20,alignItems:"center",justifyContent:"space-between"}}>
       <div style={{display:"flex",alignItems:"center",gap:12}}>
-        <div style={{width:42,height:42,borderRadius:12,background:"var(--cy-fill)",color:"#1B4D2E",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{IC.contab}</div>
+        <div style={{width:42,height:42,borderRadius:12,background:"var(--cy-fill)",color:"var(--on-accent)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{IC.contab}</div>
         <div><div style={{fontSize:16,fontWeight:700}}>Remuneraciones</div><div style={{fontSize:12,color:"var(--tx3)",marginTop:2}}>{eObj.name}{periodoActual?<> · Periodo vigente <b style={{color:"var(--tx2)",textTransform:"capitalize"}}>{labelPeriodo(periodoActual)}</b></>:null}</div></div>
       </div>
       <Bt onClick={openNew} p={true}>{IC.plus} Nueva Liquidacion</Bt>
@@ -4157,7 +4178,7 @@ function RemP({userId,eObj,setRems,empRems,trabajadores,setTrabajadores,empTraba
       return(<div key={p} style={{marginBottom:20}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8,flexWrap:"wrap"}}>
           <div style={{fontSize:13,fontWeight:700,textTransform:"capitalize"}}>{labelPeriodo(p)}</div>
-          {esActual&&<span style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:.4,color:"#1B4D2E",background:"var(--cy-fill)",padding:"3px 8px",borderRadius:999}}>Periodo actual</span>}
+          {esActual&&<span style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:.4,color:"var(--on-accent)",background:"var(--cy-fill)",padding:"3px 8px",borderRadius:999}}>Periodo actual</span>}
           <span style={{fontSize:11,color:"var(--tx3)"}}>{rowsP.length} liquidacion{rowsP.length!==1?"es":""} · ${fmt(totP)} liquido</span>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:8}}>{rowsP.map(r=><div key={r.id} style={{background:"var(--sf)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:16,display:"flex",alignItems:"center",gap:16,cursor:"pointer"}} onClick={()=>openComprobante(r)}>
@@ -4254,7 +4275,7 @@ function TribV({ev,upd,del,emp,back}){
       <div style={{borderTop:"1px solid var(--bd)",paddingTop:24,marginTop:8}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16,flexWrap:"wrap",gap:12}}>
           <div><div style={{fontSize:13,fontWeight:700,color:"var(--cy)"}}>Informe con IA</div></div>
-          <button onClick={genAI} disabled={aiL} style={{display:"flex",alignItems:"center",gap:8,background:aiL?"var(--sf2)":"linear-gradient(135deg, #D4F000, #8FA300)",color:"#1B4D2E",border:"none",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600,cursor:aiL?"wait":"pointer",opacity:aiL?.7:1}}>{aiL?"Generando...":aiR?"Regenerar":"Generar Informe"}</button>
+          <button onClick={genAI} disabled={aiL} style={{display:"flex",alignItems:"center",gap:8,background:aiL?"var(--sf2)":"linear-gradient(135deg, #D4F000, #8FA300)",color:"var(--on-accent)",border:"none",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600,cursor:aiL?"wait":"pointer",opacity:aiL?.7:1}}>{aiL?"Generando...":aiR?"Regenerar":"Generar Informe"}</button>
         </div>
         {aiL&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:32,textAlign:"center"}}><div style={{fontSize:28,marginBottom:12,animation:"rpulse 1.5s infinite"}}>🤖</div><div style={{fontSize:14,fontWeight:600,color:"var(--cy)"}}>Analizando...</div></div>}
         {!aiL&&aiR&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:24}}><div style={{whiteSpace:"pre-wrap",fontSize:13,lineHeight:1.7}}>{aiR}</div><div style={{display:"flex",gap:8,marginTop:16,paddingTop:12,borderTop:"1px solid var(--bd)"}}><button onClick={()=>{navigator.clipboard.writeText(aiR);rdAlert("Copiado!")}} style={{background:"var(--sf)",border:"1px solid var(--bd)",color:"var(--tx2)",padding:"8px 16px",borderRadius:"var(--rs)",fontSize:12}}>Copiar</button></div></div>}
@@ -4437,7 +4458,7 @@ function FinV({ev,upd,del,emp,back}){
           return<div key={q.id} style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,padding:"6px 0",borderBottom:"1px solid var(--bd)",fontSize:12}}><span style={{color:"var(--tx2)"}}>{q.text}</span><span style={{fontWeight:500}}>{ol}</span></div>})}</div>)}
       <div style={{borderTop:"1px solid var(--bd)",paddingTop:24}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}><div style={{fontSize:13,fontWeight:700,color:"var(--cy)"}}>Informe con IA</div>
-          <button onClick={genAI} disabled={aiL} style={{background:aiL?"var(--sf2)":"linear-gradient(135deg,#D4F000,#34D399)",color:"#1B4D2E",border:"none",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600,cursor:aiL?"wait":"pointer"}}>{aiL?"Generando...":aiR?"Regenerar":"Generar Informe"}</button></div>
+          <button onClick={genAI} disabled={aiL} style={{background:aiL?"var(--sf2)":"linear-gradient(135deg,#D4F000,#34D399)",color:"var(--on-accent)",border:"none",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600,cursor:aiL?"wait":"pointer"}}>{aiL?"Generando...":aiR?"Regenerar":"Generar Informe"}</button></div>
         {aiL&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:32,textAlign:"center"}}><div style={{fontSize:28,animation:"rpulse 1.5s infinite"}}>🤖</div></div>}
         {!aiL&&aiR&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:24}}><div style={{whiteSpace:"pre-wrap",fontSize:13,lineHeight:1.7}}>{aiR}</div><button onClick={()=>{navigator.clipboard.writeText(aiR);rdAlert("Copiado!")}} style={{marginTop:16,background:"var(--sf)",border:"1px solid var(--bd)",color:"var(--tx2)",padding:"8px 16px",borderRadius:"var(--rs)",fontSize:12}}>Copiar</button></div>}
       </div>
@@ -4487,7 +4508,7 @@ function R360V({ev,upd,del,emp,back}){
       <div style={{textAlign:"center",marginBottom:24}}><div style={{fontSize:10,color:"var(--tx3)",textTransform:"uppercase",letterSpacing:2}}>Evaluacion RADAR</div><div style={{fontSize:22,fontWeight:700,letterSpacing:-.3,lineHeight:1.15,marginTop:4}}>{emp.name}</div><div style={{fontSize:13,color:"var(--rd)",fontWeight:600,marginTop:4}}>RADAR 360 - Diagnostico Integral</div><div style={{fontSize:11,color:"var(--tx3)",marginTop:4}}>{answered}/{totalQ} respuestas</div></div>
       <div style={{borderTop:"1px solid var(--bd)",paddingTop:24}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}><div style={{fontSize:13,fontWeight:700,color:"var(--cy)"}}>Informe 360 con IA</div>
-          <button onClick={genAI} disabled={aiL} style={{background:aiL?"var(--sf2)":"linear-gradient(135deg,#F87171,#8FA300)",color:"#1B4D2E",border:"none",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600,cursor:aiL?"wait":"pointer"}}>{aiL?"Generando...":aiR?"Regenerar":"Generar Informe 360"}</button></div>
+          <button onClick={genAI} disabled={aiL} style={{background:aiL?"var(--sf2)":"linear-gradient(135deg,#F87171,#8FA300)",color:"var(--on-accent)",border:"none",padding:"10px 20px",borderRadius:"var(--rs)",fontSize:13,fontWeight:600,cursor:aiL?"wait":"pointer"}}>{aiL?"Generando...":aiR?"Regenerar":"Generar Informe 360"}</button></div>
         {aiL&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:32,textAlign:"center"}}><div style={{fontSize:28,animation:"rpulse 1.5s infinite"}}>🎯</div><div style={{fontSize:14,fontWeight:600,color:"var(--cy)",marginTop:8}}>Generando diagnostico integral...</div></div>}
         {!aiL&&aiR&&<div style={{background:"var(--sf2)",border:"1px solid var(--bd)",borderRadius:"var(--rs)",padding:24}}><div style={{whiteSpace:"pre-wrap",fontSize:13,lineHeight:1.7}}>{aiR}</div><button onClick={()=>{navigator.clipboard.writeText(aiR);rdAlert("Copiado!")}} style={{marginTop:16,background:"var(--sf)",border:"1px solid var(--bd)",color:"var(--tx2)",padding:"8px 16px",borderRadius:"var(--rs)",fontSize:12}}>Copiar</button></div>}
       </div>
@@ -5003,11 +5024,11 @@ function CarteraClienteDetalle({cliente,setCarteraClientes,carteraIva,setCartera
   return(<div style={{maxWidth:900,margin:"0 auto"}}>
     <Bk onClick={onBack}>Volver a Cartera</Bk>
 
-    <div style={{background:"linear-gradient(135deg,var(--cy-fill),#F2F6D9)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20,marginBottom:16,display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
-      <div style={{width:56,height:56,borderRadius:14,background:"var(--sf)",border:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:700,color:"#1B4D2E",flexShrink:0}}>{(cliente.nombre||"?").slice(0,2).toUpperCase()}</div>
+    <div style={{background:"var(--grad-banner)",border:"1px solid var(--bd)",borderRadius:"var(--r)",boxShadow:"var(--shadow)",padding:20,marginBottom:16,display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+      <div style={{width:56,height:56,borderRadius:14,background:"var(--sf)",border:"1px solid var(--bd)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:700,color:"var(--tx)",flexShrink:0}}>{(cliente.nombre||"?").slice(0,2).toUpperCase()}</div>
       <div style={{minWidth:0,flex:1}}>
-        <div style={{fontSize:18,fontWeight:700,color:"#1B4D2E"}}>{cliente.nombre}</div>
-        <div style={{fontSize:12,color:"#4A4836",marginTop:2}}>{[cliente.tipo,cliente.rut,cliente.responsable].filter(Boolean).join(" · ")}</div>
+        <div style={{fontSize:18,fontWeight:700,color:"var(--on-accent)"}}>{cliente.nombre}</div>
+        <div style={{fontSize:12,color:"var(--on-accent-2)",marginTop:2}}>{[cliente.tipo,cliente.rut,cliente.responsable].filter(Boolean).join(" · ")}</div>
       </div>
       <span style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:.4,padding:"5px 12px",borderRadius:999,background:cliente.activo!==false?"#1B4D2E":"var(--sf)",color:cliente.activo!==false?"var(--cy-fill)":"var(--tx3)",flexShrink:0}}>{cliente.activo!==false?"Activo":"Inactivo"}</span>
       <Bt onClick={()=>{setFm(cliente);setEditing(e=>!e)}}>Editar</Bt>
